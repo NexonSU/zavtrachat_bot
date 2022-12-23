@@ -1,3 +1,10 @@
+# vscode
+.vscode
+
+# zavtrachat_bot
+zavtrachat_bot
+config.json
+
 # Prerequisites
 *.d
 
