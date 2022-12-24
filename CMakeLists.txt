@@ -16,6 +16,6 @@ if (CURL_FOUND)
     add_definitions(-DHAVE_CURL)
 endif()
 
-add_executable(zavtrachat_bot src/main.cpp src/commands/marco.cpp src/utils/config.cpp)
+add_executable(zavtrachat_bot main.cpp)
 
 target_link_libraries(zavtrachat_bot /usr/lib64/libTgBot.so ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${CURL_LIBRARIES})
