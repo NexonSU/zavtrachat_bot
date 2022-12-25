@@ -28,6 +28,7 @@ namespace utils
         int max_connections;
         std::string currency_key;
         std::string releases_url;
-        void load(const std::string &filename);
     };
+
+    configuration loadConfig(const std::string &filename);
 }

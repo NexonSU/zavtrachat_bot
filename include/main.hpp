@@ -8,3 +8,7 @@
 
 using namespace std;
 using namespace TgBot;
+
+utils::configuration config = utils::loadConfig("config.json");
+
+Bot bot(config.token);

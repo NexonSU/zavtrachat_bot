@@ -1,12 +1,7 @@
 #include "main.hpp"
 
 int main() {
-    utils::config.load("config.json");
-
-    Bot bot(utils::config.token);
-    bot.getEvents().onCommand("marco", [&bot](Message::Ptr message) {
-        commands::marco(&bot, message);
-    });
+    bot.getEvents().onCommand("marco", commands::marco);
 
     signal(SIGINT, [](int s) {
         printf("SIGINT got\n");
