@@ -1,22 +1,11 @@
-#include <cstdio>
-#include <cstdlib>
-#include <exception>
-#include <string>
-#include <tgbot/tgbot.h>
-#include "utils.h"
-#include "commands.h"
-
-using namespace std;
-using namespace TgBot;
+#include "main.hpp"
 
 int main() {
-    configuration config;
-    config.load("config.json");
-    string token(config.token);
+    utils::config.load("config.json");
 
-    Bot bot(token);
+    Bot bot(utils::config.token);
     bot.getEvents().onCommand("marco", [&bot](Message::Ptr message) {
-        bot.getApi().sendMessage(message->chat->id, Marco(), true, message->messageId);
+        bot.getApi().sendMessage(message->chat->id, commands::marco(), true, message->messageId);
     });
 
     signal(SIGINT, [](int s) {
