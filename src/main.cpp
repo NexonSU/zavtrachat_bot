@@ -5,7 +5,7 @@ int main() {
 
     Bot bot(utils::config.token);
     bot.getEvents().onCommand("marco", [&bot](Message::Ptr message) {
-        bot.getApi().sendMessage(message->chat->id, commands::marco(), true, message->messageId);
+        commands::marco(&bot, message);
     });
 
     signal(SIGINT, [](int s) {

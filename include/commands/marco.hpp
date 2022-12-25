@@ -1,5 +1,5 @@
-#include <string>
+#include <tgbot/tgbot.h>
 
 struct commands {
-    static std::string marco();
+    static void marco(TgBot::Bot *bot, TgBot::Message::Ptr message);
 };

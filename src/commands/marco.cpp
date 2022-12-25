@@ -1,6 +1,6 @@
 #include "commands/marco.hpp"
 
-std::string commands::marco() 
+void commands::marco(TgBot::Bot *bot, TgBot::Message::Ptr message) 
 {
-    return "Polo!";
+    bot->getApi().sendMessage(message->chat->id, "Polo!", true, message->messageId);
 }
