@@ -16,9 +16,8 @@ if (CURL_FOUND)
     add_definitions(-DHAVE_CURL)
 endif()
 
-file(GLOB commands "commands/*.cpp")
-file(GLOB utils "utils/*.cpp")
+file(GLOB_RECURSE sources src/*.cpp)
 
-add_executable(zavtrachat_bot src/main.cpp ${commands} ${utils})
+add_executable(zavtrachat_bot ${sources})
 
 target_link_libraries(zavtrachat_bot /usr/lib64/libTgBot.so ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${CURL_LIBRARIES})
