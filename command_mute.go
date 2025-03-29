@@ -22,7 +22,7 @@ func Mute(context tele.Context) error {
 	TargetChatMember.CanSendMessages = false
 	TargetChatMember.RestrictedUntil = untildate
 	if Bot.Restrict(context.Chat(), TargetChatMember) != nil {
-		return ReplyAndRemove(fmt.Sprintf("Ошибка ограничения пользователя:\n<code>%v</code>", err.Error()), context)
+		return ReplyAndRemove("Ошибка ограничения пользовател", context)
 	}
 	return ReplyAndRemove(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> больше не может отправлять сообщения%v.", target.ID, UserFullName(&target), RestrictionTimeMessage(untildate)), context)
 }

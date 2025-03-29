@@ -22,9 +22,6 @@ func DelBet(context tele.Context) error {
 	bet.UserID = context.Sender().ID
 	bet.Timestamp = date.Unix()
 	bet.Text = strings.Join(context.Args()[1:], " ")
-	if err != nil {
-		return err
-	}
 	result := DB.Delete(&bet)
 	if result.RowsAffected != 0 {
 		return ReplyAndRemove(fmt.Sprintf("Ставка удалена:\n%v, %v:<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), UserFullName(context.Sender()), html.EscapeString(bet.Text)), context)
