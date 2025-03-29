@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"image"
 	_ "image/png"
-	"os"
+	"strings"
 
 	"github.com/fogleman/gg"
 	tele "gopkg.in/telebot.v3"
@@ -16,13 +17,9 @@ func Bonk(context tele.Context) error {
 		return ReplyAndRemove("Просто отправь <code>/bonk</code> в ответ на чье-либо сообщение.", context)
 	}
 	context.Delete()
-	imfile, err := os.Open("file_bonk.png")
-	if err != nil {
-		return err
-	}
-	defer imfile.Close()
 
-	im, _, err := image.Decode(imfile)
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(bonk_png))
+	im, _, err := image.Decode(reader)
 	if err != nil {
 		return err
 	}
@@ -30,7 +27,7 @@ func Bonk(context tele.Context) error {
 	dc := gg.NewContextForImage(im)
 	dc.DrawImage(im, 0, 0)
 	dc.SetRGB(0, 0, 0)
-	err = dc.LoadFontFace("file_impact.ttf", 20)
+	err = dc.LoadFontFace(Config.FontPath, 20)
 	if err != nil {
 		return err
 	}
