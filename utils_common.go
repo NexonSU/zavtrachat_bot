@@ -206,7 +206,7 @@ func Remove(bot *gotgbot.Bot, context *ext.Context) error {
 
 func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.Chat.Id == Config.ReserveChat {
-		context.EffectiveChat.Unban(bot, context.Message.From.Id, nil)
+		context.EffectiveChat.Unban(bot, context.ChatMember.From.Id, nil)
 	}
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
