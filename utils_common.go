@@ -205,8 +205,8 @@ func Remove(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
-	if context.Message.Chat.Id == Config.ReserveChat {
-		bot.UnbanChatMember(context.Message.Chat.Id, context.ChatMember.From.Id, nil)
+	if context.EffectiveChat.Id == Config.ReserveChat {
+		bot.UnbanChatMember(context.EffectiveChat.Id, context.ChatMember.From.Id, nil)
 	}
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
@@ -219,14 +219,14 @@ func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func OnUserJoined(bot *gotgbot.Bot, context *ext.Context) error {
-	if context.Message.Chat.Id == Config.ReserveChat {
+	if context.EffectiveChat.Id == Config.ReserveChat {
 		context.Message.Delete(bot, nil)
 	}
 	return nil
 }
 
 func OnUserLeft(bot *gotgbot.Bot, context *ext.Context) error {
-	if context.Message.Chat.Id == Config.ReserveChat {
+	if context.EffectiveChat.Id == Config.ReserveChat {
 		context.Message.Delete(bot, nil)
 	}
 	return nil
@@ -234,7 +234,7 @@ func OnUserLeft(bot *gotgbot.Bot, context *ext.Context) error {
 
 func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	//remove message from reservechat
-	if context.Message.Chat.Id == Config.ReserveChat {
+	if context.EffectiveChat.Id == Config.ReserveChat {
 		context.Message.Delete(bot, nil)
 	}
 
