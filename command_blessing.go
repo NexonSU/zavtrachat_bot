@@ -33,7 +33,7 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	if ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" || context.Message.From.Id == 825209730 {
+	if ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" || context.Message.From.Id == Config.SysAdmin {
 		var userID int64
 		rows, err := DB.Model(&Stats{}).Where("stat_type = 3").Order("last_update desc").Select("context_id").Limit(100).Rows()
 		if err != nil {
