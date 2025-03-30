@@ -158,8 +158,8 @@ func FindUserInMessage(context ext.Context) (gotgbot.User, int64, error) {
 }
 
 func GetUserFromDB(findstring string) (gotgbot.User, error) {
-	var user gotgbot.User
 	var err error = nil
+	user := &gotgbot.User{}
 	if string(findstring[0]) == "@" {
 		user.Username = findstring[1:]
 	} else {
@@ -169,7 +169,7 @@ func GetUserFromDB(findstring string) (gotgbot.User, error) {
 	if result.Error != nil {
 		err = result.Error
 	}
-	return user, err
+	return *user, err
 }
 
 // Forward channel post to chat

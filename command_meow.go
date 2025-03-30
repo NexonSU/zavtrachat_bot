@@ -19,7 +19,7 @@ func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 
 	//get channel object
 	if channel == nil {
-		channelResolve, err := api.ContactsResolveUsername(GotdContext, "imacat")
+		channelResolve, err := api.ContactsResolveUsername(GotdContext, &tg.ContactsResolveUsernameRequest{Username: "imacat"})
 		if err != nil {
 			return err
 		}
