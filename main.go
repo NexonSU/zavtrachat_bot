@@ -100,7 +100,7 @@ func main() {
 	sort.Slice(commandMemberArray, func(i, j int) bool {
 		return commandMemberArray[i].Command < commandMemberArray[j].Command
 	})
-	_, err := Bot.SetMyCommands(commandMemberArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeDefault{}})
+	_, err := Bot.SetMyCommands(commandMemberArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllGroupChats{}})
 	if err != nil {
 		log.Fatal(err)
 	}
