@@ -204,7 +204,7 @@ func Remove(bot *gotgbot.Bot, context *ext.Context) error {
 	return err
 }
 
-func RemoveMessageAndUserFromReserveChat(bot *gotgbot.Bot, context *ext.Context) error {
+func RemoveJoinMessageAndJoinUser(bot *gotgbot.Bot, context *ext.Context) error {
 	context.Message.Delete(bot, nil)
 	for _, user := range context.Message.NewChatMembers {
 		context.EffectiveChat.Unban(bot, user.Id, nil)
