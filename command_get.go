@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -52,94 +54,102 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 
 // Answer on inline get query
 func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
-	return nil
-	// var count int64
-	// query := strings.ToLower(context.Query().Text)
-	// if query == "" {
-	// 	return context.Answer(&gotgbot.QueryResponse{})
-	// }
-	// gets := DB.Limit(10).Model(Get{}).Where("name LIKE ?", "%"+query+"%").Count(&count)
-	// get_rows, err := gets.Rows()
-	// if err != nil {
-	// 	return err
-	// }
-	// if count > 10 {
-	// 	count = 10
-	// }
-	// results := make(gotgbot.Results, count)
-	// var i int
-	// for get_rows.Next() {
-	// 	var get Get
-	// 	err := DB.ScanRows(get_rows, &get)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	if get.Title == "" {
-	// 		get.Title = get.Name
-	// 	}
-	// 	switch {
-	// 	case get.Type == "Animation":
-	// 		results[i] = &gotgbot.GifResult{
-	// 			Title:   get.Title,
-	// 			Caption: get.Caption,
-	// 			Cache:   get.Data,
-	// 		}
-	// 	case get.Type == "Audio":
-	// 		results[i] = &gotgbot.DocumentResult{
-	// 			Title:       get.Title,
-	// 			Caption:     get.Caption,
-	// 			Cache:       get.Data,
-	// 			Description: get.Caption,
-	// 		}
-	// 	case get.Type == "Photo":
-	// 		results[i] = &gotgbot.PhotoResult{
-	// 			Title:       get.Title,
-	// 			Caption:     get.Caption,
-	// 			Cache:       get.Data,
-	// 			Description: get.Caption,
-	// 		}
-	// 	case get.Type == "Video":
-	// 		results[i] = &gotgbot.VideoResult{
-	// 			Title:       get.Title,
-	// 			Caption:     get.Caption,
-	// 			Cache:       get.Data,
-	// 			Description: get.Caption,
-	// 		}
-	// 	case get.Type == "Voice":
-	// 		results[i] = &gotgbot.VoiceResult{
-	// 			Title:   get.Title,
-	// 			Caption: get.Caption,
-	// 			Cache:   get.Data,
-	// 		}
-	// 	case get.Type == "Document":
-	// 		results[i] = &gotgbot.DocumentResult{
-	// 			Title:       get.Title,
-	// 			Caption:     get.Caption,
-	// 			Cache:       get.Data,
-	// 			Description: get.Caption,
-	// 		}
-	// 	case get.Type == "Text":
-	// 		results[i] = &gotgbot.ArticleResult{
-	// 			Title:       get.Title,
-	// 			Description: get.Data,
-	// 		}
-	// 		results[i].SetContent(gotgbot.InputMessageContent(&gotgbot.InputTextMessageContent{
-	// 			Text:      fmt.Sprintf("<b>%v</b>\n%v", get.Title, get.Data),
-	// 			ParseMode: gotgbot.ModeHTML,
-	// 		}))
-	// 	default:
-	// 		log.Printf("Не удалось отправить гет %v через inline.", get.Name)
-	// 	}
+	var count int64
+	query := strings.ToLower(context.InlineQuery.Query)
+	if query == "" {
+		_, err := context.InlineQuery.Answer(bot, []gotgbot.InlineQueryResult{}, nil)
+		return err
+	}
+	gets := DB.Limit(10).Model(Get{}).Where("name LIKE ?", "%"+query+"%").Count(&count)
+	get_rows, err := gets.Rows()
+	if err != nil {
+		return err
+	}
+	if count > 10 {
+		count = 10
+	}
+	results := make([]gotgbot.InlineQueryResult, count)
+	var i int
+	for get_rows.Next() {
+		var get Get
+		err := DB.ScanRows(get_rows, &get)
+		if err != nil {
+			return err
+		}
+		if get.Title == "" {
+			get.Title = get.Name
+		}
+		switch {
+		case get.Type == "Animation":
+			results[i] = &gotgbot.InlineQueryResultCachedGif{
+				Id:        strconv.Itoa(i),
+				Title:     get.Title,
+				Caption:   get.Caption,
+				GifFileId: get.Data,
+				ParseMode: gotgbot.ParseModeHTML,
+			}
+		case get.Type == "Audio":
+			results[i] = &gotgbot.InlineQueryResultCachedAudio{
+				Id:          strconv.Itoa(i),
+				Caption:     get.Caption,
+				AudioFileId: get.Data,
+				ParseMode:   gotgbot.ParseModeHTML,
+			}
+		case get.Type == "Photo":
+			results[i] = &gotgbot.InlineQueryResultCachedPhoto{
+				Id:          strconv.Itoa(i),
+				Title:       get.Title,
+				Caption:     get.Caption,
+				PhotoFileId: get.Data,
+				Description: get.Caption,
+				ParseMode:   gotgbot.ParseModeHTML,
+			}
+		case get.Type == "Video":
+			results[i] = &gotgbot.InlineQueryResultCachedVideo{
+				Id:          strconv.Itoa(i),
+				Title:       get.Title,
+				Caption:     get.Caption,
+				VideoFileId: get.Data,
+				Description: get.Caption,
+				ParseMode:   gotgbot.ParseModeHTML,
+			}
+		case get.Type == "Voice":
+			results[i] = &gotgbot.InlineQueryResultCachedVoice{
+				Id:          strconv.Itoa(i),
+				Title:       get.Title,
+				Caption:     get.Caption,
+				VoiceFileId: get.Data,
+				ParseMode:   gotgbot.ParseModeHTML,
+			}
+		case get.Type == "Document":
+			results[i] = &gotgbot.InlineQueryResultCachedDocument{
+				Id:             strconv.Itoa(i),
+				Title:          get.Title,
+				Caption:        get.Caption,
+				DocumentFileId: get.Data,
+				Description:    get.Caption,
+				ParseMode:      gotgbot.ParseModeHTML,
+			}
+		case get.Type == "Text":
+			results[i] = &gotgbot.InlineQueryResultArticle{
+				Id:          strconv.Itoa(i),
+				Title:       get.Title,
+				Description: get.Data,
+				InputMessageContent: &gotgbot.InputTextMessageContent{
+					MessageText: fmt.Sprintf("<b>%v</b>\n%v", get.Title, get.Data),
+					ParseMode:   gotgbot.ParseModeHTML,
+				},
+			}
+		default:
+			log.Printf("Не удалось отправить гет %v через inline.", get.Name)
+		}
 
-	// 	results[i].SetResultID(strconv.Itoa(i))
+		i++
+		if i >= int(count) {
+			continue
+		}
+	}
 
-	// 	i++
-	// 	if i >= int(count) {
-	// 		continue
-	// 	}
-	// }
-
-	// return context.Answer(&gotgbot.QueryResponse{
-	// 	Results: results,
-	// })
+	_, err = context.InlineQuery.Answer(bot, results, nil)
+	return err
 }
