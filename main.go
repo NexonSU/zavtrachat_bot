@@ -98,7 +98,7 @@ func main() {
 	sort.Slice(commandArray, func(i, j int) bool {
 		return commandArray[i].Command < commandArray[j].Command
 	})
-	_, err := Bot.SetMyCommands(commandArray, nil)
+	_, err := Bot.SetMyCommands(commandArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeDefault{}})
 	if err != nil {
 		log.Fatal(err)
 	}
