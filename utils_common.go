@@ -16,16 +16,32 @@ import (
 
 	cntx "context"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/neonxp/StemmerRu"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
-	tele "gopkg.in/telebot.v3"
 	ffprobe "gopkg.in/vansante/go-ffprobe.v2"
 	"gorm.io/gorm/clause"
 )
 
+type Media struct {
+	Type                  string
+	FileID                string
+	FileName              string
+	FilePath              string
+	FileSize              int64
+	Height                int64
+	Width                 int64
+	Duration              int64
+	Caption               string
+	CaptionEntities       []gotgbot.MessageEntity
+	HasSpoiler            bool
+	ShowCaptionAboveMedia bool
+}
+
 var onlyWords = regexp.MustCompile(`[,.!?]+`)
 
-func UserFullName(user *tele.User) string {
+func UserFullName(user *gotgbot.User) string {
 	fullname := user.FirstName
 	if user.LastName != "" {
 		fullname = fmt.Sprintf("%v %v", user.FirstName, user.LastName)
@@ -33,7 +49,7 @@ func UserFullName(user *tele.User) string {
 	return fullname
 }
 
-func UserName(user *tele.User) string {
+func UserName(user *gotgbot.User) string {
 	username := user.Username
 	if user.Username == "" {
 		username = UserFullName(user)
@@ -41,8 +57,8 @@ func UserName(user *tele.User) string {
 	return username
 }
 
-func MentionUser(user *tele.User) string {
-	return fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", user.ID, UserFullName(user))
+func MentionUser(user *gotgbot.User) string {
+	return fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", user.Id, UserFullName(user))
 }
 
 func RandInt(min int, max int) int {
@@ -93,15 +109,15 @@ func RestrictionTimeMessage(seconds int64) string {
 	return message
 }
 
-func FindUserInMessage(context tele.Context) (tele.User, int64, error) {
-	var user tele.User
+func FindUserInMessage(context ext.Context) (gotgbot.User, int64, error) {
+	var user gotgbot.User
 	var err error = nil
 	var untildate = time.Now().Unix() + 86400
-	for _, entity := range context.Message().Entities {
-		if entity.Type == tele.EntityTMention {
+	for _, entity := range context.Message.Entities {
+		if entity.Type == "text_mention" {
 			user = *entity.User
-			if len(context.Args()) == 2 {
-				addtime, err := strconv.ParseInt(context.Args()[1], 10, 64)
+			if len(context.Args()) == 3 {
+				addtime, err := strconv.ParseInt(context.Args()[2], 10, 64)
 				if err != nil {
 					return user, untildate, err
 				}
@@ -110,28 +126,28 @@ func FindUserInMessage(context tele.Context) (tele.User, int64, error) {
 			return user, untildate, err
 		}
 	}
-	if context.Message().ReplyTo != nil {
-		user = *context.Message().ReplyTo.Sender
-		if len(context.Args()) == 1 {
-			addtime, err := strconv.ParseInt(context.Args()[0], 10, 64)
+	if context.Message.ReplyToMessage != nil {
+		user = *context.Message.ReplyToMessage.From
+		if len(context.Args()) == 2 {
+			addtime, err := strconv.ParseInt(context.Args()[1], 10, 64)
 			if err != nil {
 				return user, untildate, errors.New("время указано неверно")
 			}
 			untildate += addtime - 86400
 		}
 	} else {
-		if len(context.Args()) == 0 {
+		if len(context.Args()) == 1 {
 			err = errors.New("пользователь не найден")
 			return user, untildate, err
 		}
-		if user.ID == 0 {
-			user, err = GetUserFromDB(context.Args()[0])
+		if user.Id == 0 {
+			user, err = GetUserFromDB(context.Args()[1])
 			if err != nil {
 				return user, untildate, err
 			}
 		}
-		if len(context.Args()) == 2 {
-			addtime, err := strconv.ParseInt(context.Args()[1], 10, 64)
+		if len(context.Args()) == 3 {
+			addtime, err := strconv.ParseInt(context.Args()[2], 10, 64)
 			if err != nil {
 				return user, untildate, errors.New("время указано неверно")
 			}
@@ -141,15 +157,15 @@ func FindUserInMessage(context tele.Context) (tele.User, int64, error) {
 	return user, untildate, err
 }
 
-func GetUserFromDB(findstring string) (tele.User, error) {
-	var user tele.User
+func GetUserFromDB(findstring string) (gotgbot.User, error) {
+	var user gotgbot.User
 	var err error = nil
 	if string(findstring[0]) == "@" {
 		user.Username = findstring[1:]
 	} else {
-		user.ID, err = strconv.ParseInt(findstring, 10, 64)
+		user.Id, err = strconv.ParseInt(findstring, 10, 64)
 	}
-	result := DB.Where("lower(username) = ? OR id = ?", strings.ToLower(user.Username), user.ID).First(&user)
+	result := DB.Where("lower(username) = ? OR id = ?", strings.ToLower(user.Username), user.Id).First(user)
 	if result.Error != nil {
 		err = result.Error
 	}
@@ -157,23 +173,23 @@ func GetUserFromDB(findstring string) (tele.User, error) {
 }
 
 // Forward channel post to chat
-func ForwardPost(context tele.Context) error {
-	if context.Message() == nil || context.Message().Chat.ID != Config.Channel {
+func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message == nil || context.Message.Chat.Id != Config.Channel {
 		return nil
 	}
 	var err error
-	if context.Message().Text != "" || context.Message().Caption != "" {
-		_, err = Bot.Forward(&tele.Chat{ID: Config.Chat}, context.Message())
+	if context.Message.Text != "" || context.Message.Caption != "" {
+		_, err = Bot.ForwardMessage(Config.Chat, context.Message.Chat.Id, context.Message.MessageId, nil)
 	}
 	if Config.StreamChannel != 0 {
-		if strings.Contains(context.Text(), "zavtracast/live") {
-			_, err = Bot.Forward(&tele.Chat{ID: Config.StreamChannel}, context.Message())
+		if strings.Contains(context.Message.Text, "zavtracast/live") {
+			_, err = Bot.ForwardMessage(Config.StreamChannel, context.Message.Chat.Id, context.Message.MessageId, nil)
 			return err
 		}
-		for _, entity := range append(context.Message().CaptionEntities, context.Message().Entities...) {
-			if entity.Type == tele.EntityURL || entity.Type == tele.EntityTextLink {
-				if strings.Contains(entity.URL, "zavtracast/live") {
-					_, err = Bot.Forward(&tele.Chat{ID: Config.StreamChannel}, context.Message())
+		for _, entity := range append(context.Message.CaptionEntities, context.Message.Entities...) {
+			if entity.Type == "url" || entity.Type == "text_link" {
+				if strings.Contains(entity.Url, "zavtracast/live") {
+					_, err = Bot.ForwardMessage(Config.StreamChannel, context.Message.Chat.Id, context.Message.MessageId, nil)
 					return err
 				}
 			}
@@ -183,50 +199,51 @@ func ForwardPost(context tele.Context) error {
 }
 
 // Remove message
-func Remove(context tele.Context) error {
-	return context.Delete()
+func Remove(bot *gotgbot.Bot, context *ext.Context) error {
+	_, err := context.Message.Delete(bot, nil)
+	return err
 }
 
-func OnChatMember(context tele.Context) error {
-	if context.Chat().ID == Config.ReserveChat {
-		return Bot.Unban(&tele.Chat{ID: context.Chat().ID}, context.ChatMember().NewChatMember.User)
+func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.Chat.Id == Config.ReserveChat {
+		context.EffectiveChat.Unban(bot, context.Message.From.Id, nil)
 	}
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
-	}).Create(context.ChatMember().NewChatMember.User)
+	}).Create(context.ChatMember.NewChatMember.GetUser())
 	if UserResult.Error != nil {
-		ErrorReporting(UserResult.Error, nil)
+		ErrorReporting(UserResult.Error)
 	}
 	return nil
 }
 
-func OnUserJoined(context tele.Context) error {
-	if context.Chat().ID == Config.ReserveChat {
-		return context.Delete()
+func OnUserJoined(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.Chat.Id == Config.ReserveChat {
+		context.Message.Delete(bot, nil)
 	}
 	return nil
 }
 
-func OnUserLeft(context tele.Context) error {
-	if context.Chat().ID == Config.ReserveChat {
-		return context.Delete()
+func OnUserLeft(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.Chat.Id == Config.ReserveChat {
+		context.Message.Delete(bot, nil)
 	}
 	return nil
 }
 
-func OnText(context tele.Context) error {
+func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	//remove message from reservechat
-	if context.Chat().ID == Config.ReserveChat {
-		return context.Delete()
+	if context.Message.Chat.Id == Config.ReserveChat {
+		context.Message.Delete(bot, nil)
 	}
 
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
-	}).Create(context.Sender())
+	}).Create(context.Message.From)
 	if UserResult.Error != nil {
-		ErrorReporting(UserResult.Error, nil)
+		ErrorReporting(UserResult.Error)
 	}
 
 	//update StatsDays(1), StatsHours(2), StatsUsers(3), StatsWords(4), StatsWeekday(5)
@@ -234,12 +251,12 @@ func OnText(context tele.Context) error {
 	timeNow := time.Now().Local()
 	statsIncrease(1, startOfDay, int64(timeNow.Day()))
 	statsIncrease(2, startOfDay, int64(timeNow.Hour()))
-	statsIncrease(3, startOfDay, context.Sender().ID)
+	statsIncrease(3, startOfDay, context.Message.From.Id)
 	statsIncrease(5, startOfDay, int64(timeNow.Weekday()))
-	if context.Text() == "" || string(context.Text()[0]) == "/" {
+	if context.Message.Text == "" || string(context.Message.Text[0]) == "/" {
 		return nil
 	}
-	text := strings.ToLower(onlyWords.ReplaceAllString(context.Text(), ""))
+	text := strings.ToLower(onlyWords.ReplaceAllString(context.Message.Text, ""))
 	for _, word := range strings.Split(text, " ") {
 		if len([]rune(word)) > 0 {
 			statsIncrease(4, startOfDay, getWordID(word))
@@ -285,7 +302,7 @@ func GetBless() string {
 	return bless.Text
 }
 
-func FFmpegConvert(context tele.Context, filePath string, targetType string) error {
+func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 	var KwArgs ffmpeg.KwArgs
 	var extension string
 	var height int
@@ -295,12 +312,12 @@ func FFmpegConvert(context tele.Context, filePath string, targetType string) err
 
 	videoKwArgs := ffmpeg.KwArgs{}
 	defaultKwArgs := ffmpeg.KwArgs{"loglevel": "fatal", "hide_banner": ""}
-	name := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
+	name := media.FileName
 
 	ctx, cancelFn := cntx.WithTimeout(cntx.Background(), 5*time.Second)
 	defer cancelFn()
 
-	data, err := ffprobe.ProbeURL(ctx, filePath)
+	data, err := ffprobe.ProbeURL(ctx, media.FilePath)
 	if err != nil {
 		return err
 	}
@@ -407,13 +424,9 @@ func FFmpegConvert(context tele.Context, filePath string, targetType string) err
 	}
 
 	resultFilePath := fmt.Sprintf("%v/%v_converted.%v", os.TempDir(), name, extension)
+	resultFileUrl := fmt.Sprintf("file://%v/%v_converted.%v", os.TempDir(), name, extension)
 
-	err = ffmpeg.Input(filePath).Output(resultFilePath, ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{defaultKwArgs, KwArgs})).OverWriteOutput().ErrorToStdOut().Run()
-	if err != nil {
-		return err
-	}
-
-	err = os.Remove(filePath)
+	err = ffmpeg.Input(media.FilePath).Output(resultFilePath, ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{defaultKwArgs, KwArgs})).OverWriteOutput().ErrorToStdOut().Run()
 	if err != nil {
 		return err
 	}
@@ -424,40 +437,39 @@ func FFmpegConvert(context tele.Context, filePath string, targetType string) err
 
 	switch targetType {
 	case "video":
-		return context.Reply(&tele.Video{
-			File:      tele.FromDisk(resultFilePath),
-			FileName:  filepath.Base(resultFilePath),
-			Streaming: true,
-			Width:     width,
-			Height:    height,
-			Duration:  int(duration),
-			MIME:      "video/mp4",
-		}, &tele.SendOptions{AllowWithoutReply: true})
+		_, err := Bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendVideoOpts{
+			SupportsStreaming: true,
+			Width:             int64(width),
+			Height:            int64(height),
+			Duration:          int64(duration),
+			ReplyParameters:   &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
+		})
+		return err
 	case "animation":
-		return context.Reply(&tele.Animation{
-			File:     tele.FromDisk(resultFilePath),
-			FileName: filepath.Base(resultFilePath),
-			Width:    width,
-			Height:   height,
-			Duration: int(duration),
-			MIME:     "video/mp4",
-		}, &tele.SendOptions{AllowWithoutReply: true})
+		_, err := Bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendAnimationOpts{
+			Width:           int64(width),
+			Height:          int64(height),
+			Duration:        int64(duration),
+			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
+		})
+		return err
 	case "audio":
-		return context.Reply(&tele.Audio{
-			File:     tele.FromDisk(resultFilePath),
-			FileName: filepath.Base(resultFilePath),
-			MIME:     "audio/mp3",
-		}, &tele.SendOptions{AllowWithoutReply: true})
+		_, err := Bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendAudioOpts{
+			Duration:        int64(duration),
+			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
+		})
+		return err
 	case "voice":
-		return context.Reply(&tele.Voice{
-			File: tele.FromDisk(resultFilePath),
-			MIME: "audio/ogg",
-		}, &tele.SendOptions{AllowWithoutReply: true})
+		_, err := Bot.SendVoice(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendVoiceOpts{
+			Duration:        int64(duration),
+			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
+		})
+		return err
 	default:
-		return context.Reply(&tele.Document{
-			File:     tele.FromDisk(resultFilePath),
-			FileName: filepath.Base(resultFilePath),
-		}, &tele.SendOptions{AllowWithoutReply: true})
+		_, err := Bot.SendDocument(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendDocumentOpts{
+			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
+		})
+		return err
 	}
 }
 
@@ -486,20 +498,107 @@ func DownloadFile(filepath string, url string) (err error) {
 	return nil
 }
 
-func ReplyAndRemove(message string, context tele.Context) error {
+func ReplyAndRemove(message string, context ext.Context) error {
 	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
-	sentMessage, err := Bot.Send(context.Chat(), message, &tele.SendOptions{ReplyTo: context.Message(), AllowWithoutReply: true})
+	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: "HTML", ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
 		return err
 	}
-	if context.Message() == nil || context.Message().ID == 0 {
+	if context.Message == nil || context.Message.MessageId == 0 {
 		return nil
 	}
-	go func(messages []int) {
+	go func(messages []int64) {
 		time.Sleep(30 * time.Second)
-		for _, message := range messages {
-			Bot.Delete(&tele.Message{ID: message, Chat: &tele.Chat{ID: context.Chat().ID}})
-		}
-	}([]int{context.Message().ID, sentMessage.ID})
+		Bot.DeleteMessages(context.Message.Chat.Id, messages, nil)
+	}([]int64{context.Message.MessageId, sentMessage.MessageId})
 	return nil
+}
+
+func IsContainsMedia(message *gotgbot.Message) bool {
+	switch {
+	case message.Photo != nil:
+		return true
+	case message.Voice != nil:
+		return true
+	case message.Audio != nil:
+		return true
+	case message.Animation != nil:
+		return true
+	case message.Sticker != nil:
+		return true
+	case message.Document != nil:
+		return true
+	case message.Video != nil:
+		return true
+	case message.VideoNote != nil:
+		return true
+	default:
+		return false
+	}
+}
+
+func GetMedia(message *gotgbot.Message) (Media, error) {
+	var result Media
+
+	switch {
+	case message.Photo != nil:
+		result.Type = "photo"
+		result.FileID = message.Photo[0].FileId
+		result.Height = message.Photo[0].Height
+		result.Width = message.Photo[0].Width
+		result.FileSize = message.Photo[0].FileSize
+	case message.Voice != nil:
+		result.Type = "voice"
+		result.FileID = message.Voice.FileId
+		result.Duration = message.Voice.Duration
+		result.FileSize = message.Voice.FileSize
+	case message.Audio != nil:
+		result.Type = "audio"
+		result.FileID = message.Audio.FileId
+		result.Duration = message.Audio.Duration
+		result.FileSize = message.Audio.FileSize
+	case message.Animation != nil:
+		result.Type = "animation"
+		result.FileID = message.Animation.FileId
+		result.Height = message.Animation.Height
+		result.Width = message.Animation.Width
+		result.Duration = message.Animation.Duration
+		result.FileSize = message.Animation.FileSize
+	case message.Sticker != nil:
+		result.Type = "sticker"
+		result.FileID = message.Sticker.FileId
+		result.Height = message.Sticker.Height
+		result.Width = message.Sticker.Width
+		result.FileSize = message.Sticker.FileSize
+	case message.Video != nil:
+		result.Type = "video"
+		result.FileID = message.Video.FileId
+		result.Height = message.Video.Height
+		result.Width = message.Video.Width
+		result.Duration = message.Video.Duration
+		result.FileSize = message.Video.FileSize
+	case message.VideoNote != nil:
+		result.Type = "video_note"
+		result.FileID = message.VideoNote.FileId
+		result.Duration = message.VideoNote.Duration
+		result.FileSize = message.VideoNote.FileSize
+	default:
+		result.Type = "document"
+		result.FileID = message.Document.FileId
+		result.FileSize = message.Document.FileSize
+	}
+	result.Caption = message.Caption
+	result.CaptionEntities = message.CaptionEntities
+	result.HasSpoiler = message.HasMediaSpoiler
+	result.ShowCaptionAboveMedia = message.ShowCaptionAboveMedia
+
+	file, err := Bot.GetFile(result.FileID, nil)
+	if err != nil {
+		return Media{}, err
+	}
+
+	result.FilePath = file.FilePath
+	result.FileName = filepath.Base(file.FilePath)
+
+	return result, nil
 }

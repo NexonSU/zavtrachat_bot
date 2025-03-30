@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	ical "github.com/arran4/golang-ical"
-	tele "gopkg.in/telebot.v3"
 )
 
 func countRune(s string, r rune) int {
@@ -23,7 +24,7 @@ func countRune(s string, r rune) int {
 }
 
 // Send releases of 2 weeks on /releases
-func Releases(context tele.Context) error {
+func Releases(bot *gotgbot.Bot, context *ext.Context) error {
 	var err error
 	resp, err := http.Get("https://ical-videogames.onrender.com/calendar?platform=ps4&platform=ps5&platform=switch&platform=xbox_one&platform=xbox_series&region=pal")
 	if err != nil {
@@ -51,5 +52,6 @@ func Releases(context tele.Context) error {
 			releases = fmt.Sprintf("%v\n%v.%v.%v: %v", releases, date[6:8], date[4:6], date[0:4], name)
 		}
 	}
-	return context.Reply(releases)
+	_, err = context.Message.Reply(bot, releases, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	return err
 }

@@ -11,45 +11,46 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/tidwall/gjson"
-	tele "gopkg.in/telebot.v3"
 )
 
 // Send Yandex 300 response on link
-func TLDR(context tele.Context) error {
+func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 	var err error
 	if Config.YandexSummarizerToken == "" {
 		return fmt.Errorf("не задан Yandex Summarizer токен")
 	}
-	if context.Message().ReplyTo == nil && len(context.Args()) == 0 {
-		return ReplyAndRemove("Бот заберёт статью по ссылке (или сам текст больше 200 символов) и сделает её краткое описание.\nПример использования:\n<code>/tldr ссылка</code>.\nИли отправь в ответ на какое-либо сообщение с ссылкой.", context)
+	if context.Message.ReplyToMessage == nil && len(context.Args()) == 1 {
+		return ReplyAndRemove("Бот заберёт статью по ссылке (или сам текст больше 200 символов) и сделает её краткое описание.\nПример использования:\n<code>/tldr ссылка</code>.\nИли отправь в ответ на какое-либо сообщение с ссылкой.", *context)
 	}
 
 	link := ""
-	message := &tele.Message{}
+	message := &gotgbot.Message{}
 
-	if context.Message().ReplyTo == nil {
-		message = context.Message()
+	if context.Message.ReplyToMessage == nil {
+		message = context.Message
 	} else {
-		message = context.Message().ReplyTo
+		message = context.Message.ReplyToMessage
 	}
 
 	for _, entity := range message.Entities {
-		if entity.Type == tele.EntityURL || entity.Type == tele.EntityTextLink {
-			link = entity.URL
+		if entity.Type == "url" || entity.Type == "text_link" {
+			link = entity.Url
 			if link == "" {
-				link = message.EntityText(entity)
+				link = gotgbot.ParseEntity(message.Text, entity).Text
 			}
 		}
 	}
 
 	if link == "" {
 		for _, entity := range message.CaptionEntities {
-			if entity.Type == tele.EntityURL || entity.Type == tele.EntityTextLink {
-				link = entity.URL
+			if entity.Type == "url" || entity.Type == "text_link" {
+				link = entity.Url
 				if link == "" {
-					link = message.EntityText(entity)
+					link = gotgbot.ParseEntity(message.Text, entity).Text
 				}
 			}
 		}
@@ -57,7 +58,7 @@ func TLDR(context tele.Context) error {
 
 	if link == "" {
 		if len(message.Text) < 200 && len(message.Caption) < 200 {
-			return ReplyAndRemove("Бот заберёт статью по ссылке (или сам текст больше 200 символов) и сделает её краткое описание.\nПример использования:\n<code>/tldr ссылка</code>.\nИли отправь в ответ на какое-либо сообщение с ссылкой.", context)
+			return ReplyAndRemove("Бот заберёт статью по ссылке (или сам текст больше 200 символов) и сделает её краткое описание.\nПример использования:\n<code>/tldr ссылка</code>.\nИли отправь в ответ на какое-либо сообщение с ссылкой.", *context)
 		}
 		if message.Text != "" {
 			link, err = createPage(message.Text)
@@ -172,7 +173,8 @@ func TLDR(context tele.Context) error {
 		os.Remove(strings.Replace(link, "https://", "/home/nginx/", -1))
 	}
 
-	return context.Reply(text)
+	_, err = context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	return err
 }
 
 func webProxy(url string) (link string, error error) {

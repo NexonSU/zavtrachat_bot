@@ -14,7 +14,7 @@ type Configuration struct {
 	AllowedUpdates        []string `json:"allowed_updates"`
 	Listen                string   `json:"listen"`
 	EndpointPublicURL     string   `json:"endpoint_public_url"`
-	MaxConnections        int      `json:"max_connections"`
+	MaxConnections        int64    `json:"max_connections"`
 	Chat                  int64    `json:"chat"`
 	ReserveChat           int64    `json:"reserve_chat"`
 	CommentChat           int64    `json:"comment_chat"`
@@ -49,7 +49,12 @@ func ConfigInit(file string) Configuration {
 		Config.AllowedUpdates = []string{"message", "channel_post", "callback_query", "chat_member"}
 		jsonData, _ := json.MarshalIndent(Config, "", "\t")
 		_ = os.WriteFile(file, jsonData, 0600)
-		log.Fatal(err)
+	}
+	if Config.Token == "" {
+		panic("sting 'token' not found in config.json")
+	}
+	if Config.Chat == 0 {
+		panic("integer 'chat' not found in config.json")
 	}
 	return Config
 }

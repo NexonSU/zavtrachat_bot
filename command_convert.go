@@ -4,41 +4,46 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Convert given file
-func Convert(context tele.Context) error {
-	if context.Message().ReplyTo == nil {
-		for _, entity := range context.Message().Entities {
-			if entity.Type == tele.EntityURL {
-				return Download(context)
+func Convert(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.ReplyToMessage == nil {
+		for _, entity := range context.Message.Entities {
+			if entity.Type == "url" {
+				return Download(bot, context)
 			}
 		}
-		return ReplyAndRemove("Пример использования: <code>/convert</code> в ответ на какое-либо сообщение с медиа-файлом.\nДопольнительные параметры: gif,mp3,ogg,jpg.", context)
+		return ReplyAndRemove("Пример использования: <code>/convert</code> в ответ на какое-либо сообщение с медиа-файлом.\nДопольнительные параметры: gif,mp3,ogg,jpg.", *context)
 	}
-	if context.Message().ReplyTo.Media() == nil {
-		for _, entity := range context.Message().ReplyTo.Entities {
-			if entity.Type == tele.EntityURL {
-				return Download(context)
+	if !IsContainsMedia(context.Message.ReplyToMessage) {
+		for _, entity := range context.Message.ReplyToMessage.Entities {
+			if entity.Type == "url" {
+				return Download(bot, context)
 			}
 		}
-		return ReplyAndRemove("Какого-либо медиа файла нет в указанном сообщении.", context)
+		return ReplyAndRemove("Какого-либо медиа файла нет в указанном сообщении.", *context)
 	}
 
-	media := context.Message().ReplyTo.Media()
+	media, err := GetMedia(context.Message.ReplyToMessage)
+	if err != nil {
+		return err
+	}
+
 	var targetArg string
 
-	targetArg = media.MediaType()
+	targetArg = media.Type
 
 	if targetArg == "sticker" {
-		if context.Message().ReplyTo.Sticker.Video {
+		if context.Message.ReplyToMessage.Sticker.IsVideo {
 			targetArg = "gif"
 		}
 	}
 
-	if len(context.Args()) == 1 {
-		targetArg = strings.ToLower(context.Args()[0])
+	if len(context.Args()) == 2 {
+		targetArg = strings.ToLower(context.Args()[1])
 	}
 
 	var done = make(chan bool, 1)
@@ -48,7 +53,7 @@ func Convert(context tele.Context) error {
 			case <-done:
 				return
 			default:
-				context.Notify(tele.ChatAction(tele.UploadingDocument))
+				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionUploadDocument, nil)
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -57,10 +62,5 @@ func Convert(context tele.Context) error {
 		done <- true
 	}()
 
-	file, err := Bot.FileByID(media.MediaFile().FileID)
-	if err != nil {
-		return err
-	}
-
-	return FFmpegConvert(context, file.FilePath, targetArg)
+	return FFmpegConvert(context, media, targetArg)
 }

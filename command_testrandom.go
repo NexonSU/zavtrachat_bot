@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Kill user on /blessing, /suicide
-func TestRandom(context tele.Context) error {
+func TestRandom(bot *gotgbot.Bot, context *ext.Context) error {
 	text := "1000xRandInt(0, 9):\n"
 	numbers := [10]int{}
 	for i := 0; i < 1000; i++ {
@@ -16,5 +17,5 @@ func TestRandom(context tele.Context) error {
 	for number, count := range numbers {
 		text = fmt.Sprintf("%v%v - %v\n", text, number, count)
 	}
-	return ReplyAndRemove(text, context)
+	return ReplyAndRemove(text, *context)
 }

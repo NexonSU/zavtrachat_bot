@@ -3,17 +3,19 @@ package main
 import (
 	"strings"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Send text in chat on /say
-func Say(context tele.Context) error {
-	if len(context.Args()) == 0 {
-		return ReplyAndRemove("Укажите сообщение.", context)
+func Say(bot *gotgbot.Bot, context *ext.Context) error {
+	if len(context.Args()) == 1 {
+		return ReplyAndRemove("Укажите сообщение.", *context)
 	}
-	context.Delete()
-	for i := range context.Message().Entities {
-		context.Message().Entities[i].Offset = context.Message().Entities[i].Offset - len(strings.Split(context.Message().Text, " ")[0]) - 1
+	context.Message.Delete(bot, nil)
+	for i := range context.Message.Entities {
+		context.Message.Entities[i].Offset = context.Message.Entities[i].Offset - int64(len(strings.Split(context.Message.Text, " ")[0])) - 1
 	}
-	return context.Send(context.Message().Payload, context.Message().Entities)
+	_, err := context.EffectiveChat.SendMessage(bot, context.Message.Text, &gotgbot.SendMessageOpts{ParseMode: "HTML", Entities: context.Message.Entities})
+	return err
 }

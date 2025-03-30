@@ -1,10 +1,11 @@
 package main
 
 import (
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Reply "Polo!" on "marco"
-func Marco(context tele.Context) error {
-	return ReplyAndRemove("Polo!", context)
+func Marco(bot *gotgbot.Bot, context *ext.Context) error {
+	return ReplyAndRemove("Polo!", *context)
 }

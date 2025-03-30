@@ -3,24 +3,26 @@ package main
 import (
 	"fmt"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Unban user on /unban
-func Unban(context tele.Context) error {
-	if (context.Message().ReplyTo == nil && len(context.Args()) != 1) || (context.Message().ReplyTo != nil && len(context.Args()) != 0) {
-		return ReplyAndRemove("Пример использования: <code>/unban {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/unban</code>", context)
+func Unban(bot *gotgbot.Bot, context *ext.Context) error {
+	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
+		return ReplyAndRemove("Пример использования: <code>/unban {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/unban</code>", *context)
 	}
-	target, _, err := FindUserInMessage(context)
+	target, _, err := FindUserInMessage(*context)
 	if err != nil {
 		return err
 	}
-	if Bot.Me.ID == target.ID {
-		return context.Reply(&tele.Animation{File: tele.File{FileID: "CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"}})
+	if Bot.Id == target.Id {
+		_, err = bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"), &gotgbot.SendAnimationOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+		return err
 	}
-	err = Bot.Unban(context.Chat(), &target)
+	_, err = bot.UnbanChatMember(context.Message.Chat.Id, target.Id, nil)
 	if err != nil {
 		return err
 	}
-	return ReplyAndRemove(fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a> разбанен.", target.ID, UserFullName(&target)), context)
+	return ReplyAndRemove(fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a> разбанен.", target.Id, UserFullName(&target)), *context)
 }

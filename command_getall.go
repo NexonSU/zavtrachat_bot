@@ -1,11 +1,12 @@
 package main
 
 import (
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Send list of Gets to user on /getall
-func Getall(context tele.Context) error {
+func Getall(bot *gotgbot.Bot, context *ext.Context) error {
 	var getall string
 	var get Get
 	result, _ := DB.Model(&Get{}).Rows()
@@ -21,10 +22,10 @@ func Getall(context tele.Context) error {
 		}
 		getall += get.Name
 		if len([]rune(getall)) > 4000 {
-			Bot.Send(context.Sender(), getall)
+			Bot.SendMessage(context.Message.From.Id, getall, nil)
 			getall = ""
 		}
 	}
-	Bot.Send(context.Sender(), getall)
-	return ReplyAndRemove("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", context)
+	Bot.SendMessage(context.Message.From.Id, getall, nil)
+	return ReplyAndRemove("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", *context)
 }

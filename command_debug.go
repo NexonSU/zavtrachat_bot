@@ -4,20 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Return message on /debug command
-func Debug(context tele.Context) error {
-	err := Bot.Delete(context.Message())
+func Debug(bot *gotgbot.Bot, context *ext.Context) error {
+	err := Remove(bot, context)
 	if err != nil {
 		return err
 	}
-	var message = context.Message()
-	if context.Message().ReplyTo != nil {
-		message = context.Message().ReplyTo
+	var message = context.Message
+	if context.Message.ReplyToMessage != nil {
+		message = context.Message.ReplyToMessage
 	}
 	MarshalledMessage, _ := json.MarshalIndent(message, "", "    ")
-	_, err = Bot.Send(context.Sender(), fmt.Sprintf("<pre>%v</pre>", string(MarshalledMessage)))
+	_, err = Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(MarshalledMessage)), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 	return err
 }

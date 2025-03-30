@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	cmc "github.com/miguelmota/go-coinmarketcap/pro/v1"
-	tele "gopkg.in/telebot.v3"
 )
 
 var CryptoMap []*cmc.MapListing
@@ -83,27 +84,28 @@ func GetIdName(ID string) string {
 }
 
 // Reply currency "cur"
-func Cur(context tele.Context) error {
+func Cur(bot *gotgbot.Bot, context *ext.Context) error {
 	if Config.CurrencyKey == "" {
-		return ReplyAndRemove("Конвертация валют не настроена", context)
+		return ReplyAndRemove("Конвертация валют не настроена", *context)
 	}
-	if len(context.Args()) != 3 {
-		return ReplyAndRemove("Пример использования:\n/cur 1 USD RUB", context)
+	println(context.Args()[1])
+	if len(context.Args()) != 4 {
+		return ReplyAndRemove("Пример использования:\n/cur 1 USD RUB", *context)
 	}
-	amount, err := strconv.ParseFloat(context.Args()[0], 64)
+	amount, err := strconv.ParseFloat(context.Args()[1], 64)
 	if err != nil {
 		return err
 	}
-	symbol, err := GetSymbolId(context.Args()[1])
+	symbol, err := GetSymbolId(context.Args()[2])
 	if err != nil {
 		return err
 	}
-	convert, err := GetSymbolId(context.Args()[2])
+	convert, err := GetSymbolId(context.Args()[3])
 	if err != nil {
 		return err
 	}
 	for _, CustomFiat := range CustomMap {
-		if strings.ToUpper(context.Args()[1]) == CustomFiat.symbol {
+		if strings.ToUpper(context.Args()[2]) == CustomFiat.symbol {
 			amount = amount * CustomFiat.amount
 		}
 	}
@@ -118,14 +120,15 @@ func Cur(context tele.Context) error {
 	resultAmount := conversion.Quote[convert].Price
 	resultName := GetIdName(convert)
 	for _, CustomFiat := range CustomMap {
-		if strings.ToUpper(context.Args()[1]) == CustomFiat.symbol {
+		if strings.ToUpper(context.Args()[2]) == CustomFiat.symbol {
 			conversion.Amount = amount / CustomFiat.amount
 			conversion.Name = CustomFiat.name
 		}
-		if strings.ToUpper(context.Args()[2]) == CustomFiat.symbol {
+		if strings.ToUpper(context.Args()[3]) == CustomFiat.symbol {
 			resultAmount = resultAmount / CustomFiat.amount
 			resultName = CustomFiat.name
 		}
 	}
-	return context.Send(fmt.Sprintf("%.2f %v = %.2f %v", conversion.Amount, conversion.Name, resultAmount, resultName), &tele.SendOptions{ReplyTo: context.Message().ReplyTo, AllowWithoutReply: true})
+	_, err = context.Message.Reply(bot, fmt.Sprintf("%.2f %v = %.2f %v", conversion.Amount, conversion.Name, resultAmount, resultName), &gotgbot.SendMessageOpts{ParseMode: "HTML", ReplyParameters: &gotgbot.ReplyParameters{AllowSendingWithoutReply: true}})
+	return err
 }

@@ -3,20 +3,25 @@ package main
 import (
 	"fmt"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func Deny(context tele.Context) error {
-	victim := context.Message().Entities[0].User
-	if victim.ID != context.Sender().ID {
-		return context.Respond(&tele.CallbackResponse{Text: GetNope()})
+func Deny(bot *gotgbot.Bot, context *ext.Context) error {
+	victim := context.Message.Entities[0].User
+	if victim.Id != context.Message.From.Id {
+		_, err := context.Update.CallbackQuery.Answer(bot, &gotgbot.AnswerCallbackQueryOpts{
+			Text: GetNope(),
+		})
+		return err
 	}
-	err := Bot.Respond(context.Callback(), &tele.CallbackResponse{})
+	_, err := context.Update.CallbackQuery.Answer(bot, &gotgbot.AnswerCallbackQueryOpts{})
 	if err != nil {
 		return err
 	}
 	busy["russianroulette"] = false
 	busy["russianroulettePending"] = false
 	busy["russianrouletteInProgress"] = false
-	return context.Edit(fmt.Sprintf("%v отказался от дуэли.", UserFullName(context.Sender())))
+	_, _, err = Bot.EditMessageText(fmt.Sprintf("%v отказался от дуэли.", UserFullName(context.Message.From)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+	return err
 }

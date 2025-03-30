@@ -6,31 +6,32 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Add bet
-func Bet(context tele.Context) error {
+func Bet(bot *gotgbot.Bot, context *ext.Context) error {
 	var bet Bets
-	if len(context.Args()) < 2 {
-		return ReplyAndRemove("Пример использования: <code>/bet 30.06.2023 ставлю жопу, что TESVI будет говном</code>", context)
+	if len(context.Args()) < 3 {
+		return ReplyAndRemove("Пример использования: <code>/bet 30.06.2023 ставлю жопу, что TESVI будет говном</code>", *context)
 	}
-	date, err := time.Parse("02.01.2006", context.Args()[0])
+	date, err := time.Parse("02.01.2006", context.Args()[1])
 	if err != nil {
-		return ReplyAndRemove("Ошибка парсинга даты: "+err.Error(), context)
+		return ReplyAndRemove("Ошибка парсинга даты: "+err.Error(), *context)
 	}
 	if date.Unix() < time.Now().Local().Unix() {
-		return ReplyAndRemove(fmt.Sprintf("минимальная дата: %v", time.Now().Local().Add(24*time.Hour).Format("02.01.2006")), context)
+		return ReplyAndRemove(fmt.Sprintf("минимальная дата: %v", time.Now().Local().Add(24*time.Hour).Format("02.01.2006")), *context)
 	}
-	bet.UserID = context.Sender().ID
+	bet.UserID = context.Message.From.Id
 	bet.Timestamp = date.Unix()
-	bet.Text = strings.Join(context.Args()[1:], " ")
+	bet.Text = strings.Join(context.Args()[2:], " ")
 	result := DB.Create(&bet)
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") {
-			return ReplyAndRemove("Такая ставка уже добавлена", context)
+			return ReplyAndRemove("Такая ставка уже добавлена", *context)
 		}
 		return result.Error
 	}
-	return ReplyAndRemove(fmt.Sprintf("Ставка добавлена.\nДата: <code>%v</code>.\nТекст: <code>%v</code>.", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), html.EscapeString(bet.Text)), context)
+	return ReplyAndRemove(fmt.Sprintf("Ставка добавлена.\nДата: <code>%v</code>.\nТекст: <code>%v</code>.", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), html.EscapeString(bet.Text)), *context)
 }

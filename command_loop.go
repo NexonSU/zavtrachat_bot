@@ -4,30 +4,35 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Invert given file
-func Loop(context tele.Context) error {
-	if context.Message().ReplyTo == nil {
-		return ReplyAndRemove("Пример использования: <code>/loop</code> в ответ на какое-либо сообщение с видео.", context)
-	}
-	if context.Message().ReplyTo.Media() == nil {
-		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", context)
+func Loop(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.ReplyToMessage == nil {
+		return ReplyAndRemove("Пример использования: <code>/loop</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
 
-	media := context.Message().ReplyTo.Media()
+	if !IsContainsMedia(context.Message.ReplyToMessage) {
+		return ReplyAndRemove("Какого-либо медиа нет в указанном сообщении.", *context)
+	}
 
-	targetArg := media.MediaType()
-	if len(context.Args()) == 1 {
-		targetArg = strings.ToLower(context.Args()[0])
+	media, err := GetMedia(context.Message.ReplyToMessage)
+	if err != nil {
+		return err
+	}
+
+	targetArg := strings.ToLower(media.Type)
+	if len(context.Args()) == 2 {
+		targetArg = strings.ToLower(context.Args()[1])
 	}
 
 	switch targetArg {
 	case "animation":
 		targetArg = "animation"
 	default:
-		return ReplyAndRemove("Неподдерживаемая операция", context)
+		return ReplyAndRemove("Неподдерживаемая операция", *context)
 	}
 
 	targetArg = targetArg + "_loop"
@@ -39,7 +44,7 @@ func Loop(context tele.Context) error {
 			case <-done:
 				return
 			default:
-				context.Notify(tele.ChatAction(tele.UploadingDocument))
+				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionRecordVideo, nil)
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -48,10 +53,5 @@ func Loop(context tele.Context) error {
 		done <- true
 	}()
 
-	file, err := Bot.FileByID(media.MediaFile().FileID)
-	if err != nil {
-		return err
-	}
-
-	return FFmpegConvert(context, file.FilePath, targetArg)
+	return FFmpegConvert(context, media, targetArg)
 }

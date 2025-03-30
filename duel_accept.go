@@ -3,23 +3,27 @@ package main
 import (
 	"time"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"golang.org/x/text/language"
 	plurals "golang.org/x/text/message"
-	tele "gopkg.in/telebot.v3"
 	"gorm.io/gorm/clause"
 )
 
-func Accept(context tele.Context) error {
+func Accept(bot *gotgbot.Bot, context *ext.Context) error {
 	// prt will replace fmt package to format text according plurals defined in utils package
 	// If no plural rule matched it will be ignored and processed as usual formatting
 	prt := plurals.NewPrinter(language.Russian)
 
-	message := context.Message()
+	message := context.Message
 	victim := message.Entities[0].User
-	if victim.ID != context.Sender().ID {
-		return context.Respond(&tele.CallbackResponse{Text: GetNope()})
+	if victim.Id != context.Message.From.Id {
+		_, err := context.Update.CallbackQuery.Answer(bot, &gotgbot.AnswerCallbackQueryOpts{
+			Text: GetNope(),
+		})
+		return err
 	}
-	err := Bot.Respond(context.Callback(), &tele.CallbackResponse{})
+	_, err := context.Update.CallbackQuery.Answer(bot, &gotgbot.AnswerCallbackQueryOpts{})
 	if err != nil {
 		return err
 	}
@@ -32,12 +36,12 @@ func Accept(context tele.Context) error {
 	invincible := []string{"пуля отскочила от головы %v и улетела в другой чат.", "%v похмурил брови и отклеил расплющенную пулю со своей головы.", "но ничего не произошло. %v взглянул на револьвер, он был неисправен.", "пуля прошла навылет, но не оставила каких-либо следов на %v."}
 	fail := []string{"мозги %v разлетелись по чату!", "%v упал со стула и его кровь растеклась по месседжу.", "%v замер и спустя секунду упал на стол.", "пуля едва не задела кого-то из участников чата! А? Что? А, %v мёртв, да.", "и в воздухе повисла тишина. Все начали оглядываться, когда %v уже был мёртв."}
 	prefix := prt.Sprintf("Дуэль! %v против %v!\n", MentionUser(player), MentionUser(victim))
-	_, err = Bot.Edit(message, prt.Sprintf("%vЗаряжаю один патрон в револьвер и прокручиваю барабан.", prefix), &tele.SendOptions{ReplyMarkup: nil})
+	_, _, err = Bot.EditMessageText(prt.Sprintf("%vЗаряжаю один патрон в револьвер и прокручиваю барабан.", prefix), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	if err != nil {
 		return err
 	}
 	time.Sleep(time.Second * 2)
-	_, err = Bot.Edit(message, prt.Sprintf("%vКладу револьвер на стол и раскручиваю его.", prefix))
+	_, _, err = Bot.EditMessageText(prt.Sprintf("%vКладу револьвер на стол и раскручиваю его.", prefix), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	if err != nil {
 		return err
 	}
@@ -45,21 +49,21 @@ func Accept(context tele.Context) error {
 	if RandInt(1, 360)%2 == 0 {
 		player, victim = victim, player
 	}
-	_, err = Bot.Edit(message, prt.Sprintf("%vРевольвер останавливается на %v, первый ход за ним.", prefix, MentionUser(victim)))
+	_, _, err = Bot.EditMessageText(prt.Sprintf("%vРевольвер останавливается на %v, первый ход за ним.", prefix, MentionUser(victim)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	if err != nil {
 		return err
 	}
 	bullet := RandInt(1, 5)
 	for i := 1; i <= bullet; i++ {
 		time.Sleep(time.Second * 2)
-		prefix = prt.Sprintf("Дуэль! %v против %v, раунд %v:\n%v берёт револьвер, приставляет его к голове и...\n", MentionUser(player), MentionUser(victim), i, MentionUser(victim))
-		_, err := Bot.Edit(message, prefix)
+		prefix = prt.Sprintf("Дуэль! %v против %v, раунд %v:\n%v берёт револьвер, приставляет его к голове и...\n", MentionUser(player), MentionUser(victim), i, MentionUser(victim), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+		_, _, err = Bot.EditMessageText(prefix, &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		if bullet != i {
 			time.Sleep(time.Second * 2)
-			_, err := Bot.Edit(message, prt.Sprintf("%v🍾 %v", prefix, prt.Sprintf(success[RandInt(0, len(success)-1)], MentionUser(victim))))
+			_, _, err := Bot.EditMessageText(prt.Sprintf("%v🍾 %v", prefix, prt.Sprintf(success[RandInt(0, len(success)-1)], MentionUser(victim))), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 			if err != nil {
 				return err
 			}
@@ -67,31 +71,30 @@ func Accept(context tele.Context) error {
 		}
 	}
 	time.Sleep(time.Second * 2)
-	PlayerChatMember, err := Bot.ChatMemberOf(context.Message().Chat, player)
+	PlayerChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, player.Id, nil)
 	if err != nil {
 		return err
 	}
-	VictimChatMember, err := Bot.ChatMemberOf(context.Message().Chat, victim)
+	VictimChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, victim.Id, nil)
 	if err != nil {
 		return err
 	}
-	if (PlayerChatMember.Role == "creator" || PlayerChatMember.Role == "administrator") && (VictimChatMember.Role == "creator" || VictimChatMember.Role == "administrator") {
-		_, err = Bot.Edit(message, prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.", prefix, MentionUser(victim), MentionUser(player)))
+	if (PlayerChatMember.GetStatus() == "creator" || PlayerChatMember.GetStatus() == "administrator") && (VictimChatMember.GetStatus() == "creator" || VictimChatMember.GetStatus() == "administrator") {
+		_, _, err = Bot.EditMessageText(prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.", prefix, MentionUser(victim), MentionUser(player)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		time.Sleep(time.Second * 2)
-		_, err = Bot.Edit(message, prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.", prefix, MentionUser(player), MentionUser(victim)))
+		_, _, err = Bot.EditMessageText(prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.", prefix, MentionUser(player), MentionUser(victim)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		time.Sleep(time.Second * 2)
-		_, err = Bot.Edit(message, prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.", prefix, MentionUser(victim), MentionUser(player)))
+		_, _, err = Bot.EditMessageText(prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.", prefix, MentionUser(victim), MentionUser(player)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		time.Sleep(time.Second * 2)
-		var ricochetVictim *tele.ChatMember
 		var userID int64
 		rows, err := DB.Model(&Stats{}).Where("stat_type = 3").Order("last_update desc").Select("context_id").Limit(100).Rows()
 		if err != nil {
@@ -99,36 +102,35 @@ func Accept(context tele.Context) error {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			rows.Scan(&userID)
-			ricochetVictim = &tele.ChatMember{}
-			ricochetVictim, err = Bot.ChatMemberOf(context.Chat(), &tele.User{ID: userID})
+			rows.Scan(userID)
+			ricochetVictim, err := Bot.GetChatMember(context.Message.Chat.Id, userID, nil)
 			if err != nil {
 				continue
 			}
-			if ricochetVictim.Role == "member" {
+			if ricochetVictim.GetStatus() == "member" {
 				VictimChatMember = ricochetVictim
-				victim = ricochetVictim.User
+				*victim = ricochetVictim.GetUser()
 				prefix = prt.Sprintf("%vПуля отскакивает от головы %v и летит в голову %v.\n", prefix, MentionUser(player), MentionUser(victim))
-				_, err = Bot.Edit(message, prefix)
+				_, _, err = Bot.EditMessageText(prefix, &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 				if err != nil {
 					return err
 				}
-				player = context.Bot().Me
+				player = &bot.User
 				rows.Close()
 				break
 			}
 		}
 	}
-	if IsAdmin(victim.ID) {
-		_, err = Bot.Edit(message, prt.Sprintf("%v😈 Наводит револьвер на %v и стреляет.", prefix, MentionUser(player)))
+	if IsAdmin(victim.Id) {
+		_, _, err = Bot.EditMessageText(prt.Sprintf("%v😈 Наводит револьвер на %v и стреляет.", prefix, MentionUser(player)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		time.Sleep(time.Second * 3)
 		var duelist Duelist
-		result := DB.Model(Duelist{}).Where(player.ID).First(&duelist)
+		result := DB.Model(Duelist{}).Where(player.Id).First(&duelist)
 		if result.RowsAffected == 0 {
-			duelist.UserID = player.ID
+			duelist.UserID = player.Id
 			duelist.Kills = 0
 			duelist.Deaths = 0
 		}
@@ -139,40 +141,39 @@ func Accept(context tele.Context) error {
 		if result.Error != nil {
 			return result.Error
 		}
-		PlayerChatMember.RestrictedUntil = time.Now().Add(time.Second * time.Duration(60*duelist.Deaths)).Unix()
-		err = Bot.Restrict(context.Message().Chat, PlayerChatMember)
+		_, err = Bot.RestrictChatMember(context.Message.Chat.Id, PlayerChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duelist.Deaths)).Unix()})
 		if err != nil {
 			return err
 		}
-		_, err = Bot.Edit(message, prt.Sprintf("%v😈 Наводит револьвер на %v и стреляет.\nЯ хз как это объяснить, но %v победитель!\n%v отправился на респавн на %d мин.", prefix, MentionUser(player), MentionUser(victim), MentionUser(player), duelist.Deaths))
+		_, _, err = Bot.EditMessageText(prt.Sprintf("%v😈 Наводит револьвер на %v и стреляет.\nЯ хз как это объяснить, но %v победитель!\n%v отправился на респавн на %d мин.", prefix, MentionUser(player), MentionUser(victim), MentionUser(player), duelist.Deaths), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		return err
 	}
-	if VictimChatMember.Role == "creator" || VictimChatMember.Role == "administrator" {
+	if VictimChatMember.GetStatus() == "creator" || VictimChatMember.GetStatus() == "administrator" {
 		prefix = prt.Sprintf("%v💥 %v", prefix, prt.Sprintf(invincible[RandInt(0, len(invincible)-1)], MentionUser(victim)))
-		_, err := Bot.Edit(message, prefix)
+		_, _, err := Bot.EditMessageText(prefix, &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		time.Sleep(time.Second * 2)
-		_, err = Bot.Edit(message, prt.Sprintf("%v\nПохоже, у нас ничья.", prefix))
+		_, _, err = Bot.EditMessageText(prt.Sprintf("%v\nПохоже, у нас ничья.", prefix), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
 		}
 		return err
 	}
 	prefix = prt.Sprintf("%v💥 %v", prefix, prt.Sprintf(fail[RandInt(0, len(fail)-1)], MentionUser(victim)))
-	_, err = Bot.Edit(message, prefix)
+	_, _, err = Bot.EditMessageText(prefix, &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	if err != nil {
 		return err
 	}
 	time.Sleep(time.Second * 2)
 	var VictimDuelist Duelist
-	result := DB.Model(Duelist{}).Where(victim.ID).First(&VictimDuelist)
+	result := DB.Model(Duelist{}).Where(victim.Id).First(&VictimDuelist)
 	if result.RowsAffected == 0 {
-		VictimDuelist.UserID = victim.ID
+		VictimDuelist.UserID = victim.Id
 		VictimDuelist.Kills = 0
 		VictimDuelist.Deaths = 0
 	}
@@ -186,19 +187,18 @@ func Accept(context tele.Context) error {
 	if player.IsBot {
 		VictimDuelist.Deaths = 1
 	}
-	VictimChatMember.RestrictedUntil = time.Now().Add(time.Second * time.Duration(60*VictimDuelist.Deaths)).Unix()
-	err = Bot.Restrict(context.Message().Chat, VictimChatMember)
+	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, VictimChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*VictimDuelist.Deaths)).Unix()})
 	if err != nil {
 		return err
 	}
-	_, err = Bot.Edit(message, prt.Sprintf("%v\nПобедитель дуэли: %v.\n%v отправился на респавн на %d мин.", prefix, MentionUser(player), MentionUser(victim), VictimDuelist.Deaths))
+	_, _, err = Bot.EditMessageText(prt.Sprintf("%v\nПобедитель дуэли: %v.\n%v отправился на респавн на %d мин.", prefix, MentionUser(player), MentionUser(victim), VictimDuelist.Deaths), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	if err != nil {
 		return err
 	}
 	var PlayerDuelist Duelist
-	result = DB.Model(Duelist{}).Where(victim.ID).First(&PlayerDuelist)
+	result = DB.Model(Duelist{}).Where(victim.Id).First(&PlayerDuelist)
 	if result.RowsAffected == 0 {
-		PlayerDuelist.UserID = victim.ID
+		PlayerDuelist.UserID = victim.Id
 		PlayerDuelist.Kills = 0
 		PlayerDuelist.Deaths = 0
 	}

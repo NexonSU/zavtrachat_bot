@@ -6,19 +6,20 @@ import (
 	"strconv"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // List all bets
-func AllBets(context tele.Context) error {
+func AllBets(bot *gotgbot.Bot, context *ext.Context) error {
 	var betlist string
 	var bet Bets
-	var user tele.User
+	var user gotgbot.User
 	var i = 0
 	var from int64
 	var to int64
-	if len(context.Args()) > 0 {
-		if context.Args()[0] == "all" {
+	if len(context.Args()) > 1 {
+		if context.Args()[1] == "all" {
 			from = 0
 		}
 	}
@@ -37,8 +38,10 @@ func AllBets(context tele.Context) error {
 		}
 		betlist += fmt.Sprintf("%v, %v:\n<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), UserFullName(&user), html.EscapeString(bet.Text))
 		if len(betlist) > 3900 {
-			return context.Reply(betlist)
+			_, err := context.Message.Reply(bot, betlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+			return err
 		}
 	}
-	return context.Reply(betlist)
+	_, err := context.Message.Reply(bot, betlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	return err
 }

@@ -5,15 +5,16 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/tg"
-	tele "gopkg.in/telebot.v3"
 )
 
 var channel *tg.Channel
 
 // Reply with GIF from Pan Kotek's channel
-func Meow(context tele.Context) error {
+func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 	api := GotdClient.API()
 
 	//get channel object
@@ -64,7 +65,8 @@ func Meow(context tele.Context) error {
 				continue
 			}
 			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GotdContext, &buf)
-			return context.Reply(&tele.Document{FileName: filename, File: tele.File{FileReader: &buf}})
+			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
+			return err
 		} else {
 			continue
 		}

@@ -2,68 +2,114 @@ package main
 
 import (
 	tdctx "context"
-	"encoding/json"
 	"fmt"
-	"html"
 	"log"
-	"regexp"
-	"runtime"
-	"strings"
+	"math/rand"
 	"time"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/gotd/contrib/bg"
 	"github.com/gotd/td/telegram"
-	tele "gopkg.in/telebot.v3"
 )
 
-var Bot tele.Bot
+var Bot *gotgbot.Bot
+var BotDispatcher *ext.Dispatcher
+var BotUpdater *ext.Updater
 var GotdClient *telegram.Client
 var GotdContext tdctx.Context
 
-// BotInit initializes Telegram Bots
-// Moved from auto init to manual init to make the code in utils package testable
-func BotInit() {
-	if Config.Token == "" {
-		log.Fatal("Telegram bot token not found in config.json")
-	}
-	if Config.Chat == 0 {
-		log.Fatal("Chat username not found in config.json")
-	}
-	Settings := tele.Settings{
-		URL:       Config.BotApiUrl,
-		Token:     Config.Token,
-		ParseMode: tele.ModeHTML,
-		OnError:   ErrorReporting,
-		Poller: &tele.LongPoller{
-			Timeout:        10 * time.Second,
-			AllowedUpdates: Config.AllowedUpdates,
-		},
-	}
-	if Config.EndpointPublicURL != "" || Config.Listen != "" {
-		Settings.Poller = &tele.Webhook{
-			Listen: Config.Listen,
-			Endpoint: &tele.WebhookEndpoint{
-				PublicURL: Config.EndpointPublicURL,
+func init() {
+	bot, err := gotgbot.NewBot(Config.Token, &gotgbot.BotOpts{
+		BotClient: &gotgbot.BaseBotClient{
+			DefaultRequestOpts: &gotgbot.RequestOpts{
+				APIURL: Config.BotApiUrl,
 			},
-			MaxConnections: Config.MaxConnections,
-			AllowedUpdates: Config.AllowedUpdates,
+		},
+		DisableTokenCheck: true,
+		RequestOpts: &gotgbot.RequestOpts{
+			APIURL: Config.BotApiUrl,
+		},
+	})
+	if err != nil {
+		panic("failed to create new bot: " + err.Error())
+	}
+	// Create updater and dispatcher.
+	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
+		// If an error is returned by a handler, log it and continue going.
+		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
+			log.Println("an error occurred while handling update:", err.Error())
+			return ext.DispatcherActionNoop
+		},
+		MaxRoutines: ext.DefaultMaxRoutines,
+	})
+	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{
+		UnhandledErrFunc: ErrorReporting,
+	})
+
+	connectionType := ""
+	if Config.EndpointPublicURL != "" || Config.Listen != "" {
+		connectionType = "webhook"
+		// Start the webhook server. We start the server before we set the webhook itself, so that when telegram starts
+		// sending updates, the server is already ready.
+		wsl := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+		wss := make([]rune, 26)
+		for i := range wss {
+			wss[i] = wsl[rand.Intn(len(wsl))]
+		}
+		webhookSecret := string(wss)
+
+		// The bot's urlPath can be anything. Here, we use "custom-path/<TOKEN>" as an example.
+		// It can be a good idea for the urlPath to contain the bot token, as that makes it very difficult for outside
+		// parties to find the update endpoint (which would allow them to inject their own updates).
+		err = updater.StartWebhook(bot, bot.Username, ext.WebhookOpts{
+			ListenAddr:  Config.Listen,
+			SecretToken: webhookSecret,
+		})
+		if err != nil {
+			panic("failed to start webhook: " + err.Error())
+		}
+
+		err = updater.SetAllBotWebhooks(Config.EndpointPublicURL, &gotgbot.SetWebhookOpts{
+			MaxConnections:     Config.MaxConnections,
+			AllowedUpdates:     Config.AllowedUpdates,
+			SecretToken:        webhookSecret,
+			DropPendingUpdates: false,
+			RequestOpts: &gotgbot.RequestOpts{
+				APIURL: Config.BotApiUrl,
+			},
+		})
+		if err != nil {
+			panic("failed to set webhook: " + err.Error())
 		}
 	} else {
-		Settings.Poller = &tele.LongPoller{
-			Timeout:        10 * time.Second,
-			AllowedUpdates: Config.AllowedUpdates,
+		connectionType = "polling"
+		err = updater.StartPolling(bot, &ext.PollingOpts{
+			DropPendingUpdates:    false,
+			EnableWebhookDeletion: true,
+			GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
+				Timeout:        10,
+				AllowedUpdates: Config.AllowedUpdates,
+				RequestOpts: &gotgbot.RequestOpts{
+					Timeout: time.Second * 10,
+					APIURL:  Config.BotApiUrl,
+				},
+			},
+		})
+		if err != nil {
+			panic("failed to start polling: " + err.Error())
 		}
 	}
-	var bot, err = tele.NewBot(Settings)
-	if err != nil {
-		log.Println(Config.BotApiUrl)
-		log.Fatal(err)
-	}
 	if Config.SysAdmin != 0 {
-		bot.Send(tele.ChatID(Config.SysAdmin), fmt.Sprintf("%v has finished starting up.", MentionUser(bot.Me)))
+		_, err := bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v", bot.Id, connectionType, bot.GetAPIURL(nil)), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		if err != nil {
+			panic("failed to send message: " + err.Error())
+		}
 	}
 
-	Bot = *bot
+	Bot = bot
+	BotDispatcher = dispatcher
+	BotUpdater = updater
 
 	go gotdClientInit()
 }
@@ -94,25 +140,25 @@ func gotdClientInit() error {
 	})
 }
 
-func ErrorReporting(err error, context tele.Context) {
-	_, fn, line, _ := runtime.Caller(1)
-	log.Printf("[%s:%d] %v", fn, line, err)
-	if context != nil && context.Message() != nil && context.Chat().ID == Config.Chat {
-		ReplyAndRemove(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), context)
-	}
-	text := fmt.Sprintf("<pre>[%s:%d]\n%v</pre>", fn, line, strings.ReplaceAll(err.Error(), Config.Token, ""))
-	if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
-		return
-	}
-	if strings.Contains(err.Error(), "message to delete not found") {
-		return
-	}
-	if strings.Contains(err.Error(), "context does not contain message") {
-		return
-	}
-	marshalledContext, _ := json.MarshalIndent(context.Update(), "", "    ")
-	marshalledContextWithoutNil := regexp.MustCompile(`.*": (null|""|0|false)(,|)\n`).ReplaceAllString(string(marshalledContext), "")
-	jsonMessage := html.EscapeString(marshalledContextWithoutNil)
-	text += fmt.Sprintf("\n\nMessage:\n<pre>%v</pre>", jsonMessage)
-	Bot.Send(tele.ChatID(Config.SysAdmin), text)
+func ErrorReporting(err error) {
+	// _, fn, line, _ := runtime.Caller(1)
+	// log.Printf("[%s:%d] %v", fn, line, err)
+	// if context != nil && context.Message != nil && context.Chat().Id == Config.Chat {
+	// 	ReplyAndRemove(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), *context)
+	// }
+	// text := fmt.Sprintf("<pre>[%s:%d]\n%v</pre>", fn, line, strings.ReplaceAll(err.Error(), Config.Token, ""))
+	// if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
+	// 	return
+	// }
+	// if strings.Contains(err.Error(), "message to delete not found") {
+	// 	return
+	// }
+	// if strings.Contains(err.Error(), "context does not contain message") {
+	// 	return
+	// }
+	// marshalledContext, _ := json.MarshalIndent(context.Update(), "", "    ")
+	// marshalledContextWithoutNil := regexp.MustCompile(`.*": (null|""|0|false)(,|)\n`).ReplaceAllString(string(marshalledContext), "")
+	// jsonMessage := html.EscapeString(marshalledContextWithoutNil)
+	// text += fmt.Sprintf("\n\nMessage:\n<pre>%v</pre>", jsonMessage)
+	Bot.SendMessage(Config.SysAdmin, err.Error(), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 }

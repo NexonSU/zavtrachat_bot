@@ -4,21 +4,22 @@ import (
 	"fmt"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"gorm.io/gorm/clause"
 )
 
 // Send warning to user on /warn
-func WarnUser(context tele.Context) error {
+func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 	var warn Warn
-	if (context.Message().ReplyTo == nil && len(context.Args()) != 1) || (context.Message().ReplyTo != nil && len(context.Args()) != 0) {
-		return ReplyAndRemove("Пример использования: <code>/warn {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/warn</code>", context)
+	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
+		return ReplyAndRemove("Пример использования: <code>/warn {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/warn</code>", *context)
 	}
-	target, _, err := FindUserInMessage(context)
+	target, _, err := FindUserInMessage(*context)
 	if err != nil {
 		return err
 	}
-	result := DB.First(&warn, target.ID)
+	result := DB.First(&warn, target.Id)
 	if result.RowsAffected != 0 {
 		warn.Amount = warn.Amount - int(time.Since(warn.LastWarn).Hours()/24/7)
 		if warn.Amount < 0 {
@@ -28,7 +29,7 @@ func WarnUser(context tele.Context) error {
 	} else {
 		warn.Amount = 1
 	}
-	warn.UserID = target.ID
+	warn.UserID = target.Id
 	warn.LastWarn = time.Now()
 	result = DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
@@ -37,23 +38,21 @@ func WarnUser(context tele.Context) error {
 		return result.Error
 	}
 	if warn.Amount == 1 {
-		return context.Send(fmt.Sprintf("%v, у тебя 1 предупреждение.\nЕсль получишь 3 предупреждения за 2 недели, то будешь исключен из чата.", UserFullName(&target)))
+		_, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, у тебя 1 предупреждение.\nЕсль получишь 3 предупреждения за 2 недели, то будешь забанен.", UserFullName(&target)), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		return err
 	}
 	if warn.Amount == 2 {
-		return context.Send(fmt.Sprintf("%v, у тебя 2 предупреждения.\nЕсли в течении недели получишь ещё одно, то будешь исключен из чата.", UserFullName(&target)))
+		_, err := context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("%v, у тебя 2 предупреждения.\nЕсли в течении недели получишь ещё одно, то будешь забанен.", UserFullName(&target))), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		return err
 	}
 	if warn.Amount == 3 {
-		untildate := time.Now().AddDate(0, 0, 7).Unix()
-		TargetChatMember, err := Bot.ChatMemberOf(context.Chat(), &target)
+		result, err := bot.BanChatMember(context.Message.Chat.Id, target.Id, nil)
 		if err != nil {
 			return err
 		}
-		TargetChatMember.RestrictedUntil = untildate
-		err = Bot.Ban(context.Chat(), TargetChatMember)
-		if err != nil {
-			return err
+		if result {
+			return ReplyAndRemove(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен, т.к. набрал 3 предупреждения.", target.Id, UserFullName(&target)), *context)
 		}
-		return ReplyAndRemove(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен%v, т.к. набрал 3 предупреждения.", target.ID, UserFullName(&target), RestrictionTimeMessage(untildate)), context)
 	}
 	return err
 }

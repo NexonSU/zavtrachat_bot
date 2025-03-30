@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Send text in chat on /say
-func Anekdot(context tele.Context) error {
+func Anekdot(bot *gotgbot.Bot, context *ext.Context) error {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	httpResponse, err := httpClient.Get("https://www.anekdot.ru/rss/randomu.html")
 	if err != nil {
@@ -33,5 +34,5 @@ func Anekdot(context tele.Context) error {
 	text = br.ReplaceAllString(text, `$1 $2`)
 	text = strings.ReplaceAll(text, "<br>", "\n")
 
-	return ReplyAndRemove(text, context)
+	return ReplyAndRemove(text, *context)
 }

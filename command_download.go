@@ -6,27 +6,28 @@ import (
 	"os"
 	"time"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/lrstanley/go-ytdlp"
-	tele "gopkg.in/telebot.v3"
 )
 
 // Convert given  file
-func Download(context tele.Context) error {
-	filePath := fmt.Sprintf("%v/%v.mp4", os.TempDir(), context.Message().ID)
+func Download(bot *gotgbot.Bot, context *ext.Context) error {
+	filePath := fmt.Sprintf("%v/%v.mp4", os.TempDir(), context.Message.MessageId)
 
-	context.Delete()
+	context.Message.Delete(bot, nil)
 
-	if context.Message().ReplyTo == nil && len(context.Args()) < 1 {
-		return ReplyAndRemove("Пример использования: <code>/download {ссылка на ютуб/твиттер}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/download</code>", context)
+	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
+		return ReplyAndRemove("Пример использования: <code>/download {ссылка на ютуб/твиттер}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/download</code>", *context)
 	}
 
 	link := ""
-	message := &tele.Message{}
+	message := &gotgbot.Message{}
 
-	if context.Message().ReplyTo == nil {
-		message = context.Message()
+	if context.Message.ReplyToMessage == nil {
+		message = context.Message
 	} else {
-		message = context.Message().ReplyTo
+		message = context.Message.ReplyToMessage
 	}
 
 	var downloadNotify = make(chan bool, 1)
@@ -36,7 +37,7 @@ func Download(context tele.Context) error {
 			case <-downloadNotify:
 				return
 			default:
-				context.Notify(tele.RecordingVideo)
+				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionRecordVideo, nil)
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -46,10 +47,10 @@ func Download(context tele.Context) error {
 	}()
 
 	for _, entity := range message.Entities {
-		if entity.Type == tele.EntityURL || entity.Type == tele.EntityTextLink {
-			link = entity.URL
+		if entity.Type == "url" || entity.Type == "text_link" {
+			link = entity.Url
 			if link == "" {
-				link = message.EntityText(entity)
+				link = gotgbot.ParseEntity(message.Text, entity).Text
 			}
 		}
 	}
@@ -63,7 +64,7 @@ func Download(context tele.Context) error {
 		return err
 	}
 
-	ytdlpInfo, err := ytdlpResult.GetExtractedInfo()
+	_, err = ytdlpResult.GetExtractedInfo()
 	if err != nil {
 		return err
 	}
@@ -77,7 +78,7 @@ func Download(context tele.Context) error {
 			case <-uploadNotify:
 				return
 			default:
-				context.Notify(tele.UploadingVideo)
+				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionUploadVideo, nil)
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -86,12 +87,6 @@ func Download(context tele.Context) error {
 		uploadNotify <- true
 		os.Remove(filePath)
 	}()
-
-	return context.Send(&tele.Video{
-		FileName:  *ytdlpInfo[0].Title + ".mp4",
-		Streaming: true,
-		File: tele.File{
-			FileLocal: filePath,
-		},
-	})
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", filePath)), &gotgbot.SendVideoOpts{SupportsStreaming: true})
+	return err
 }

@@ -7,16 +7,17 @@ import (
 	_ "image/png"
 	"strings"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/fogleman/gg"
-	tele "gopkg.in/telebot.v3"
 )
 
 // Write username on bonk picture and send to target
-func Bonk(context tele.Context) error {
-	if context.Message().ReplyTo == nil {
-		return ReplyAndRemove("Просто отправь <code>/bonk</code> в ответ на чье-либо сообщение.", context)
+func Bonk(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.ReplyToMessage == nil {
+		return ReplyAndRemove("Просто отправь <code>/bonk</code> в ответ на чье-либо сообщение.", *context)
 	}
-	context.Delete()
+	context.Message.Delete(bot, nil)
 
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(bonk_png))
 	im, _, err := image.Decode(reader)
@@ -32,7 +33,7 @@ func Bonk(context tele.Context) error {
 		return err
 	}
 	dc.SetRGB(1, 1, 1)
-	s := UserFullName(context.Sender())
+	s := UserFullName(context.Message.From)
 	n := 4
 	for dy := -n; dy <= n; dy++ {
 		for dx := -n; dx <= n; dx++ {
@@ -51,5 +52,6 @@ func Bonk(context tele.Context) error {
 	if err != nil {
 		return err
 	}
-	return context.Send(&tele.Sticker{File: tele.FromReader(buf)}, &tele.SendOptions{ReplyTo: context.Message().ReplyTo})
+	_, err = bot.SendSticker(context.Message.Chat.Id, gotgbot.InputFileByReader("bonk.png", buf), nil)
+	return err
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	cntx "context"
 	"fmt"
 	"io"
 	"os"
@@ -13,12 +14,11 @@ import (
 
 	_ "image/png"
 
-	cntx "context"
-
 	"github.com/Jeffail/tunny"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
-	tele "gopkg.in/telebot.v3"
-	"gopkg.in/vansante/go-ffprobe.v2"
+	ffprobe "gopkg.in/vansante/go-ffprobe.v2"
 )
 
 var DistortBusy bool
@@ -26,52 +26,51 @@ var DistortBusy bool
 var DistortCache map[string]string
 
 // Distort given file
-func Distort(context tele.Context) error {
-	if context.Message().ReplyTo == nil {
-		return ReplyAndRemove("Пример использования: <code>/distort</code> в ответ на какое-либо сообщение с видео.", context)
+func Distort(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.ReplyToMessage == nil {
+		return ReplyAndRemove("Пример использования: <code>/distort</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
-	if context.Message().ReplyTo.Media() == nil {
-		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", context)
+	if !IsContainsMedia(context.Message.ReplyToMessage) {
+		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", *context)
 	}
 
-	media := context.Message().ReplyTo.Media()
-	additionalInputArgs := ""
-	options := &tele.SendOptions{AllowWithoutReply: true}
-	var resultMessage *tele.Message
-	var err error
-	var recepient tele.Recipient
-
-	ChatMember, err := Bot.ChatMemberOf(context.Chat(), context.Sender())
+	media, err := GetMedia(context.Message.ReplyToMessage)
 	if err != nil {
 		return err
 	}
-	if time.Now().Local().Hour() > 21 || time.Now().Local().Hour() < 7 || ChatMember.Role == "administrator" || ChatMember.Role == "creator" {
-		recepient = context.Chat()
-		options = &tele.SendOptions{ReplyTo: context.Message(), AllowWithoutReply: true}
+	additionalInputArgs := ""
+	options := &gotgbot.ReplyParameters{AllowSendingWithoutReply: true}
+	var resultMessage *gotgbot.Message
+	var recepient int64
+
+	ChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, context.Message.From.Id, nil)
+	if err != nil {
+		return err
+	}
+	if time.Now().Local().Hour() > 21 || time.Now().Local().Hour() < 7 || ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" {
+		recepient = context.Message.Chat.Id
+		options = &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}
 	} else {
-		recepient = context.Sender()
+		recepient = context.Message.From.Id
 	}
 
-	if fileId, ok := DistortCache[media.MediaFile().FileID]; ok {
-		_, err = Bot.Send(recepient, &tele.Document{
-			File:     tele.File{FileID: fileId},
-			FileName: fileId + ".mp4",
-		}, options)
-		if recepient == context.Sender() {
-			ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", context)
+	if fileId, ok := DistortCache[media.FileID]; ok {
+		_, err = Bot.SendDocument(recepient, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ReplyParameters: &gotgbot.ReplyParameters{}})
+		if recepient == context.Message.From.Id {
+			ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 		}
 		return err
 	}
 
-	switch media.MediaType() {
+	switch media.Type {
 	case "video", "animation", "photo", "audio", "voice", "sticker":
 		break
 	default:
-		return ReplyAndRemove("Неподдерживаемая операция", context)
+		return ReplyAndRemove("Неподдерживаемая операция", *context)
 	}
 
 	if DistortBusy {
-		return ReplyAndRemove("Команда занята", context)
+		return ReplyAndRemove("Команда занята", *context)
 	}
 
 	var done = make(chan bool, 1)
@@ -81,7 +80,7 @@ func Distort(context tele.Context) error {
 			case <-done:
 				return
 			default:
-				context.Notify(tele.ChatAction(tele.UploadingDocument))
+				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionUploadDocument, nil)
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -94,13 +93,8 @@ func Distort(context tele.Context) error {
 
 	jobStarted := time.Now().Unix()
 
-	file, err := Bot.FileByID(media.MediaFile().FileID)
-	if err != nil {
-		return err
-	}
-
-	workdir := fmt.Sprintf("%v/telegram-go-chatbot-distort/%v", os.TempDir(), media.MediaFile().FileID)
-	inputFile := file.FilePath
+	workdir := fmt.Sprintf("%v/telegram-go-chatbot-distort/%v", os.TempDir(), media.FileID)
+	inputFile := media.FilePath
 	outputFile := fmt.Sprintf("%v/output.mp4", workdir)
 
 	ctx, cancelFn := cntx.WithTimeout(cntx.Background(), 5*time.Second)
@@ -113,7 +107,7 @@ func Distort(context tele.Context) error {
 
 	framerate := "30/1"
 
-	if media.MediaType() != "audio" && media.MediaType() != "voice" {
+	if media.Type != "audio" && media.Type != "voice" {
 		frames := data.FirstVideoStream().NbFrames
 		framerate = data.FirstVideoStream().AvgFrameRate
 
@@ -126,38 +120,34 @@ func Distort(context tele.Context) error {
 			return err
 		}
 
-		if framesInt > 1000 && !IsAdminOrModer(context.Sender().ID) {
-			return ReplyAndRemove("Видео слишком длинное. Максимум 1000 фреймов.", context)
+		if framesInt > 1000 && !IsAdminOrModer(context.Message.From.Id) {
+			return ReplyAndRemove("Видео слишком длинное. Максимум 1000 фреймов.", *context)
 		}
 	}
 
 	if err := os.Mkdir(workdir, os.ModePerm); err != nil {
-		return ReplyAndRemove("Обработка файла уже выполняется", context)
+		return ReplyAndRemove("Обработка файла уже выполняется", *context)
 	}
 	defer func(workdir string) {
 		os.RemoveAll(workdir)
 	}(workdir)
 
-	if media.MediaType() == "video" && data.FirstAudioStream() != nil {
+	if media.Type == "video" && data.FirstAudioStream() != nil {
 		ffmpeg.Input(inputFile).Output(workdir + "/input_audio.mp3").OverWriteOutput().ErrorToStdOut().Run()
 		ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
 		additionalInputArgs = "-i " + workdir + "/audio.mp3 -c:a aac"
 	}
 
-	if media.MediaType() == "audio" || media.MediaType() == "voice" {
+	if media.Type == "audio" || media.Type == "voice" {
 		ffmpeg.Input(inputFile).Output(workdir + "/input_audio.mp3").OverWriteOutput().ErrorToStdOut().Run()
 		err = ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
 		if err != nil {
 			return err
 		}
-		resultMessage, err = Bot.Send(recepient, &tele.Audio{
-			File:     tele.FromDisk(workdir + "/audio.mp3"),
-			FileName: media.MediaFile().FileID + ".mp3",
-			MIME:     "video/mp3",
-		}, options)
-		DistortCache[media.MediaFile().FileID] = resultMessage.Media().MediaFile().FileID
-		if recepient == context.Sender() {
-			ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", context)
+		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", workdir+"/audio.mp3")), &gotgbot.SendAudioOpts{ReplyParameters: options})
+		DistortCache[media.FileID] = resultMessage.Audio.FileId
+		if recepient == context.Message.From.Id {
+			ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 		}
 		return err
 	}
@@ -188,7 +178,7 @@ func Distort(context tele.Context) error {
 		return err
 	}
 
-	if media.MediaType() == "photo" || (media.MediaType() == "sticker" && !context.Message().ReplyTo.Sticker.Animated && !context.Message().ReplyTo.Sticker.Video) {
+	if media.Type == "photo" || (media.Type == "sticker" && !context.Message.ReplyToMessage.Sticker.IsAnimated && !context.Message.ReplyToMessage.Sticker.IsVideo) {
 		framerate = "15/1"
 		src := workdir + "/000000001.png"
 		for i := 2; i < 31; i++ {
@@ -244,7 +234,7 @@ func Distort(context tele.Context) error {
 	for {
 		time.Sleep(1 * time.Second)
 		if time.Now().Unix()-jobStarted > 300 {
-			return ReplyAndRemove("Слишком долгое выполнение операции", context)
+			return ReplyAndRemove("Слишком долгое выполнение операции", *context)
 		}
 		if pool.QueueLength() == 0 {
 			break
@@ -262,13 +252,10 @@ func Distort(context tele.Context) error {
 	}
 
 	DistortBusy = false
-	resultMessage, err = Bot.Send(recepient, &tele.Document{
-		File:     tele.FromDisk(outputFile),
-		FileName: media.MediaFile().FileID + ".mp4",
-	}, options)
-	DistortCache[media.MediaFile().FileID] = resultMessage.Media().MediaFile().FileID
-	if recepient == context.Sender() {
-		ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", context)
+	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", outputFile)), &gotgbot.SendDocumentOpts{ReplyParameters: options})
+	DistortCache[media.FileID] = resultMessage.Document.FileId
+	if recepient == context.Message.From.Id {
+		ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 	}
 	return err
 }

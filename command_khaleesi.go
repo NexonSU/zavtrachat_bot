@@ -3,13 +3,14 @@ package main
 import (
 	"strings"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Khaleesi Replace text in target message
-func Khaleesi(context tele.Context) error {
-	if context.Message().ReplyTo == nil {
-		return ReplyAndRemove("Пример использования:\n/khaleesi в ответ на сообщение.", context)
+func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.ReplyToMessage == nil {
+		return ReplyAndRemove("Пример использования:\n/khaleesi в ответ на сообщение.", *context)
 	}
 	dict := [][]string{
 		{"стра", "стьйа"},
@@ -242,12 +243,13 @@ func Khaleesi(context tele.Context) error {
 		{"ъ", "ь"},
 	}
 
-	text := strings.ToLower(context.Message().ReplyTo.Text)
+	text := strings.ToLower(context.Message.ReplyToMessage.Text)
 
 	for i := range dict {
-		if strings.Contains(strings.ToLower(context.Message().ReplyTo.Text), dict[i][0]) {
+		if strings.Contains(strings.ToLower(context.Message.ReplyToMessage.Text), dict[i][0]) {
 			text = strings.ReplaceAll(text, dict[i][0], dict[i][1])
 		}
 	}
-	return context.Reply(text)
+	_, err := context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	return err
 }

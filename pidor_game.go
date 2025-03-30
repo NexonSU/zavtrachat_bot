@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 var busyPidor = make(map[string]bool)
 
 // Pidor game
-func Pidor(context tele.Context) error {
-	if context.Message().Private() {
+func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.Chat.Type == "private" {
 		return nil
 	}
 	if busyPidor["pidor"] {
-		return ReplyAndRemove("Команда занята. Попробуйте позже.", context)
+		return ReplyAndRemove("Команда занята. Попробуйте позже.", *context)
 	}
 	busyPidor["pidor"] = true
 	defer func() { busyPidor["pidor"] = false }()
@@ -24,20 +25,20 @@ func Pidor(context tele.Context) error {
 	result := DB.Model(PidorStats{}).Where("date BETWEEN ? AND ?", time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local), time.Now()).First(&pidor)
 	if result.RowsAffected == 0 {
 		DB.Model(PidorList{}).Order("RANDOM()").First(&pidorToday)
-		TargetChatMember, err := Bot.ChatMemberOf(context.Chat(), &tele.User{ID: pidorToday.ID})
+		TargetChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, pidorToday.Id, nil)
 		if err != nil {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что с <a href=\"tg://user?id=%v\">%v</a> что-то не так, так что попробуйте еще раз, пока я удаляю его из игры! Ошибка:\n<code>%v</code>", pidorToday.ID, pidorToday.Username, err.Error()), context)
+			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что с <a href=\"tg://user?id=%v\">%v</a> что-то не так, так что попробуйте еще раз, пока я удаляю его из игры! Ошибка:\n<code>%v</code>", pidorToday.Id, pidorToday.Username, err.Error()), *context)
 		}
-		if TargetChatMember.Role == "left" {
+		if TargetChatMember.GetStatus() == "left" {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> вышел из этого чата (вот пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.ID, pidorToday.Username), context)
+			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> вышел из этого чата (вот пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
-		if TargetChatMember.Role == "kicked" {
+		if TargetChatMember.GetStatus() == "kicked" {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.ID, pidorToday.Username), context)
+			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
-		pidor.UserID = pidorToday.ID
+		pidor.UserID = pidorToday.Id
 		pidor.Date = time.Now()
 		DB.Create(&pidor)
 		messages := [][]string{
@@ -50,16 +51,16 @@ func Pidor(context tele.Context) error {
 			duration := time.Second * time.Duration(i*2)
 			message := messages[i][RandInt(0, len(messages[i])-1)]
 			if i == 3 {
-				message += fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", pidorToday.ID, pidorToday.Username)
+				message += fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", pidorToday.Id, pidorToday.Username)
 			}
 			go func() {
 				time.Sleep(duration)
-				context.Send(message, &tele.SendOptions{DisableNotification: true})
+				bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: "HTML", DisableNotification: true})
 			}()
 		}
 	} else {
 		DB.Model(PidorList{}).Where(pidor.UserID).First(&pidorToday)
-		return ReplyAndRemove(fmt.Sprintf("Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - %v!", pidorToday.Username), context)
+		return ReplyAndRemove(fmt.Sprintf("Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - %v!", pidorToday.Username), *context)
 	}
 	return nil
 }

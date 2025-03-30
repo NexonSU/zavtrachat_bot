@@ -3,10 +3,11 @@ package main
 import (
 	"time"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
-	tele "gopkg.in/telebot.v3"
 	"gorm.io/gorm/clause"
 )
 
@@ -16,24 +17,23 @@ var burst int
 var lastVideoSent int64
 
 // Kill user on /blessing, /suicide
-func Blessing(context tele.Context) error {
+func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 	// prt will replace fmt package to format text according plurals defined in utils package
 	// If no plural rule matched it will be ignored and processed as usual formatting
 	prt := message.NewPrinter(language.Russian)
 
-	victim := context.Sender()
+	victim := context.Message.From
 	ricochetText := ""
 
-	err := context.Delete()
+	_, err := context.Message.Delete(bot, nil)
 	if err != nil {
 		return err
 	}
-	ChatMember, err := Bot.ChatMemberOf(context.Chat(), context.Sender())
+	ChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, context.Message.From.Id, nil)
 	if err != nil {
 		return err
 	}
-	if ChatMember.Role == "administrator" || ChatMember.Role == "creator" || context.Sender().ID == 825209730 {
-		var ricochetVictim *tele.ChatMember
+	if ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" || context.Message.From.Id == 825209730 {
 		var userID int64
 		rows, err := DB.Model(&Stats{}).Where("stat_type = 3").Order("last_update desc").Select("context_id").Limit(100).Rows()
 		if err != nil {
@@ -41,24 +41,24 @@ func Blessing(context tele.Context) error {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			rows.Scan(&userID)
-			ricochetVictim, err = Bot.ChatMemberOf(context.Chat(), &tele.User{ID: userID})
+			rows.Scan(userID)
+			ricochetVictim, err := Bot.GetChatMember(context.Message.Chat.Id, userID, nil)
 			if err != nil {
 				continue
 			}
-			if ricochetVictim.Role == "member" {
-				victim = ricochetVictim.User
+			if ricochetVictim.GetStatus() == "member" {
+				*victim = ricochetVictim.GetUser()
 				ChatMember = ricochetVictim
-				ricochetText = prt.Sprintf("Пуля отскакивает от головы %v и летит в голову %v.\n", MentionUser(context.Sender()), MentionUser(victim))
+				ricochetText = prt.Sprintf("Пуля отскакивает от головы %v и летит в голову %v.\n", MentionUser(context.Message.From), MentionUser(victim))
 				rows.Close()
 				break
 			}
 		}
 	}
 	var duelist Duelist
-	result := DB.Model(Duelist{}).Where(context.Sender().ID).First(&duelist)
+	result := DB.Model(Duelist{}).Where(context.Message.From.Id).First(&duelist)
 	if result.RowsAffected == 0 {
-		duelist.UserID = context.Sender().ID
+		duelist.UserID = context.Message.From.Id
 		duelist.Kills = 0
 		duelist.Deaths = 0
 	}
@@ -77,7 +77,7 @@ func Blessing(context tele.Context) error {
 		additionalChance = 3600
 	}
 	additionalChance = (3600 - additionalChance) / 360
-	if context.Sender().IsPremium {
+	if context.Message.From.IsPremium {
 		duration = duration * 2
 		prependText += "премиально "
 	}
@@ -91,8 +91,7 @@ func Blessing(context tele.Context) error {
 	if ricochetText != "" {
 		duration = 1
 	}
-	ChatMember.RestrictedUntil = time.Now().Add(time.Second * time.Duration(60*duration)).Unix()
-	err = Bot.Restrict(context.Chat(), ChatMember)
+	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
 	if err != nil {
 		return err
 	}
@@ -104,13 +103,9 @@ func Blessing(context tele.Context) error {
 	lastSuicide = time.Now().Unix()
 	if burst > 3 && time.Now().Unix() > lastVideoSent+3600 {
 		lastVideoSent = time.Now().Unix()
-		return context.Send(&tele.Video{
-			File: tele.File{
-				FileID: "BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA",
-			},
-			Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration),
-		})
+		_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA"), &gotgbot.SendVideoOpts{Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration)})
 	} else {
-		return context.Send(prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration))
+		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 	}
+	return err
 }

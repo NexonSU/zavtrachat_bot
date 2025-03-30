@@ -6,26 +6,27 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Remove bet
-func DelBet(context tele.Context) error {
+func DelBet(bot *gotgbot.Bot, context *ext.Context) error {
 	var bet Bets
-	if len(context.Args()) < 2 {
-		return ReplyAndRemove("Пример использования: <code>/delbet 30.06.2023 ставлю жопу, что TESVI будет говном</code>", context)
+	if len(context.Args()) < 3 {
+		return ReplyAndRemove("Пример использования: <code>/delbet 30.06.2023 ставлю жопу, что TESVI будет говном</code>", *context)
 	}
-	date, err := time.Parse("02.01.2006", context.Args()[0])
+	date, err := time.Parse("02.01.2006", context.Args()[1])
 	if err != nil {
 		return err
 	}
-	bet.UserID = context.Sender().ID
+	bet.UserID = context.Message.From.Id
 	bet.Timestamp = date.Unix()
-	bet.Text = strings.Join(context.Args()[1:], " ")
+	bet.Text = strings.Join(context.Args()[2:], " ")
 	result := DB.Delete(&bet)
 	if result.RowsAffected != 0 {
-		return ReplyAndRemove(fmt.Sprintf("Ставка удалена:\n%v, %v:<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), UserFullName(context.Sender()), html.EscapeString(bet.Text)), context)
+		return ReplyAndRemove(fmt.Sprintf("Ставка удалена:\n%v, %v:<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), UserFullName(context.Message.From), html.EscapeString(bet.Text)), *context)
 	} else {
-		return ReplyAndRemove("Твоя ставка не найдена по указанным параметрам.", context)
+		return ReplyAndRemove("Твоя ставка не найдена по указанным параметрам.", *context)
 	}
 }

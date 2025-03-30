@@ -4,23 +4,27 @@ import (
 	"strings"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // Invert given file
-func Invert(context tele.Context) error {
-	if context.Message().ReplyTo == nil {
-		return ReplyAndRemove("Пример использования: <code>/invert</code> в ответ на какое-либо сообщение с видео.", context)
+func Invert(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message.ReplyToMessage == nil {
+		return ReplyAndRemove("Пример использования: <code>/invert</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
-	if context.Message().ReplyTo.Media() == nil {
-		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", context)
+	if !IsContainsMedia(context.Message.ReplyToMessage) {
+		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", *context)
 	}
 
-	media := context.Message().ReplyTo.Media()
+	media, err := GetMedia(context.Message.ReplyToMessage)
+	if err != nil {
+		return err
+	}
 
-	targetArg := media.MediaType()
-	if len(context.Args()) == 1 {
-		targetArg = strings.ToLower(context.Args()[0])
+	targetArg := media.Type
+	if len(context.Args()) == 2 {
+		targetArg = strings.ToLower(context.Args()[1])
 	}
 
 	switch targetArg {
@@ -35,14 +39,14 @@ func Invert(context tele.Context) error {
 	case "audio", "mp3":
 		targetArg = "audio"
 	default:
-		return ReplyAndRemove("Неподдерживаемая операция", context)
+		return ReplyAndRemove("Неподдерживаемая операция", *context)
 	}
 
 	targetArg = targetArg + "_reverse"
 
 	if targetArg == "sticker_reverse" {
-		if !context.Message().ReplyTo.Sticker.Video {
-			return ReplyAndRemove("Неподдерживаемая операция", context)
+		if !context.Message.ReplyToMessage.Sticker.IsVideo {
+			return ReplyAndRemove("Неподдерживаемая операция", *context)
 		}
 	}
 
@@ -53,7 +57,7 @@ func Invert(context tele.Context) error {
 			case <-done:
 				return
 			default:
-				context.Notify(tele.ChatAction(tele.UploadingDocument))
+				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionUploadDocument, nil)
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -62,10 +66,5 @@ func Invert(context tele.Context) error {
 		done <- true
 	}()
 
-	file, err := Bot.FileByID(media.MediaFile().FileID)
-	if err != nil {
-		return err
-	}
-
-	return FFmpegConvert(context, file.FilePath, targetArg)
+	return FFmpegConvert(context, media, targetArg)
 }

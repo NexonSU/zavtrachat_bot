@@ -3,11 +3,12 @@ package main
 import (
 	"strconv"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 // List add pidors from DB on /pidorlist
-func Pidorlist(context tele.Context) error {
+func Pidorlist(bot *gotgbot.Bot, context *ext.Context) error {
 	var pidorlist string
 	var pidor PidorList
 	var i = 0
@@ -19,18 +20,18 @@ func Pidorlist(context tele.Context) error {
 			return err
 		}
 		i++
-		pidorlist += strconv.Itoa(i) + ". @" + pidor.Username + " (" + strconv.FormatInt(pidor.ID, 10) + ")\n"
+		pidorlist += strconv.Itoa(i) + ". @" + pidor.Username + " (" + strconv.FormatInt(pidor.Id, 10) + ")\n"
 		if len(pidorlist) > 3900 {
-			_, err = Bot.Send(context.Sender(), pidorlist)
+			_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 			if err != nil {
 				return err
 			}
 			pidorlist = ""
 		}
 	}
-	_, err = Bot.Send(context.Sender(), pidorlist)
+	_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 	if err != nil {
 		return err
 	}
-	return ReplyAndRemove("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", context)
+	return ReplyAndRemove("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", *context)
 }

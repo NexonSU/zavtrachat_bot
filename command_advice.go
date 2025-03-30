@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	tele "gopkg.in/telebot.v3"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type AdviceResp struct {
@@ -15,7 +16,7 @@ type AdviceResp struct {
 	Sound string `json:"sound,omitempty"`
 }
 
-func Advice(context tele.Context) error {
+func Advice(bot *gotgbot.Bot, context *ext.Context) error {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	httpResponse, err := httpClient.Get("http://fucking-great-advice.ru/api/random")
 	if err != nil {
@@ -31,5 +32,5 @@ func Advice(context tele.Context) error {
 		return err
 	}
 
-	return ReplyAndRemove(advice.Text, context)
+	return ReplyAndRemove(advice.Text, *context)
 }
