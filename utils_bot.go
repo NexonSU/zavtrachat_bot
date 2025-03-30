@@ -26,7 +26,6 @@ func init() {
 				APIURL: Config.BotApiUrl,
 			},
 		},
-		DisableTokenCheck: true,
 		RequestOpts: &gotgbot.RequestOpts{
 			APIURL: Config.BotApiUrl,
 		},

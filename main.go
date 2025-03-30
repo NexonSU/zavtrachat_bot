@@ -97,15 +97,7 @@ func main() {
 
 	commandArray := []gotgbot.BotCommand{}
 	for i := range commandList {
-		//BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, commandList[i].response))
-		filter, err := message.Regex("^/" + commandList[i].command.Command + "($|\\s.*)")
-		if err != nil {
-			log.Fatal(err)
-		}
-		BotDispatcher.AddHandler(handlers.Message{
-			Response: commandList[i].response,
-			Filter:   filter,
-		})
+		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, commandList[i].response))
 		commandArray = append(commandArray, commandList[i].command)
 	}
 	sort.Slice(commandArray, func(i, j int) bool {
