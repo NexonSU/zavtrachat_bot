@@ -7,6 +7,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 )
 
 type commandList struct {
@@ -15,7 +16,7 @@ type commandList struct {
 }
 
 func main() {
-	commandMemberList := []commandList{
+	commandList := []commandList{
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов"}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь"}, Request},
 		{gotgbot.BotCommand{Command: "savetopm", Description: "сохранить пост в личку"}, SaveToPM},
@@ -64,9 +65,6 @@ func main() {
 		{gotgbot.BotCommand{Command: "convert", Description: "конвертировать файл, доппараметры: mp3,ogg,gif,audio,voice,animation"}, Convert},
 		{gotgbot.BotCommand{Command: "download", Description: "скачать файл"}, Download},
 		{gotgbot.BotCommand{Command: "wget", Description: "скачать файл"}, Download},
-	}
-
-	commandAdminList := []commandList{
 		{gotgbot.BotCommand{Command: "getid", Description: "получить ID юзера"}, Getid},
 		{gotgbot.BotCommand{Command: "kick", Description: "кикнуть кого-нибудь"}, Kick},
 		{gotgbot.BotCommand{Command: "bite", Description: "укусить кого-нибудь"}, Kill},
@@ -92,29 +90,28 @@ func main() {
 		{gotgbot.BotCommand{Command: "testrandom", Description: "протестировать рандом бота "}, TestRandom},
 	}
 
-	commandMemberArray := []gotgbot.BotCommand{}
-	for i := range commandMemberList {
-		BotDispatcher.AddHandler(handlers.NewCommand(commandMemberList[i].command.Command, commandMemberList[i].response))
-		commandMemberArray = append(commandMemberArray, commandMemberList[i].command)
-	}
-	sort.Slice(commandMemberArray, func(i, j int) bool {
-		return commandMemberArray[i].Command < commandMemberArray[j].Command
-	})
-	_, err := Bot.SetMyCommands(commandMemberArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllGroupChats{}})
-	if err != nil {
-		log.Fatal(err)
-	}
+	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllPrivateChats{}})
+	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllGroupChats{}})
+	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllChatAdministrators{}})
+	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeDefault{}})
 
-	commandAdminArray := []gotgbot.BotCommand{}
-	for i := range commandAdminList {
-		BotDispatcher.AddHandler(handlers.NewCommand(commandAdminList[i].command.Command, commandAdminList[i].response))
-		commandAdminArray = append(commandAdminArray, commandAdminList[i].command)
+	commandArray := []gotgbot.BotCommand{}
+	for i := range commandList {
+		//BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, commandList[i].response))
+		filter, err := message.Regex("^/" + commandList[i].command.Command + "($|\\s.*)")
+		if err != nil {
+			log.Fatal(err)
+		}
+		BotDispatcher.AddHandler(handlers.Message{
+			Response: commandList[i].response,
+			Filter:   filter,
+		})
+		commandArray = append(commandArray, commandList[i].command)
 	}
-	commandAdminArray = append(commandAdminArray, commandMemberArray...)
-	sort.Slice(commandAdminArray, func(i, j int) bool {
-		return commandAdminArray[i].Command < commandAdminArray[j].Command
+	sort.Slice(commandArray, func(i, j int) bool {
+		return commandArray[i].Command < commandArray[j].Command
 	})
-	_, err = Bot.SetMyCommands(commandAdminArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllChatAdministrators{}})
+	_, err := Bot.SetMyCommands(commandArray, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -122,7 +119,7 @@ func main() {
 	//non-command handles
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), Accept))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), Deny))
-	BotDispatcher.AddHandler(handlers.NewChatMember(nil, OnChatMember))
+	BotDispatcher.AddHandler(handlers.Message{Response: RemoveMessageAndUserFromReserveChat, Filter: message.ChatID(Config.ReserveChat)})
 	BotDispatcher.AddHandler(handlers.NewMessage(nil, OnText))
 	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, GetInline))
 
