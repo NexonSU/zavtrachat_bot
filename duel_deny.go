@@ -8,8 +8,8 @@ import (
 )
 
 func Deny(bot *gotgbot.Bot, context *ext.Context) error {
-	victim := context.Message.Entities[0].User
-	if victim.Id != context.Message.From.Id {
+	victim := context.EffectiveMessage.Entities[0].User
+	if victim.Id != context.EffectiveSender.User.Id {
 		_, err := context.Update.CallbackQuery.Answer(bot, &gotgbot.AnswerCallbackQueryOpts{
 			Text: GetNope(),
 		})
@@ -22,6 +22,6 @@ func Deny(bot *gotgbot.Bot, context *ext.Context) error {
 	busy["russianroulette"] = false
 	busy["russianroulettePending"] = false
 	busy["russianrouletteInProgress"] = false
-	_, _, err = Bot.EditMessageText(fmt.Sprintf("%v отказался от дуэли.", UserFullName(context.Message.From)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+	_, _, err = Bot.EditMessageText(fmt.Sprintf("%v отказался от дуэли.", UserFullName(context.EffectiveSender.User)), &gotgbot.EditMessageTextOpts{ChatId: context.EffectiveChat.Id, MessageId: context.EffectiveMessage.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	return err
 }
