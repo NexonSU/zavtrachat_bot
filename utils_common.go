@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -37,9 +38,12 @@ type Media struct {
 	CaptionEntities       []gotgbot.MessageEntity
 	HasSpoiler            bool
 	ShowCaptionAboveMedia bool
+	MediaGroupId          string
 }
 
 var onlyWords = regexp.MustCompile(`[,.!?]+`)
+
+var mediaGroups = make(map[string][]int64)
 
 func UserFullName(user *gotgbot.User) string {
 	fullname := user.FirstName
@@ -178,19 +182,33 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 		return nil
 	}
 	var err error
+	if context.EffectiveMessage.MediaGroupId != "" {
+		mediaGroups[context.EffectiveMessage.MediaGroupId] = append(mediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
+	}
 	if context.EffectiveMessage.Text != "" || context.EffectiveMessage.Caption != "" {
-		_, err = Bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+		if context.EffectiveMessage.MediaGroupId != "" {
+			go func(bot *gotgbot.Bot, context *ext.Context) {
+				time.Sleep(2 * time.Second)
+				sort.Slice(mediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
+					return i < j
+				})
+				_, err := bot.ForwardMessages(Config.Chat, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
+				if err != nil {
+					ErrorReporting(err)
+				}
+			}(bot, context)
+		} else {
+			_, err = bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+		}
 	}
 	if Config.StreamChannel != 0 {
 		if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
 			_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-			return err
 		}
 		for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
 			if entity.Type == "url" || entity.Type == "text_link" {
 				if strings.Contains(entity.Url, "zavtracast/live") {
 					_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-					return err
 				}
 			}
 		}
@@ -580,6 +598,7 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 	result.CaptionEntities = message.CaptionEntities
 	result.HasSpoiler = message.HasMediaSpoiler
 	result.ShowCaptionAboveMedia = message.ShowCaptionAboveMedia
+	result.MediaGroupId = message.MediaGroupId
 
 	file, err := Bot.GetFile(result.FileID, nil)
 	if err != nil {
