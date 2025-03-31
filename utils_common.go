@@ -184,31 +184,47 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 	var err error
 	if context.EffectiveMessage.MediaGroupId != "" {
 		mediaGroups[context.EffectiveMessage.MediaGroupId] = append(mediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
-	}
-	if context.EffectiveMessage.Text != "" || context.EffectiveMessage.Caption != "" {
-		if context.EffectiveMessage.MediaGroupId != "" {
-			go func(bot *gotgbot.Bot, context *ext.Context) {
-				time.Sleep(2 * time.Second)
-				sort.Slice(mediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
-					return i < j
-				})
+		go func(bot *gotgbot.Bot, context *ext.Context) {
+			time.Sleep(2 * time.Second)
+			sort.Slice(mediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
+				return i < j
+			})
+			if mediaGroups[context.EffectiveMessage.MediaGroupId][0] == context.EffectiveMessage.MessageId {
 				_, err := bot.ForwardMessages(Config.Chat, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
 				if err != nil {
 					ErrorReporting(err)
 				}
-			}(bot, context)
-		} else {
-			_, err = bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-		}
-	}
-	if Config.StreamChannel != 0 {
-		if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
-			_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-		}
-		for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
-			if entity.Type == "url" || entity.Type == "text_link" {
-				if strings.Contains(entity.Url, "zavtracast/live") {
-					_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+				if Config.StreamChannel != 0 {
+					if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
+						_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
+						if err != nil {
+							ErrorReporting(err)
+						}
+					}
+					for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
+						if entity.Type == "url" || entity.Type == "text_link" {
+							if strings.Contains(entity.Url, "zavtracast/live") {
+								_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
+								if err != nil {
+									ErrorReporting(err)
+								}
+							}
+						}
+					}
+				}
+			}
+		}(bot, context)
+	} else {
+		_, err = bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+		if Config.StreamChannel != 0 {
+			if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
+				_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+			}
+			for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
+				if entity.Type == "url" || entity.Type == "text_link" {
+					if strings.Contains(entity.Url, "zavtracast/live") {
+						_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+					}
 				}
 			}
 		}
