@@ -43,7 +43,7 @@ func Kill(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			rows.Scan(userID)
+			rows.Scan(&userID)
 			victim, err = bot.GetChatMember(context.Message.Chat.Id, userID, nil)
 			if err != nil {
 				continue

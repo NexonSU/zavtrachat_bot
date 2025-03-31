@@ -102,7 +102,7 @@ func Accept(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			rows.Scan(userID)
+			rows.Scan(&userID)
 			ricochetVictim, err := Bot.GetChatMember(context.Message.Chat.Id, userID, nil)
 			if err != nil {
 				continue

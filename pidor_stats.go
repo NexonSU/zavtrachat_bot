@@ -36,7 +36,7 @@ func Pidorstats(bot *gotgbot.Bot, context *ext.Context) error {
 	var pidorall = "Топ-10 пидоров за " + strconv.Itoa(year) + " год:\n\n"
 	result, _ := DB.Select("username, COUNT(*) as count").Table("pidor_stats, pidor_lists").Where("pidor_stats.user_id=pidor_lists.id").Where("date BETWEEN ? AND ?", time.Date(year, 1, 1, 0, 0, 0, 0, time.Local), time.Date(year+1, 1, 1, 0, 0, 0, 0, time.Local)).Group("user_id").Order("count DESC").Limit(10).Rows()
 	for result.Next() {
-		err := result.Scan(username, &count)
+		err := result.Scan(&username, &count)
 		if err != nil {
 			return err
 		}
