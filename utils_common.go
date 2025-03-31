@@ -174,22 +174,22 @@ func GetUserFromDB(findstring string) (gotgbot.User, error) {
 
 // Forward channel post to chat
 func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
-	if context.Message == nil || context.Message.Chat.Id != Config.Channel {
+	if context.EffectiveMessage == nil || context.EffectiveChat.Id != Config.Channel {
 		return nil
 	}
 	var err error
-	if context.Message.Text != "" || context.Message.Caption != "" {
-		_, err = Bot.ForwardMessage(Config.Chat, context.Message.Chat.Id, context.Message.MessageId, nil)
+	if context.EffectiveMessage.Text != "" || context.EffectiveMessage.Caption != "" {
+		_, err = Bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
 	}
 	if Config.StreamChannel != 0 {
-		if strings.Contains(context.Message.Text, "zavtracast/live") {
-			_, err = Bot.ForwardMessage(Config.StreamChannel, context.Message.Chat.Id, context.Message.MessageId, nil)
+		if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
+			_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
 			return err
 		}
-		for _, entity := range append(context.Message.CaptionEntities, context.Message.Entities...) {
+		for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
 			if entity.Type == "url" || entity.Type == "text_link" {
 				if strings.Contains(entity.Url, "zavtracast/live") {
-					_, err = Bot.ForwardMessage(Config.StreamChannel, context.Message.Chat.Id, context.Message.MessageId, nil)
+					_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
 					return err
 				}
 			}
