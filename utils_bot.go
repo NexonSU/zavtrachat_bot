@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -38,6 +40,7 @@ func init() {
 		// If an error is returned by a handler, log it and continue going.
 		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
 			log.Println("an error occurred while handling update:", err.Error())
+			ReplyAndRemove("Ошибка: "+err.Error(), *context)
 			return ext.DispatcherActionNoop
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
@@ -100,7 +103,12 @@ func init() {
 		}
 	}
 	if Config.SysAdmin != 0 {
-		_, err := bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v", bot.Id, connectionType, bot.GetAPIURL(nil)), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		ex, err := os.Executable()
+		if err != nil {
+			panic(err)
+		}
+		exPath := filepath.Dir(ex)
+		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 		if err != nil {
 			panic("failed to send message: " + err.Error())
 		}

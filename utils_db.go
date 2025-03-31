@@ -76,7 +76,8 @@ func DataBaseInit(file string) gorm.DB {
 	database, err := gorm.Open(
 		sqlite.Open(file),
 		&gorm.Config{
-			Logger: logger.Default.LogMode(logger.Warn),
+			Logger:      logger.Default.LogMode(logger.Warn),
+			PrepareStmt: true,
 		},
 	)
 	if err != nil {
@@ -84,7 +85,7 @@ func DataBaseInit(file string) gorm.DB {
 	}
 
 	//Create tables, if they not exists in DB
-	err = database.AutoMigrate(gotgbot.User{}, Get{}, Warn{}, PidorStats{}, PidorList{}, Duelist{}, Bless{}, Nope{}, Stats{}, StatsWords{}, Bets{})
+	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{})
 	if err != nil {
 		log.Println(err)
 	}
