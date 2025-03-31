@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -35,7 +36,11 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	if ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" || context.Message.From.Id == Config.SysAdmin {
 		var userID int64
-		rows, err := DB.Model(&Stats{}).Where("stat_type = 3").Order("last_update desc").Select("context_id").Limit(100).Rows()
+		result := DB.Model(&Stats{}).Where("stat_type = 3").Order("last_update desc").Select("context_id").Limit(100)
+		if result.RowsAffected == 0 {
+			return fmt.Errorf("других юзеров не найдено")
+		}
+		rows, err := result.Rows()
 		if err != nil {
 			return err
 		}
