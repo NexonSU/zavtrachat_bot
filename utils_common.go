@@ -196,7 +196,7 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 					ErrorReporting(err)
 				}
 				if Config.StreamChannel != 0 {
-					if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
+					if strings.Contains(context.EffectiveMessage.GetText(), "zavtracast/live") {
 						_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
 						if err != nil {
 							ErrorReporting(err)
