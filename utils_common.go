@@ -218,7 +218,7 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 	} else {
 		_, err = bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
 		if Config.StreamChannel != 0 {
-			if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
+			if strings.Contains(context.EffectiveMessage.GetText(), "zavtracast/live") {
 				_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
 			}
 			for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
