@@ -43,7 +43,8 @@ type Media struct {
 
 var onlyWords = regexp.MustCompile(`[,.!?]+`)
 
-var mediaGroups = make(map[string][]int64)
+var channelMediaGroups = make(map[string][]int64)
+var chatMediaGroups = make(map[string][]int64)
 
 func UserFullName(user *gotgbot.User) string {
 	fullname := user.FirstName
@@ -183,20 +184,20 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	var err error
 	if context.EffectiveMessage.MediaGroupId != "" {
-		mediaGroups[context.EffectiveMessage.MediaGroupId] = append(mediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
+		channelMediaGroups[context.EffectiveMessage.MediaGroupId] = append(channelMediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
 		go func(bot *gotgbot.Bot, context *ext.Context) {
 			time.Sleep(2 * time.Second)
-			sort.Slice(mediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
+			sort.Slice(channelMediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
 				return i < j
 			})
-			if mediaGroups[context.EffectiveMessage.MediaGroupId][0] == context.EffectiveMessage.MessageId {
-				_, err := bot.ForwardMessages(Config.Chat, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
+			if channelMediaGroups[context.EffectiveMessage.MediaGroupId][0] == context.EffectiveMessage.MessageId {
+				_, err := bot.ForwardMessages(Config.Chat, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
 				if err != nil {
 					ErrorReporting(err)
 				}
 				if Config.StreamChannel != 0 {
 					if strings.Contains(context.EffectiveMessage.Text, "zavtracast/live") {
-						_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
+						_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
 						if err != nil {
 							ErrorReporting(err)
 						}
@@ -204,7 +205,7 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 					for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
 						if entity.Type == "url" || entity.Type == "text_link" {
 							if strings.Contains(entity.Url, "zavtracast/live") {
-								_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, mediaGroups[context.EffectiveMessage.MediaGroupId], nil)
+								_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
 								if err != nil {
 									ErrorReporting(err)
 								}
@@ -261,6 +262,10 @@ func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func OnText(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.EffectiveMessage.MediaGroupId != "" {
+		chatMediaGroups[context.EffectiveMessage.MediaGroupId] = append(chatMediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
+	}
+
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
