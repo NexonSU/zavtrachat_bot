@@ -4,6 +4,7 @@ import (
 	cntx "context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -57,14 +58,9 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 
 	ytdlp.MustInstall(cntx.TODO(), nil)
 
-	ytdlpDownload := ytdlp.New().Downloader("aria2c").Downloader("dash,m3u8:native").Impersonate("Chrome-124").Format("bestvideo[height<=?720]+bestaudio/best").RecodeVideo("mp4").Output(filePath).MaxFileSize("512M").PrintJSON().EmbedThumbnail().EmbedMetadata()
+	ytdlpDownload := ytdlp.New().Impersonate("Chrome-124").Format("bestvideo[height<=?720]+bestaudio/best").RecodeVideo("mp4").Output(filePath).MaxFileSize("512M")
 
-	ytdlpResult, err := ytdlpDownload.Run(cntx.TODO(), link)
-	if err != nil {
-		return err
-	}
-
-	_, err = ytdlpResult.GetExtractedInfo()
+	_, err := ytdlpDownload.Run(cntx.TODO(), link)
 	if err != nil {
 		return err
 	}
@@ -87,6 +83,11 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		uploadNotify <- true
 		os.Remove(filePath)
 	}()
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", filePath)), &gotgbot.SendVideoOpts{SupportsStreaming: true})
+	f, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filepath.Base(filePath), f), &gotgbot.SendVideoOpts{SupportsStreaming: true})
+	f.Close()
 	return err
 }
