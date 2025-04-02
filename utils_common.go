@@ -269,7 +269,7 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
-	}).Create(context.Message.From)
+	}).Create(&context.Message.From)
 	if UserResult.Error != nil {
 		ErrorReporting(UserResult.Error)
 	}
