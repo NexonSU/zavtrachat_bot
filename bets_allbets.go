@@ -26,6 +26,7 @@ func AllBets(bot *gotgbot.Bot, context *ext.Context) error {
 	from = time.Now().Local().Truncate(24 * time.Hour).Unix()
 	to = time.Now().Local().Add(43800 * time.Hour).Unix()
 	result, _ := DB.Model(&Bets{}).Where("timestamp > ? AND timestamp < ?", from, to).Order("timestamp ASC").Rows()
+	defer result.Close()
 	for result.Next() {
 		err := DB.ScanRows(result, &bet)
 		if err != nil {

@@ -62,6 +62,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	gets := DB.Limit(10).Model(Get{}).Where("name LIKE ?", "%"+query+"%").Count(&count)
 	get_rows, err := gets.Rows()
+	defer get_rows.Close()
 	if err != nil {
 		return err
 	}

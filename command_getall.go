@@ -10,6 +10,7 @@ func Getall(bot *gotgbot.Bot, context *ext.Context) error {
 	var getall string
 	var get Get
 	result, _ := DB.Model(&Get{}).Rows()
+	defer result.Close()
 	for result.Next() {
 		if getall == "" {
 			getall = "Доступные геты: "

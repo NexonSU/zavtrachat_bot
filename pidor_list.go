@@ -18,6 +18,7 @@ func Pidorlist(bot *gotgbot.Bot, context *ext.Context) error {
 	var i = 0
 	var err error
 	result, _ := DB.Model(&PidorList{}).Rows()
+	defer result.Close()
 	for result.Next() {
 		err := DB.ScanRows(result, &pidor)
 		if err != nil {
