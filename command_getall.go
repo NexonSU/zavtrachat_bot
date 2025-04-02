@@ -9,7 +9,10 @@ import (
 func Getall(bot *gotgbot.Bot, context *ext.Context) error {
 	var getall string
 	var get Get
-	result, _ := DB.Model(&Get{}).Rows()
+	result, err := DB.Model(&Get{}).Rows()
+	if err != nil {
+		return err
+	}
 	defer result.Close()
 	for result.Next() {
 		if getall == "" {
