@@ -187,10 +187,10 @@ func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
 		channelMediaGroups[context.EffectiveMessage.MediaGroupId] = append(channelMediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
 		go func(bot *gotgbot.Bot, context *ext.Context) {
 			time.Sleep(2 * time.Second)
-			sort.Slice(channelMediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
-				return i < j
-			})
 			if channelMediaGroups[context.EffectiveMessage.MediaGroupId][0] == context.EffectiveMessage.MessageId {
+				sort.Slice(channelMediaGroups[context.EffectiveMessage.MediaGroupId], func(i, j int) bool {
+					return i < j
+				})
 				_, err := bot.ForwardMessages(Config.Chat, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
 				if err != nil {
 					ErrorReporting(err)
