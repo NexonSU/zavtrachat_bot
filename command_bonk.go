@@ -52,6 +52,6 @@ func Bonk(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = bot.SendSticker(context.Message.Chat.Id, gotgbot.InputFileByReader("bonk.png", buf), nil)
+	_, err = bot.SendSticker(context.Message.Chat.Id, gotgbot.InputFileByReader("bonk.png", buf), &gotgbot.SendStickerOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.ReplyToMessage.MessageId}})
 	return err
 }
