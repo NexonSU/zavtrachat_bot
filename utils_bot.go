@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -40,7 +41,7 @@ func init() {
 		// If an error is returned by a handler, log it and continue going.
 		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
 			log.Println("an error occurred while handling update:", err.Error())
-			ReplyAndRemove("Ошибка: "+err.Error(), *context)
+			ReplyAndRemove("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), *context)
 			return ext.DispatcherActionNoop
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
