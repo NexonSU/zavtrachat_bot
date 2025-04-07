@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -18,6 +19,7 @@ func SaveToPM(bot *gotgbot.Bot, context *ext.Context) error {
 	var err error
 	var msg *gotgbot.MessageId
 	if context.EffectiveMessage.ReplyToMessage.MediaGroupId != "" && chatMediaGroups[context.EffectiveMessage.ReplyToMessage.MediaGroupId] != nil {
+		slices.Sort(chatMediaGroups[context.EffectiveMessage.ReplyToMessage.MediaGroupId])
 		msgs, err := Bot.CopyMessages(context.EffectiveSender.User.Id, context.EffectiveChat.Id, chatMediaGroups[context.EffectiveMessage.ReplyToMessage.MediaGroupId], nil)
 		if err != nil {
 			return err
