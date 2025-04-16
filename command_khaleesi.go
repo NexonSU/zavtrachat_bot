@@ -243,13 +243,14 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 		{"ъ", "ь"},
 	}
 
-	text := strings.ToLower(context.Message.ReplyToMessage.Text)
+	_, result, _ := strings.Cut(strings.ToLower(context.EffectiveMessage.Text), " ")
+	text := result
 
 	for i := range dict {
-		if strings.Contains(strings.ToLower(context.Message.ReplyToMessage.Text), dict[i][0]) {
-			text = strings.ReplaceAll(text, dict[i][0], dict[i][1])
+		if strings.Contains(text, dict[i][0]) {
+			result = strings.ReplaceAll(text, dict[i][0], dict[i][1])
 		}
 	}
-	_, err := context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err := context.Message.Reply(bot, result, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
 	return err
 }

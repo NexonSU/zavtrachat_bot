@@ -17,7 +17,8 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 	if len(context.Args()) == 1 {
 		return ReplyAndRemove("Пример использования: <code>/get {гет}</code>", *context)
 	}
-	result := DB.Where(&Get{Name: strings.ToLower(strings.Join(context.Args()[1:], " "))}).First(&get)
+	_, text, _ := strings.Cut(strings.ToLower(context.EffectiveMessage.Text), " ")
+	result := DB.Where(&Get{Name: text}).First(&get)
 	if result.RowsAffected != 0 {
 		options := &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}
 		switch {
@@ -48,7 +49,7 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 			return ReplyAndRemove(fmt.Sprintf("Ошибка при определении типа гета, я не знаю тип <code>%v</code>.", get.Type), *context)
 		}
 	} else {
-		return ReplyAndRemove(fmt.Sprintf("Гет <code>%v</code> не найден.\nИспользуйте inline-режим бота, чтобы найти гет.", context.Message.Text), *context)
+		return ReplyAndRemove(fmt.Sprintf("Гет <code>%v</code> не найден.\nИспользуйте inline-режим бота, чтобы найти гет.", text), *context)
 	}
 }
 

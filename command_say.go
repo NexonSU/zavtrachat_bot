@@ -17,9 +17,10 @@ func Say(bot *gotgbot.Bot, context *ext.Context) error {
 		return ReplyAndRemove("Укажите сообщение.", *context)
 	}
 	context.Message.Delete(bot, nil)
+	_, text, _ := strings.Cut(context.EffectiveMessage.Text, " ")
 	for i := range context.Message.Entities {
 		context.Message.Entities[i].Offset = context.Message.Entities[i].Offset - int64(len(strings.Split(context.Message.Text, " ")[0])) - 1
 	}
-	_, err := context.EffectiveChat.SendMessage(bot, context.Message.Text, &gotgbot.SendMessageOpts{ParseMode: "HTML", Entities: context.Message.Entities})
+	_, err := context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML", Entities: context.Message.Entities})
 	return err
 }
