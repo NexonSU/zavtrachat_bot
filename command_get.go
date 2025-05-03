@@ -91,11 +91,12 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				ParseMode: gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Audio":
-			results[i] = &gotgbot.InlineQueryResultCachedAudio{
-				Id:          strconv.Itoa(i),
-				Caption:     get.Caption,
-				AudioFileId: get.Data,
-				ParseMode:   gotgbot.ParseModeHTML,
+			results[i] = &gotgbot.InlineQueryResultCachedDocument{
+				Id:             strconv.Itoa(i),
+				Title:          get.Title,
+				Description:    get.Caption,
+				DocumentFileId: get.Data,
+				ParseMode:      gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Photo":
 			results[i] = &gotgbot.InlineQueryResultCachedPhoto{
