@@ -23,27 +23,25 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 		options := &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}
 		switch {
 		case get.Type == "Animation":
-			_, err := bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendAnimationOpts{Caption: get.Caption, ReplyParameters: options})
+			_, err := bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendAnimationOpts{Caption: get.Caption, ReplyParameters: options, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		case get.Type == "Audio":
-			_, err := bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendAudioOpts{Caption: get.Caption, ReplyParameters: options})
+			_, err := bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendAudioOpts{Caption: get.Caption, ReplyParameters: options, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		case get.Type == "Photo":
-			_, err := bot.SendPhoto(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendPhotoOpts{Caption: get.Caption, ReplyParameters: options})
+			_, err := bot.SendPhoto(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendPhotoOpts{Caption: get.Caption, ReplyParameters: options, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		case get.Type == "Video":
-			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendVideoOpts{Caption: get.Caption, ReplyParameters: options})
+			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendVideoOpts{Caption: get.Caption, ReplyParameters: options, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		case get.Type == "Voice":
-			_, err := bot.SendVoice(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendVoiceOpts{Caption: get.Caption, ReplyParameters: options})
+			_, err := bot.SendVoice(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendVoiceOpts{Caption: get.Caption, ReplyParameters: options, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		case get.Type == "Document":
-			_, err := bot.SendDocument(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendDocumentOpts{Caption: get.Caption, ReplyParameters: options})
+			_, err := bot.SendDocument(context.Message.Chat.Id, gotgbot.InputFileByID(get.Data), &gotgbot.SendDocumentOpts{Caption: get.Caption, ReplyParameters: options, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		case get.Type == "Text":
-			var entities []gotgbot.MessageEntity
-			json.Unmarshal(get.Entities, &entities)
-			_, err := context.Message.Reply(bot, get.Data, &gotgbot.SendMessageOpts{LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: false}, Entities: entities})
+			_, err := context.Message.Reply(bot, get.Data, &gotgbot.SendMessageOpts{LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: false}, ParseMode: gotgbot.ParseModeHTML})
 			return err
 		default:
 			return ReplyAndRemove(fmt.Sprintf("Ошибка при определении типа гета, я не знаю тип <code>%v</code>.", get.Type), *context)
@@ -141,9 +139,9 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Title:       get.Title,
 				Description: get.Data,
 				InputMessageContent: &gotgbot.InputTextMessageContent{
-					MessageText: get.Data,
-					Entities:    entities,
-					ParseMode:   gotgbot.ParseModeHTML,
+					MessageText:        get.Data,
+					ParseMode:          gotgbot.ParseModeHTML,
+					LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: false},
 				},
 			}
 		default:

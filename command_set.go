@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -40,16 +39,13 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 		get.Name = strings.ToLower(inputGet)
 		get.Title = inputGet
 		get.Type = "Text"
-		for i := range context.Message.Entities {
-			context.Message.Entities[i].Offset = context.Message.Entities[i].Offset - int64(len(strings.Join(context.Args()[:3], " "))) - 1
-		}
-		get.Data = strings.Join(context.Args()[2:], " ")
-		get.Entities, _ = json.Marshal(context.Message.Entities)
+		_, html, _ := strings.Cut(context.Message.OriginalHTML(), " ")
+		get.Data = html
 	} else {
 		get.Name = strings.ToLower(inputGet)
 		get.Title = inputGet
-		get.Caption = context.Message.ReplyToMessage.Text
-		get.Entities, _ = json.Marshal(context.Message.ReplyToMessage.CaptionEntities)
+		_, html, _ := strings.Cut(context.Message.ReplyToMessage.OriginalCaptionHTML(), " ")
+		get.Caption = html
 		switch {
 		case context.Message.ReplyToMessage.Animation != nil:
 			get.Type = "Animation"
@@ -71,8 +67,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 			get.Data = context.Message.ReplyToMessage.Document.FileId
 		case context.Message.ReplyToMessage.Text != "":
 			get.Type = "Text"
-			get.Data = context.Message.ReplyToMessage.Text
-			get.Entities, _ = json.Marshal(context.Message.ReplyToMessage.Entities)
+			get.Data = context.Message.ReplyToMessage.OriginalHTML()
 		default:
 			return ReplyAndRemove("Не удалось распознать файл в сообщении, возможно, он не поддерживается.", *context)
 		}
