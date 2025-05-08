@@ -134,12 +134,15 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				ParseMode:      gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Text":
+			var entities []gotgbot.MessageEntity
+			json.Unmarshal(get.Entities, &entities)
 			results[i] = &gotgbot.InlineQueryResultArticle{
 				Id:          strconv.Itoa(i),
 				Title:       get.Title,
 				Description: get.Data,
 				InputMessageContent: &gotgbot.InputTextMessageContent{
-					MessageText: fmt.Sprintf("<b>%v</b>\n%v", get.Title, get.Data),
+					MessageText: get.Data,
+					Entities:    entities,
 					ParseMode:   gotgbot.ParseModeHTML,
 				},
 			}
