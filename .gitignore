@@ -16,3 +16,4 @@
 /config.json
 .vscode/launch.json
 __debug_bin
+__debug_bin*
