@@ -58,7 +58,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 
 	ytdlp.MustInstall(cntx.TODO(), nil)
 
-	ytdlpDownload := ytdlp.New().Impersonate("Chrome-124").Format("bestaudio/best").RecodeVideo("mp3").Output(filePath).MaxFileSize("512M")
+	ytdlpDownload := ytdlp.New().Impersonate("Chrome-124").ExtractAudio().AudioFormat("mp3").EmbedMetadata().Output(filePath).MaxFileSize("512M")
 
 	_, err := ytdlpDownload.Run(cntx.TODO(), link)
 	if err != nil {
