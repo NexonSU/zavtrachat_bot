@@ -6,6 +6,7 @@ import (
 	"html"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -129,12 +130,14 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		Width:             int64(*extInfo.Width),
 		Height:            int64(*extInfo.Height),
 		Cover:             gotgbot.InputFileByURL(*extInfo.Thumbnail),
-		Caption:           caption,
 		SupportsStreaming: true,
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                context.EffectiveMessage.MessageId,
 			AllowSendingWithoutReply: true,
 		}}
+	if !strings.Contains(context.EffectiveMessage.Text, "hidecaption") {
+		videoOpts.Caption = caption
+	}
 	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp4", f), videoOpts)
 	f.Close()
 	os.Remove(filePath)
