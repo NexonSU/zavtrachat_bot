@@ -55,7 +55,7 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 			}
 			go func() {
 				time.Sleep(duration)
-				bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: "HTML", DisableNotification: true})
+				bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{DisableNotification: true})
 			}()
 		}
 	} else {

@@ -18,6 +18,6 @@ func Slap(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("👋 <b>%v</b> %v %v", UserFullName(context.Message.From), action, MentionUser(&target))), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err = context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("👋 <b>%v</b> %v %v", UserFullName(context.Message.From), action, MentionUser(&target))), &gotgbot.SendMessageOpts{})
 	return err
 }

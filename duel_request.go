@@ -60,7 +60,7 @@ func Request(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	log.Println(ChatMember)
 	if false {
-		_, err := context.Message.Reply(bot, "Нельзя вызвать на дуэль мертвеца.", &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		_, err := context.Message.Reply(bot, "Нельзя вызвать на дуэль мертвеца.", &gotgbot.SendMessageOpts{})
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,6 @@ func Request(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	_, err = Bot.SendMessage(context.Message.Chat.Id, fmt.Sprintf("%v! %v вызывает тебя на дуэль!", MentionUser(&target), MentionUser(context.Message.From)), &gotgbot.SendMessageOpts{
-		ParseMode: "HTML",
 		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
 			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{{
 				{Text: "👍 Принять вызов", CallbackData: "russianroulette_accept"},

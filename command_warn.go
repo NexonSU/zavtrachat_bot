@@ -42,11 +42,11 @@ func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 		return result.Error
 	}
 	if warn.Amount == 1 {
-		_, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, у тебя 1 предупреждение.\nЕсль получишь 3 предупреждения за 2 недели, то будешь забанен.", UserFullName(&target)), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		_, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, у тебя 1 предупреждение.\nЕсль получишь 3 предупреждения за 2 недели, то будешь забанен.", UserFullName(&target)), &gotgbot.SendMessageOpts{})
 		return err
 	}
 	if warn.Amount == 2 {
-		_, err := context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("%v, у тебя 2 предупреждения.\nЕсли в течении недели получишь ещё одно, то будешь забанен.", UserFullName(&target))), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		_, err := context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("%v, у тебя 2 предупреждения.\nЕсли в течении недели получишь ещё одно, то будешь забанен.", UserFullName(&target))), &gotgbot.SendMessageOpts{})
 		return err
 	}
 	if warn.Amount == 3 {

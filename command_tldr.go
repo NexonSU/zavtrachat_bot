@@ -173,7 +173,7 @@ func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 		os.Remove(strings.Replace(link, "https://", "/home/nginx/", -1))
 	}
 
-	_, err = context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err = context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{})
 	return err
 }
 

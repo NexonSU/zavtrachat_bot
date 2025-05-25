@@ -105,7 +105,7 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 		lastVideoSent = time.Now().Unix()
 		_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA"), &gotgbot.SendVideoOpts{Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration)})
 	} else {
-		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d мин.</code>", ricochetText, UserFullName(victim), prependText, GetBless(), duration), &gotgbot.SendMessageOpts{})
 	}
 	return err
 }

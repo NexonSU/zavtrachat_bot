@@ -52,6 +52,6 @@ func Releases(bot *gotgbot.Bot, context *ext.Context) error {
 			releases = fmt.Sprintf("%v\n%v.%v.%v: %v", releases, date[6:8], date[4:6], date[0:4], name)
 		}
 	}
-	_, err = context.Message.Reply(bot, releases, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err = context.Message.Reply(bot, releases, &gotgbot.SendMessageOpts{})
 	return err
 }

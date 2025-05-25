@@ -30,14 +30,14 @@ func Pidorlist(bot *gotgbot.Bot, context *ext.Context) error {
 		i++
 		pidorlist += strconv.Itoa(i) + ". @" + pidor.Username + " (" + strconv.FormatInt(pidor.Id, 10) + ")\n"
 		if len(pidorlist) > 3900 {
-			_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+			_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{})
 			if err != nil {
 				return err
 			}
 			pidorlist = ""
 		}
 	}
-	_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{})
 	if err != nil {
 		return err
 	}

@@ -250,6 +250,6 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 			text = strings.ReplaceAll(text, dict[i][0], dict[i][1])
 		}
 	}
-	_, err := context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err := context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{})
 	return err
 }

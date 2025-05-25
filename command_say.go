@@ -21,6 +21,6 @@ func Say(bot *gotgbot.Bot, context *ext.Context) error {
 	for i := range context.Message.Entities {
 		context.Message.Entities[i].Offset = context.Message.Entities[i].Offset - int64(len(strings.Split(context.Message.Text, " ")[0])) - 1
 	}
-	_, err := context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: "HTML", Entities: context.Message.Entities})
+	_, err := context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{Entities: context.Message.Entities})
 	return err
 }

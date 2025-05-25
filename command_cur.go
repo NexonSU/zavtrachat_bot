@@ -129,6 +129,6 @@ func Cur(bot *gotgbot.Bot, context *ext.Context) error {
 			resultName = CustomFiat.name
 		}
 	}
-	_, err = context.Message.Reply(bot, fmt.Sprintf("%.2f %v = %.2f %v", conversion.Amount, conversion.Name, resultAmount, resultName), &gotgbot.SendMessageOpts{ParseMode: "HTML", ReplyParameters: &gotgbot.ReplyParameters{AllowSendingWithoutReply: true}})
+	_, err = context.Message.Reply(bot, fmt.Sprintf("%.2f %v = %.2f %v", conversion.Amount, conversion.Name, resultAmount, resultName), &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{AllowSendingWithoutReply: true}})
 	return err
 }

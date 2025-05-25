@@ -15,6 +15,6 @@ func Google(bot *gotgbot.Bot, context *ext.Context) error {
 		return ReplyAndRemove("Пример использования:\n<code>/google {запрос}</code>", *context)
 	}
 	_, text, _ := strings.Cut(strings.ToLower(context.EffectiveMessage.Text), " ")
-	_, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("https://www.google.com/search?q=%v", url.QueryEscape(text)), &gotgbot.SendMessageOpts{ParseMode: "HTML", LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: true}, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true}})
+	_, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("https://www.google.com/search?q=%v", url.QueryEscape(text)), &gotgbot.SendMessageOpts{LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: true}, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true}})
 	return err
 }

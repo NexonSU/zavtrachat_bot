@@ -42,10 +42,10 @@ func AllBets(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 		betlist += fmt.Sprintf("%v, %v:\n<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), UserFullName(&user), html.EscapeString(bet.Text))
 		if len(betlist) > 3900 {
-			_, err := context.Message.Reply(bot, betlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+			_, err := context.Message.Reply(bot, betlist, &gotgbot.SendMessageOpts{})
 			return err
 		}
 	}
-	_, err = context.Message.Reply(bot, betlist, &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	_, err = context.Message.Reply(bot, betlist, &gotgbot.SendMessageOpts{})
 	return err
 }

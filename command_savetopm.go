@@ -31,6 +31,6 @@ func SaveToPM(bot *gotgbot.Bot, context *ext.Context) error {
 			return err
 		}
 	}
-	Bot.SendMessage(context.EffectiveSender.User.Id, link, &gotgbot.SendMessageOpts{ParseMode: "HTML", ReplyParameters: &gotgbot.ReplyParameters{MessageId: msg.MessageId, AllowSendingWithoutReply: true}})
+	Bot.SendMessage(context.EffectiveSender.User.Id, link, &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: msg.MessageId, AllowSendingWithoutReply: true}})
 	return Remove(bot, context)
 }

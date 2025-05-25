@@ -1,10 +1,12 @@
 package main
 
 import (
-	tdctx "context"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,15 +22,11 @@ var Bot *gotgbot.Bot
 var BotDispatcher *ext.Dispatcher
 var BotUpdater *ext.Updater
 var GotdClient *telegram.Client
-var GotdContext tdctx.Context
+var GotdContext context.Context
 
 func init() {
 	bot, err := gotgbot.NewBot(Config.Token, &gotgbot.BotOpts{
-		BotClient: &gotgbot.BaseBotClient{
-			DefaultRequestOpts: &gotgbot.RequestOpts{
-				APIURL: Config.BotApiUrl,
-			},
-		},
+		BotClient: middlewareClient(),
 		RequestOpts: &gotgbot.RequestOpts{
 			APIURL: Config.BotApiUrl,
 		},
@@ -94,7 +92,7 @@ func init() {
 				Timeout:        10,
 				AllowedUpdates: Config.AllowedUpdates,
 				RequestOpts: &gotgbot.RequestOpts{
-					Timeout: time.Second * 10,
+					Timeout: time.Second * 30,
 					APIURL:  Config.BotApiUrl,
 				},
 			},
@@ -109,7 +107,7 @@ func init() {
 			panic(err)
 		}
 		exPath := filepath.Dir(ex)
-		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath), &gotgbot.SendMessageOpts{})
 		if err != nil {
 			panic("failed to send message: " + err.Error())
 		}
@@ -127,7 +125,7 @@ func gotdClientInit() error {
 		return nil
 	}
 	client := telegram.NewClient(Config.AppID, Config.AppHash, telegram.Options{})
-	return client.Run(tdctx.Background(), func(ctx tdctx.Context) error {
+	return client.Run(context.Background(), func(ctx context.Context) error {
 		stop, err := bg.Connect(client)
 		if err != nil {
 			return err
@@ -155,18 +153,42 @@ func ErrorReporting(err error) {
 	// 	ReplyAndRemove(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), *context)
 	// }
 	// text := fmt.Sprintf("<pre>[%s:%d]\n%v</pre>", fn, line, strings.ReplaceAll(err.Error(), Config.Token, ""))
-	// if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
-	// 	return
-	// }
-	// if strings.Contains(err.Error(), "message to delete not found") {
-	// 	return
-	// }
-	// if strings.Contains(err.Error(), "context does not contain message") {
-	// 	return
-	// }
+	if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
+		return
+	}
+	if strings.Contains(err.Error(), "message to delete not found") {
+		return
+	}
+	if strings.Contains(err.Error(), "context does not contain message") {
+		return
+	}
 	// marshalledContext, _ := json.MarshalIndent(context.Update(), "", "    ")
 	// marshalledContextWithoutNil := regexp.MustCompile(`.*": (null|""|0|false)(,|)\n`).ReplaceAllString(string(marshalledContext), "")
 	// jsonMessage := html.EscapeString(marshalledContextWithoutNil)
 	// text += fmt.Sprintf("\n\nMessage:\n<pre>%v</pre>", jsonMessage)
-	Bot.SendMessage(Config.SysAdmin, err.Error(), &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+	fmt.Println(err.Error())
+	Bot.SendMessage(Config.SysAdmin, err.Error(), nil)
+}
+
+type middlewareBotClient struct {
+	gotgbot.BotClient
+}
+
+func (b middlewareBotClient) RequestWithContext(ctx context.Context, token string, method string, params map[string]string, data map[string]gotgbot.FileReader, opts *gotgbot.RequestOpts) (json.RawMessage, error) {
+	params["parse_mode"] = "HTML"
+
+	return b.BotClient.RequestWithContext(ctx, token, method, params, data, opts)
+}
+
+func middlewareClient() middlewareBotClient {
+	return middlewareBotClient{
+		BotClient: &gotgbot.BaseBotClient{
+			Client:             http.Client{},
+			UseTestEnvironment: false,
+			DefaultRequestOpts: &gotgbot.RequestOpts{
+				Timeout: gotgbot.DefaultTimeout,
+				APIURL:  Config.BotApiUrl,
+			},
+		},
+	}
 }
