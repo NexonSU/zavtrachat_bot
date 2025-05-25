@@ -116,8 +116,8 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	caption := html.EscapeString(*extInfo.Title) + "\n<blockquote expandable>" + html.EscapeString(*extInfo.Description)
-	if len([]rune(caption)) > 4000 {
-		caption = string([]rune(caption)[:4000])
+	if len([]rune(caption)) > 1000 {
+		caption = string([]rune(caption)[:1000])
 	}
 	caption += "</blockquote>"
 	videoOpts := &gotgbot.SendVideoOpts{
