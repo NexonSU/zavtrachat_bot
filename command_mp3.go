@@ -65,7 +65,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		ExtractAudio().
 		AudioFormat("mp3").
 		EmbedMetadata().
-		Output(os.TempDir() + "/%(extractor)s - %(title)s.%(ext)s").
+		Output(os.TempDir() + "/%(extractor)s - %(title)s.mp3").
 		MaxFileSize("64M")
 
 	result, err := ytdlpDownload.Run(cntx.TODO(), link)

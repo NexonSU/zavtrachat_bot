@@ -73,7 +73,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		Format("best[height<=720][ext=mp4]/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]").
 		RecodeVideo("mp4").
 		EmbedMetadata().
-		Output(os.TempDir() + "/%(extractor)s - %(title)s.%(ext)s").
+		Output(os.TempDir() + "/%(extractor)s - %(title)s.mp4").
 		MaxFileSize("512M")
 
 	result, err := ytdlpDownload.Run(cntx.TODO(), link)
