@@ -107,7 +107,15 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp3", f), &gotgbot.SendAudioOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
+	soundOpts := &gotgbot.SendAudioOpts{
+		ReplyParameters: &gotgbot.ReplyParameters{
+			MessageId:                context.EffectiveMessage.MessageId,
+			AllowSendingWithoutReply: true,
+		}}
+	if extInfo.Track == nil {
+		soundOpts.Title = *extInfo.Title
+	}
+	_, err = bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp3", f), soundOpts)
 	f.Close()
 	os.Remove(filePath)
 	return err
