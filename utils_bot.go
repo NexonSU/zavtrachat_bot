@@ -16,6 +16,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/gotd/contrib/bg"
 	"github.com/gotd/td/telegram"
+	"github.com/lrstanley/go-ytdlp"
 )
 
 var Bot *gotgbot.Bot
@@ -107,7 +108,7 @@ func init() {
 			panic(err)
 		}
 		exPath := filepath.Dir(ex)
-		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath), &gotgbot.SendMessageOpts{})
+		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v\nyt-dlp version: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath, ytdlp.Version), &gotgbot.SendMessageOpts{})
 		if err != nil {
 			panic("failed to send message: " + err.Error())
 		}

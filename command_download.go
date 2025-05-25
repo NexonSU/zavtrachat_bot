@@ -2,6 +2,7 @@ package main
 
 import (
 	cntx "context"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,6 +11,13 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/lrstanley/go-ytdlp"
 )
+
+func init() {
+	_, err := ytdlp.Install(cntx.TODO(), &ytdlp.InstallOptions{AllowVersionMismatch: true})
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
 
 // Convert given  file
 func Download(bot *gotgbot.Bot, context *ext.Context) error {
@@ -61,9 +69,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		NoProgress().
 		NoPlaylist().
 		NoOverwrites().
-		Impersonate("Chrome-124").
-		FormatSort("res,ext:mp4:m4a").
-		Format("bestvideo[height<=?720]+bestaudio/best").
+		Format("best[height<=720][ext=mp4]/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]").
 		RecodeVideo("mp4").
 		EmbedMetadata().
 		Output(os.TempDir() + "/%(extractor)s - %(title)s.%(ext)s").
