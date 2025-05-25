@@ -108,6 +108,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	soundOpts := &gotgbot.SendAudioOpts{
+		Duration: int64(*extInfo.Duration),
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                context.EffectiveMessage.MessageId,
 			AllowSendingWithoutReply: true,
