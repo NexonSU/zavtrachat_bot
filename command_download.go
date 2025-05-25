@@ -3,6 +3,7 @@ package main
 import (
 	cntx "context"
 	"fmt"
+	"html"
 	"log"
 	"os"
 	"time"
@@ -114,7 +115,18 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp4", f), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
+	videoOpts := &gotgbot.SendVideoOpts{
+		Duration:          int64(*extInfo.Duration),
+		Width:             int64(*extInfo.Width),
+		Height:            int64(*extInfo.Height),
+		Cover:             gotgbot.InputFileByURL(*extInfo.Thumbnail),
+		Caption:           html.EscapeString(*extInfo.Title) + "\n<blockquote expandable>" + html.EscapeString(*extInfo.Description) + "</blockquote>",
+		SupportsStreaming: true,
+		ReplyParameters: &gotgbot.ReplyParameters{
+			MessageId:                context.EffectiveMessage.MessageId,
+			AllowSendingWithoutReply: true,
+		}}
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp4", f), videoOpts)
 	f.Close()
 	os.Remove(filePath)
 	return err
