@@ -2,6 +2,7 @@ package main
 
 import (
 	cntx "context"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -83,6 +84,10 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	extInfos, err := result.GetExtractedInfo()
 	if err != nil {
 		return err
+	}
+
+	if len(extInfos) == 0 {
+		return fmt.Errorf("невозможно извлечь информацию из yt-dlp")
 	}
 
 	extInfo := extInfos[0]
