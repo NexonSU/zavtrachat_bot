@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -22,6 +21,8 @@ func init() {
 
 // Convert given  file
 func Download(bot *gotgbot.Bot, context *ext.Context) error {
+	filePath := fmt.Sprintf("%v/%v.mp4", os.TempDir(), context.Message.MessageId)
+
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
 		return ReplyAndRemove("Пример использования: <code>/download {ссылка на ютуб/твиттер}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/download</code>", *context)
 	}
@@ -73,7 +74,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		Format("best[height<=720][ext=mp4]/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]").
 		RecodeVideo("mp4").
 		EmbedMetadata().
-		Output(os.TempDir() + "/%(extractor)s - %(title)s.mp4").
+		Output(filePath).
 		MaxFileSize("512M")
 
 	result, err := ytdlpDownload.Run(cntx.TODO(), link)
@@ -91,8 +92,6 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	extInfo := extInfos[0]
-
-	filePath := *extInfo.Filename
 
 	downloadNotify <- true
 
@@ -115,7 +114,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filepath.Base(filePath), f), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp4", f), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
 	f.Close()
 	os.Remove(filePath)
 	return err

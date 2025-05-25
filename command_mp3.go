@@ -4,7 +4,6 @@ import (
 	cntx "context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -14,6 +13,8 @@ import (
 
 // Convert given  file
 func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
+	filePath := fmt.Sprintf("%v/%v.mp3", os.TempDir(), context.Message.MessageId)
+
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
 		return ReplyAndRemove("Пример использования: <code>/mp3 {ссылка на ютуб/ресурс}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/mp3</code>", *context)
 	}
@@ -62,10 +63,11 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		NoProgress().
 		NoPlaylist().
 		NoOverwrites().
+		Format("bestaudio[ext=m4a]").
+		EmbedMetadata().
 		ExtractAudio().
 		AudioFormat("mp3").
-		EmbedMetadata().
-		Output(os.TempDir() + "/%(extractor)s - %(title)s.mp3").
+		Output(filePath).
 		MaxFileSize("64M")
 
 	result, err := ytdlpDownload.Run(cntx.TODO(), link)
@@ -83,8 +85,6 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	extInfo := extInfos[0]
-
-	filePath := *extInfo.Filename
 
 	downloadNotify <- true
 
@@ -107,7 +107,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByReader(filepath.Base(filePath), f), &gotgbot.SendAudioOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
+	_, err = bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp3", f), &gotgbot.SendAudioOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
 	f.Close()
 	os.Remove(filePath)
 	return err
