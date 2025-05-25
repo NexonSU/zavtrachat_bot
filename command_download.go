@@ -115,12 +115,17 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
+	caption := html.EscapeString(*extInfo.Title) + "\n<blockquote expandable>" + html.EscapeString(*extInfo.Description)
+	if len([]rune(caption)) > 4000 {
+		caption = string([]rune(caption)[:4000])
+	}
+	caption += "</blockquote>"
 	videoOpts := &gotgbot.SendVideoOpts{
 		Duration:          int64(*extInfo.Duration),
 		Width:             int64(*extInfo.Width),
 		Height:            int64(*extInfo.Height),
 		Cover:             gotgbot.InputFileByURL(*extInfo.Thumbnail),
-		Caption:           html.EscapeString(*extInfo.Title) + "\n<blockquote expandable>" + html.EscapeString(*extInfo.Description) + "</blockquote>",
+		Caption:           caption,
 		SupportsStreaming: true,
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                context.EffectiveMessage.MessageId,
