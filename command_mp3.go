@@ -55,7 +55,17 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 
-	ytdlpDownload := ytdlp.New().ExtractAudio().AudioFormat("mp3").EmbedMetadata().Output(os.TempDir() + "/%(extractor)s - %(title)s.%(ext)s").MaxFileSize("512M")
+	ytdlpDownload := ytdlp.
+		New().
+		PrintJSON().
+		NoProgress().
+		NoPlaylist().
+		NoOverwrites().
+		ExtractAudio().
+		AudioFormat("mp3").
+		EmbedMetadata().
+		Output(os.TempDir() + "/%(extractor)s - %(title)s.%(ext)s").
+		MaxFileSize("64M")
 
 	result, err := ytdlpDownload.Run(cntx.TODO(), link)
 	if err != nil {
