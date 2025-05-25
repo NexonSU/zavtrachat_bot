@@ -57,6 +57,10 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 
+	if link == "" {
+		return fmt.Errorf("каких-либо ссылок не найдено")
+	}
+
 	ytdlpDownload := ytdlp.
 		New().
 		PrintJSON().
