@@ -39,8 +39,11 @@ func init() {
 	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
 		// If an error is returned by a handler, log it and continue going.
 		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
+			reportErr := ReplyAndRemove("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), *context)
+			if reportErr != nil {
+				log.Println("error when reporting a... error: " + reportErr.Error())
+			}
 			log.Println("an error occurred while handling update:", err.Error())
-			ReplyAndRemove("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), *context)
 			return ext.DispatcherActionNoop
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
