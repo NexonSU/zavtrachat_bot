@@ -4,6 +4,7 @@ import (
 	cntx "context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -17,6 +18,14 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
 		return ReplyAndRemove("Пример использования: <code>/mp3 {ссылка на ютуб/ресурс}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/mp3</code>", *context)
+	}
+
+	if strings.Contains(context.EffectiveMessage.Text, " remove") {
+		context.EffectiveMessage.Delete(Bot, nil)
+	} else {
+		context.EffectiveMessage.SetReaction(Bot, &gotgbot.SetMessageReactionOpts{
+			Reaction: []gotgbot.ReactionType{gotgbot.ReactionTypeEmoji{Emoji: "👀"}},
+		})
 	}
 
 	context.EffectiveMessage.SetReaction(Bot, &gotgbot.SetMessageReactionOpts{
@@ -112,15 +121,22 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	soundOpts := &gotgbot.SendAudioOpts{
-		Duration: int64(*extInfo.Duration),
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                context.EffectiveMessage.MessageId,
 			AllowSendingWithoutReply: true,
 		}}
-	if extInfo.Track == nil {
-		soundOpts.Title = *extInfo.Title
+	if extInfo.Duration != nil {
+		soundOpts.Duration = int64(*extInfo.Duration)
 	}
-	_, err = bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp3", f), soundOpts)
+	title := ""
+	if extInfo.Track == nil && extInfo.Title != nil {
+		soundOpts.Title = *extInfo.Title
+		title = *extInfo.Title
+	}
+	if title == "" {
+		title = f.Name()
+	}
+	_, err = bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByReader(title+".mp3", f), soundOpts)
 	f.Close()
 	os.Remove(filePath)
 	return err

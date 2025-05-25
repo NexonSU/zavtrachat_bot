@@ -29,9 +29,13 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		return ReplyAndRemove("Пример использования: <code>/download {ссылка на ютуб/твиттер}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/download</code>", *context)
 	}
 
-	context.EffectiveMessage.SetReaction(Bot, &gotgbot.SetMessageReactionOpts{
-		Reaction: []gotgbot.ReactionType{gotgbot.ReactionTypeEmoji{Emoji: "👀"}},
-	})
+	if strings.Contains(context.EffectiveMessage.Text, " remove") {
+		context.EffectiveMessage.Delete(Bot, nil)
+	} else {
+		context.EffectiveMessage.SetReaction(Bot, &gotgbot.SetMessageReactionOpts{
+			Reaction: []gotgbot.ReactionType{gotgbot.ReactionTypeEmoji{Emoji: "👀"}},
+		})
+	}
 
 	link := ""
 	message := &gotgbot.Message{}
@@ -120,25 +124,44 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	caption := html.EscapeString(*extInfo.Title) + "\n<blockquote expandable>" + html.EscapeString(*extInfo.Description)
-	if len([]rune(caption)) > 1000 {
-		caption = string([]rune(caption)[:1000]) + "..."
-	}
-	caption += "</blockquote>"
 	videoOpts := &gotgbot.SendVideoOpts{
-		Duration:          int64(*extInfo.Duration),
-		Width:             int64(*extInfo.Width),
-		Height:            int64(*extInfo.Height),
-		Cover:             gotgbot.InputFileByURL(*extInfo.Thumbnail),
 		SupportsStreaming: true,
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                context.EffectiveMessage.MessageId,
 			AllowSendingWithoutReply: true,
 		}}
-	if !strings.Contains(context.EffectiveMessage.Text, "hidecaption") {
+	if extInfo.Duration != nil {
+		videoOpts.Duration = int64(*extInfo.Duration)
+	}
+	if extInfo.Width != nil {
+		videoOpts.Width = int64(*extInfo.Width)
+	}
+	if extInfo.Height != nil {
+		videoOpts.Height = int64(*extInfo.Height)
+	}
+	if extInfo.Thumbnail != nil {
+		videoOpts.Cover = gotgbot.InputFileByURL(*extInfo.Thumbnail)
+	}
+	caption := ""
+	title := ""
+	if extInfo.Title != nil {
+		title = html.EscapeString(*extInfo.Title)
+		caption += html.EscapeString(*extInfo.Title)
+		if extInfo.Description != nil {
+			caption += "\n<blockquote expandable>" + html.EscapeString(*extInfo.Description)
+			if len([]rune(caption)) > 1000 {
+				caption = string([]rune(caption)[:1000]) + "..."
+			}
+			caption += "</blockquote>"
+		}
+	}
+	if title == "" {
+		title = f.Name()
+	}
+	if !strings.Contains(context.EffectiveMessage.Text, " hidecaption") && caption != "" {
 		videoOpts.Caption = caption
 	}
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(*extInfo.Title+".mp4", f), videoOpts)
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(title+".mp4", f), videoOpts)
 	f.Close()
 	os.Remove(filePath)
 	return err
