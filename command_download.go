@@ -2,7 +2,6 @@ package main
 
 import (
 	cntx "context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,13 +13,13 @@ import (
 
 // Convert given  file
 func Download(bot *gotgbot.Bot, context *ext.Context) error {
-	filePath := fmt.Sprintf("%v/%v.mp4", os.TempDir(), context.Message.MessageId)
-
-	context.Message.Delete(bot, nil)
-
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
 		return ReplyAndRemove("Пример использования: <code>/download {ссылка на ютуб/твиттер}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/download</code>", *context)
 	}
+
+	context.EffectiveMessage.SetReaction(Bot, &gotgbot.SetMessageReactionOpts{
+		Reaction: []gotgbot.ReactionType{gotgbot.ReactionTypeEmoji{Emoji: "👀"}},
+	})
 
 	link := ""
 	message := &gotgbot.Message{}
@@ -56,14 +55,33 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 
-	ytdlp.MustInstall(cntx.TODO(), nil)
+	ytdlpDownload := ytdlp.
+		New().
+		PrintJSON().
+		NoProgress().
+		NoPlaylist().
+		NoOverwrites().
+		Impersonate("Chrome-124").
+		FormatSort("res,ext:mp4:m4a").
+		Format("bestvideo[height<=?720]+bestaudio/best").
+		RecodeVideo("mp4").
+		EmbedMetadata().
+		Output(os.TempDir() + "/%(extractor)s - %(title)s.%(ext)s").
+		MaxFileSize("512M")
 
-	ytdlpDownload := ytdlp.New().Impersonate("Chrome-124").Format("bestvideo[height<=?720]+bestaudio/best").RecodeVideo("mp4").Output(filePath).MaxFileSize("512M")
-
-	_, err := ytdlpDownload.Run(cntx.TODO(), link)
+	result, err := ytdlpDownload.Run(cntx.TODO(), link)
 	if err != nil {
 		return err
 	}
+
+	extInfos, err := result.GetExtractedInfo()
+	if err != nil {
+		return err
+	}
+
+	extInfo := extInfos[0]
+
+	filePath := *extInfo.Filename
 
 	downloadNotify <- true
 
@@ -81,13 +99,13 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	}()
 	defer func() {
 		uploadNotify <- true
-		os.Remove(filePath)
 	}()
 	f, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filepath.Base(filePath), f), &gotgbot.SendVideoOpts{SupportsStreaming: true})
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filepath.Base(filePath), f), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
 	f.Close()
+	os.Remove(filePath)
 	return err
 }
