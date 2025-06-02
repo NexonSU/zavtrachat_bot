@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"math/big"
 	"net/http"
@@ -527,8 +526,7 @@ func DownloadFile(filepath string, url string) (err error) {
 
 func ReplyAndRemove(message string, context ext.Context) error {
 	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
-	message = html.EscapeString(message)
-	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
 		return err
 	}
