@@ -86,6 +86,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Title:     get.Title,
 				Caption:   get.Caption,
 				GifFileId: get.Data,
+				ParseMode: gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Audio":
 			results[i] = &gotgbot.InlineQueryResultCachedDocument{
@@ -93,6 +94,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Title:          get.Title,
 				Description:    get.Caption,
 				DocumentFileId: get.Data,
+				ParseMode:      gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Photo":
 			results[i] = &gotgbot.InlineQueryResultCachedPhoto{
@@ -101,6 +103,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Caption:     get.Caption,
 				PhotoFileId: get.Data,
 				Description: get.Caption,
+				ParseMode:   gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Video":
 			results[i] = &gotgbot.InlineQueryResultCachedVideo{
@@ -109,6 +112,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Caption:     get.Caption,
 				VideoFileId: get.Data,
 				Description: get.Caption,
+				ParseMode:   gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Voice":
 			results[i] = &gotgbot.InlineQueryResultCachedVoice{
@@ -116,6 +120,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Title:       get.Title,
 				Caption:     get.Caption,
 				VoiceFileId: get.Data,
+				ParseMode:   gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Document":
 			results[i] = &gotgbot.InlineQueryResultCachedDocument{
@@ -124,6 +129,7 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Caption:        get.Caption,
 				DocumentFileId: get.Data,
 				Description:    get.Caption,
+				ParseMode:      gotgbot.ParseModeHTML,
 			}
 		case get.Type == "Text":
 			var entities []gotgbot.MessageEntity
@@ -133,8 +139,8 @@ func GetInline(bot *gotgbot.Bot, context *ext.Context) error {
 				Title:       get.Title,
 				Description: get.Data,
 				InputMessageContent: &gotgbot.InputTextMessageContent{
-					MessageText: get.Data,
-
+					MessageText:        get.Data,
+					ParseMode:          gotgbot.ParseModeHTML,
 					LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: false},
 				},
 			}
