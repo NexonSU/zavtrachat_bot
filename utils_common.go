@@ -262,7 +262,9 @@ func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
 func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.EffectiveChat.Id == Config.ReserveChat {
 		context.EffectiveMessage.Delete(bot, nil)
-		bot.UnbanChatMember(context.EffectiveChat.Id, context.EffectiveUser.Id, nil)
+		if !IsAdminOrModer(context.EffectiveUser.Id) && bot.Id != context.EffectiveUser.Id {
+			bot.UnbanChatMember(context.EffectiveChat.Id, context.EffectiveUser.Id, nil)
+		}
 	}
 
 	if context.EffectiveMessage.MediaGroupId != "" {
