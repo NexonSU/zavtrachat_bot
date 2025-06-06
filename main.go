@@ -88,7 +88,8 @@ func main() {
 		{gotgbot.BotCommand{Command: "unban", Description: "разбанить кого-нибудь"}, Unban},
 		{gotgbot.BotCommand{Command: "unmute", Description: "разглушить кого-нибудь"}, Unmute},
 		{gotgbot.BotCommand{Command: "warn", Description: "предупредить кого-нибудь"}, WarnUser},
-		{gotgbot.BotCommand{Command: "testrandom", Description: "протестировать рандом бота "}, TestRandom},
+		{gotgbot.BotCommand{Command: "testrandom", Description: "протестировать рандом бота"}, TestRandom},
+		{gotgbot.BotCommand{Command: "remove", Description: "удалить сообщение"}, RemoveReplyMessage},
 	}
 
 	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllPrivateChats{}})
