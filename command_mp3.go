@@ -78,6 +78,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		NoOverwrites().
 		Format("bestaudio[ext=m4a]").
 		EmbedMetadata().
+		NoEmbedChapters().
 		ExtractAudio().
 		AudioFormat("mp3").
 		Output(filePath).

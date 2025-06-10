@@ -84,6 +84,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		Format("bestvideo[height<=?720]+bestaudio/best").
 		RecodeVideo("mp4").
 		EmbedMetadata().
+		NoEmbedChapters().
 		Output(filePath).
 		MaxFileSize("512M")
 
