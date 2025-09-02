@@ -10,6 +10,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/arran4/golang-ical v0.3.2
 	github.com/fogleman/gg v1.3.0
+	github.com/glebarez/sqlite v1.11.0
 	github.com/gotd/contrib v0.21.0
 	github.com/gotd/td v0.125.0
 	github.com/lrstanley/go-ytdlp v0.0.0-20250610000944-a2284ab714d8
@@ -19,7 +20,6 @@ require (
 	github.com/u2takey/ffmpeg-go v0.5.0
 	golang.org/x/text v0.26.0
 	gopkg.in/vansante/go-ffprobe.v2 v2.2.1
-	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
 )
 
@@ -31,8 +31,10 @@ require (
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/coder/websocket v1.8.13 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-faster/jx v1.1.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
@@ -47,8 +49,8 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/ogen-go/ogen v1.14.0 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
@@ -68,5 +70,9 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/tools v0.34.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	modernc.org/libc v1.22.5 // indirect
+	modernc.org/mathutil v1.5.0 // indirect
+	modernc.org/memory v1.5.0 // indirect
+	modernc.org/sqlite v1.23.1 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )

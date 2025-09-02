@@ -350,6 +350,27 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 	ctx, cancelFn := cntx.WithTimeout(cntx.Background(), 5*time.Second)
 	defer cancelFn()
 
+	if _, err := os.Stat(media.FilePath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if err := os.MkdirAll(filepath.Dir(media.FilePath), os.ModePerm); err != nil {
+				return err
+			}
+			err = DownloadFile(media.FilePath, fmt.Sprintf("https://api.telegram.org/file/bot%v/%v", Config.Token, media.FilePath))
+			if err != nil {
+				return err
+			}
+			media.FilePath, err = filepath.Abs(media.FilePath)
+			if err != nil {
+				return err
+			}
+			defer func(filePath string) {
+				os.Remove(filePath)
+			}(media.FilePath)
+		} else {
+			return err
+		}
+	}
+
 	data, err := ffprobe.ProbeURL(ctx, media.FilePath)
 	if err != nil {
 		return err
@@ -457,20 +478,26 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 	}
 
 	resultFilePath := fmt.Sprintf("%v/%v_converted.%v", os.TempDir(), name, extension)
-	resultFileUrl := fmt.Sprintf("file://%v/%v_converted.%v", os.TempDir(), name, extension)
 
 	err = ffmpeg.Input(media.FilePath).Output(resultFilePath, ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{defaultKwArgs, KwArgs})).OverWriteOutput().ErrorToStdOut().Run()
 	if err != nil {
 		return err
 	}
 
-	defer func(resultFilePath string) {
-		os.Remove(resultFilePath)
+	defer func(filePath string) {
+		os.Remove(filePath)
 	}(resultFilePath)
+
+	resultFile, err := os.Open(media.FilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+
+	inputFile := gotgbot.InputFileByReader(media.FileName, resultFile)
 
 	switch targetType {
 	case "video":
-		_, err := Bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendVideoOpts{
+		_, err := Bot.SendVideo(context.Message.Chat.Id, inputFile, &gotgbot.SendVideoOpts{
 			SupportsStreaming: true,
 			Width:             int64(width),
 			Height:            int64(height),
@@ -479,7 +506,7 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 		})
 		return err
 	case "animation":
-		_, err := Bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendAnimationOpts{
+		_, err := Bot.SendAnimation(context.Message.Chat.Id, inputFile, &gotgbot.SendAnimationOpts{
 			Width:           int64(width),
 			Height:          int64(height),
 			Duration:        int64(duration),
@@ -487,19 +514,19 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 		})
 		return err
 	case "audio":
-		_, err := Bot.SendAudio(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendAudioOpts{
+		_, err := Bot.SendAudio(context.Message.Chat.Id, inputFile, &gotgbot.SendAudioOpts{
 			Duration:        int64(duration),
 			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
 		})
 		return err
 	case "voice":
-		_, err := Bot.SendVoice(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendVoiceOpts{
+		_, err := Bot.SendVoice(context.Message.Chat.Id, inputFile, &gotgbot.SendVoiceOpts{
 			Duration:        int64(duration),
 			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
 		})
 		return err
 	default:
-		_, err := Bot.SendDocument(context.Message.Chat.Id, gotgbot.InputFileByURL(resultFileUrl), &gotgbot.SendDocumentOpts{
+		_, err := Bot.SendDocument(context.Message.Chat.Id, inputFile, &gotgbot.SendDocumentOpts{
 			ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true},
 		})
 		return err
