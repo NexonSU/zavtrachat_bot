@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
