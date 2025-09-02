@@ -132,12 +132,14 @@ func gotdClientInit() error {
 	return client.Run(context.Background(), func(ctx context.Context) error {
 		stop, err := bg.Connect(client)
 		if err != nil {
+			ErrorReporting(err)
 			return err
 		}
 		defer func() { _ = stop() }()
 
 		_, err = client.Auth().Bot(ctx, Bot.Token)
 		if err != nil {
+			ErrorReporting(err)
 			return err
 		}
 
