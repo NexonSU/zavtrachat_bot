@@ -28,11 +28,6 @@ func Hug(bot *gotgbot.Bot, context *ext.Context) error {
 	dc := gg.NewContextForImage(im)
 	dc.DrawImage(im, 0, 0)
 	dc.Rotate(gg.Radians(15))
-	dc.SetRGB(0, 0, 0)
-	err = dc.LoadFontFace(Config.FontPath, 20)
-	if err != nil {
-		return err
-	}
 	dc.SetRGB(1, 1, 1)
 	s := UserFullName(context.Message.From)
 	n := 4

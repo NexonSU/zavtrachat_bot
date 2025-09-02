@@ -27,11 +27,6 @@ func Bonk(bot *gotgbot.Bot, context *ext.Context) error {
 
 	dc := gg.NewContextForImage(im)
 	dc.DrawImage(im, 0, 0)
-	dc.SetRGB(0, 0, 0)
-	err = dc.LoadFontFace(Config.FontPath, 20)
-	if err != nil {
-		return err
-	}
 	dc.SetRGB(1, 1, 1)
 	s := UserFullName(context.Message.From)
 	n := 4
@@ -40,13 +35,13 @@ func Bonk(bot *gotgbot.Bot, context *ext.Context) error {
 			if dx*dx+dy*dy >= n*n {
 				continue
 			}
-			x := 140 + float64(dx)
-			y := 290 + float64(dy)
+			x := 150 + float64(dx)
+			y := 300 + float64(dy)
 			dc.DrawStringAnchored(s, x, y, 0.5, 0.5)
 		}
 	}
 	dc.SetRGB(0, 0, 0)
-	dc.DrawStringAnchored(s, 140, 290, 0.5, 0.5)
+	dc.DrawStringAnchored(s, 150, 300, 0.5, 0.5)
 	buf := new(bytes.Buffer)
 	err = dc.EncodePNG(buf)
 	if err != nil {
