@@ -488,7 +488,11 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 		os.Remove(filePath)
 	}(resultFilePath)
 
-	resultFile, err := os.Open(media.FilePath)
+	defer func(filePath string) {
+		os.Remove(filePath)
+	}(media.FilePath)
+
+	resultFile, err := os.Open(resultFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
