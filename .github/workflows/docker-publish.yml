@@ -7,11 +7,11 @@ name: Docker
 
 on:
   push:
-    branches: [ "master" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    paths:
+      - '**.go'
   pull_request:
-    branches: [ "master" ]
+    paths:
+      - '**.go'
 
 env:
   # Use docker.io for Docker Hub if empty
