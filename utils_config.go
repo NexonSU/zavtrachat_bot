@@ -29,6 +29,7 @@ type Configuration struct {
 	NHentaiCookie         string   `json:"nhentai_cookie"`
 	YandexSummarizerToken string   `json:"yandex_summarizer_token"`
 	FontPath              string   `json:"fontpath"`
+	Proxy                 string   `json:"proxy"`
 }
 
 func ConfigInit(file string) Configuration {

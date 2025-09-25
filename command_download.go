@@ -88,6 +88,10 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		Output(filePath).
 		MaxFileSize("512M")
 
+	if Config.Proxy != "" {
+		ytdlpDownload.Proxy(Config.Proxy)
+	}
+
 	result, err := ytdlpDownload.Run(cntx.TODO(), link)
 	if err != nil {
 		return err
@@ -159,7 +163,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if title == "" {
 		title = f.Name()
 	}
-	if !strings.Contains(context.EffectiveMessage.Text, " hidecaption") && caption != "" {
+	if strings.Contains(context.EffectiveMessage.Text, " caption") && caption != "" {
 		videoOpts.Caption = caption
 	}
 	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(title+".mp4", f), videoOpts)
