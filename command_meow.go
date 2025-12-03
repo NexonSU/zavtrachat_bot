@@ -27,7 +27,7 @@ func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	//prepare message query
 	messagesQuery := []tg.InputMessageClass{}
-	firstMessageId := RandInt(15, 17500)
+	firstMessageId := RandInt(15, 24613)
 	for message_id := firstMessageId; message_id < firstMessageId+10; message_id++ {
 		messageObject := tg.Message{ID: message_id}
 		messagesQuery = append(messagesQuery, messageObject.AsInputMessageID())
