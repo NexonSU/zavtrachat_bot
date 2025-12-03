@@ -35,6 +35,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "me", Description: "аналог команды /me из IRC (/me пошел спать)"}, Me},
 		{gotgbot.BotCommand{Command: "mp3", Description: "скачать музыку по ссылке"}, Mp3},
 		{gotgbot.BotCommand{Command: "meow", Description: "получить гифку с котиком"}, Meow},
+		{gotgbot.BotCommand{Command: "woof", Description: "получить гифку с не котиком"}, Woof},
 		{gotgbot.BotCommand{Command: "mlem", Description: "получить гифку с котиком"}, Meow},
 		{gotgbot.BotCommand{Command: "mywarns", Description: "посмотреть количество своих предупреждений"}, Mywarns},
 		{gotgbot.BotCommand{Command: "pidor", Description: "запустить игру \"Пидор Дня!\""}, Pidor},
