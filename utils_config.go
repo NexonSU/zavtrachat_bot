@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -32,32 +34,42 @@ type Configuration struct {
 	Proxy                 string   `json:"proxy"`
 }
 
-func ConfigInit(file string) Configuration {
-	var Config Configuration
-	if _, err := os.Stat(file); err == nil {
-		ConfigFile, err := os.Open(file)
+func ConfigInit() error {
+	if _, err := os.Stat("config.json"); err == nil {
+		ConfigFile, err := os.Open("config.json")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		err = json.NewDecoder(ConfigFile).Decode(&Config)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	} else if os.IsNotExist(err) {
 		Config.Admins = []int64{}
 		Config.Moders = []int64{}
 		Config.BotApiUrl = "https://api.telegram.org"
 		Config.AllowedUpdates = []string{"message", "channel_post", "callback_query", "chat_member"}
-		jsonData, _ := json.MarshalIndent(Config, "", "\t")
-		_ = os.WriteFile(file, jsonData, 0600)
+		jsonData, err := json.MarshalIndent(Config, "", "\t")
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile("config.json", jsonData, 0600)
+		if err != nil {
+			return err
+		}
 	}
 	if Config.Token == "" {
-		panic("sting 'token' not found in config.json")
+		return fmt.Errorf("sting 'token' not found in config.json")
 	}
 	if Config.Chat == 0 {
-		panic("integer 'chat' not found in config.json")
+		return fmt.Errorf("integer 'chat' not found in config.json")
 	}
-	return Config
+	if Config.Proxy != "" {
+		proxyUrl, err := url.Parse(Config.Proxy)
+		if err != nil {
+			return err
+		}
+		HTTPClientProxy = http.ProxyURL(proxyUrl)
+	}
+	return nil
 }
-
-var Config = ConfigInit("config.json")

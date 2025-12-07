@@ -13,7 +13,6 @@ import (
 var CryptoMap []*cmc.MapListing
 var FiatMap []*cmc.FiatMapListing
 var CustomMap = []CustomMapStruct{}
-var _ = GenerateMaps()
 
 type CustomMapStruct struct {
 	symbol string
@@ -43,6 +42,12 @@ func GenerateMaps() error {
 }
 
 func GetSymbolId(symbol string) (string, error) {
+	if len(CustomMap) == 0 {
+		err := GenerateMaps()
+		if err != nil {
+			return "", err
+		}
+	}
 	symbol = strings.ToUpper(symbol)
 	if symbol == "BYR" {
 		symbol = "BYN"

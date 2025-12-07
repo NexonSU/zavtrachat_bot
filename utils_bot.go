@@ -19,21 +19,17 @@ import (
 	"github.com/lrstanley/go-ytdlp"
 )
 
-var Bot *gotgbot.Bot
-var BotDispatcher *ext.Dispatcher
-var BotUpdater *ext.Updater
-var GotdClient *telegram.Client
-var GotdContext context.Context
-
-func init() {
+func BotInit() error {
 	bot, err := gotgbot.NewBot(Config.Token, &gotgbot.BotOpts{
-		BotClient: middlewareClient(),
+		BotClient:         middlewareClient(),
+		DisableTokenCheck: false,
 		RequestOpts: &gotgbot.RequestOpts{
-			APIURL: Config.BotApiUrl,
+			Timeout: time.Second * 30,
+			APIURL:  Config.BotApiUrl,
 		},
 	})
 	if err != nil {
-		panic("failed to create new bot: " + err.Error())
+		return err
 	}
 	// Create updater and dispatcher.
 	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
@@ -72,7 +68,7 @@ func init() {
 			SecretToken: webhookSecret,
 		})
 		if err != nil {
-			panic("failed to start webhook: " + err.Error())
+			return err
 		}
 
 		err = updater.SetAllBotWebhooks(Config.EndpointPublicURL, &gotgbot.SetWebhookOpts{
@@ -85,7 +81,7 @@ func init() {
 			},
 		})
 		if err != nil {
-			panic("failed to set webhook: " + err.Error())
+			return err
 		}
 	} else {
 		connectionType = "polling"
@@ -102,18 +98,18 @@ func init() {
 			},
 		})
 		if err != nil {
-			panic("failed to start polling: " + err.Error())
+			return err
 		}
 	}
 	if Config.SysAdmin != 0 {
 		ex, err := os.Executable()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		exPath := filepath.Dir(ex)
 		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v\nyt-dlp version: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath, ytdlp.Version), &gotgbot.SendMessageOpts{})
 		if err != nil {
-			panic("failed to send message: " + err.Error())
+			return err
 		}
 	}
 
@@ -121,7 +117,7 @@ func init() {
 	BotDispatcher = dispatcher
 	BotUpdater = updater
 
-	go gotdClientInit()
+	return nil
 }
 
 func gotdClientInit() error {
@@ -173,7 +169,7 @@ func ErrorReporting(err error) {
 	// jsonMessage := html.EscapeString(marshalledContextWithoutNil)
 	// text += fmt.Sprintf("\n\nMessage:\n<pre>%v</pre>", jsonMessage)
 	fmt.Println(err.Error())
-	Bot.SendMessage(Config.SysAdmin, err.Error(), nil)
+	Bot.SendMessage(Config.SysAdmin, strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), nil)
 }
 
 type middlewareBotClient struct {
@@ -189,10 +185,14 @@ func (b middlewareBotClient) RequestWithContext(ctx context.Context, token strin
 func middlewareClient() middlewareBotClient {
 	return middlewareBotClient{
 		BotClient: &gotgbot.BaseBotClient{
-			Client:             http.Client{},
+			Client: http.Client{
+				Transport: &http.Transport{
+					Proxy: HTTPClientProxy,
+				},
+			},
 			UseTestEnvironment: false,
 			DefaultRequestOpts: &gotgbot.RequestOpts{
-				Timeout: gotgbot.DefaultTimeout,
+				Timeout: time.Second * 30,
 				APIURL:  Config.BotApiUrl,
 			},
 		},

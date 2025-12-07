@@ -30,6 +30,7 @@ type Media struct {
 	FileID                string
 	FileName              string
 	FilePath              string
+	FileURL               string
 	FileSize              int64
 	Height                int64
 	Width                 int64
@@ -664,6 +665,7 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 
 	result.FilePath = file.FilePath
 	result.FileName = filepath.Base(file.FilePath)
+	result.FileURL = file.URL(Bot, nil)
 
 	return result, nil
 }

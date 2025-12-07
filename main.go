@@ -1,13 +1,20 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"sort"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
+	"github.com/gotd/td/telegram"
+	"gorm.io/gorm"
 )
 
 type commandList struct {
@@ -15,7 +22,31 @@ type commandList struct {
 	response handlers.Response
 }
 
+var Config *Configuration
+var HTTPClientProxy func(*http.Request) (*url.URL, error)
+var DB *gorm.DB
+var Bot *gotgbot.Bot
+var BotDispatcher *ext.Dispatcher
+var BotUpdater *ext.Updater
+var GotdClient *telegram.Client
+var GotdContext context.Context
+
 func main() {
+	log.Println("init: config")
+	err := ConfigInit()
+	if err != nil {
+		panic(fmt.Errorf("config init failed: %s", err))
+	}
+	log.Println("init: database")
+	err = DataBaseInit()
+	if err != nil {
+		panic(fmt.Errorf("database init failed: %s", err))
+	}
+	log.Println("init: bot")
+	err = BotInit()
+	if err != nil {
+		panic(fmt.Errorf("bot init failed: %s", err))
+	}
 	commandList := []commandList{
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов"}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь"}, Request},
@@ -106,7 +137,7 @@ func main() {
 	sort.Slice(commandArray, func(i, j int) bool {
 		return commandArray[i].Command < commandArray[j].Command
 	})
-	_, err := Bot.SetMyCommands(commandArray, nil)
+	_, err = Bot.SetMyCommands(commandArray, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -118,6 +149,8 @@ func main() {
 	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: ForwardPost, Filter: message.ChatID(Config.Channel)})
 	BotDispatcher.AddHandler(handlers.NewMessage(nil, OnText))
 	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, GetInline))
+
+	go gotdClientInit()
 
 	BotUpdater.Idle()
 }

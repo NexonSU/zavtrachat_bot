@@ -27,6 +27,15 @@ var DistortCache map[string]string
 
 // Distort given file
 func Distort(bot *gotgbot.Bot, context *ext.Context) error {
+	dir := fmt.Sprintf("%v/telegram-go-chatbot-distort", os.TempDir())
+	if err := os.Mkdir(dir, os.ModePerm); err != nil {
+		os.RemoveAll(dir)
+		os.Mkdir(dir, os.ModePerm)
+	}
+	if DistortCache == nil {
+		DistortCache = make(map[string]string)
+	}
+
 	if context.Message.ReplyToMessage == nil {
 		return ReplyAndRemove("Пример использования: <code>/distort</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
@@ -96,6 +105,11 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	workdir := fmt.Sprintf("%v/telegram-go-chatbot-distort/%v", os.TempDir(), media.FileID)
 	inputFile := media.FilePath
 	outputFile := fmt.Sprintf("%v/output.mp4", workdir)
+
+	_, err = os.Stat(inputFile)
+	if err != nil {
+		inputFile = media.FileURL
+	}
 
 	ctx, cancelFn := cntx.WithTimeout(cntx.Background(), 5*time.Second)
 	defer cancelFn()
@@ -258,17 +272,4 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 	}
 	return err
-}
-
-func init() {
-	dir := fmt.Sprintf("%v/telegram-go-chatbot-distort", os.TempDir())
-	if err := os.Mkdir(dir, os.ModePerm); err != nil {
-		os.RemoveAll(dir)
-		os.Mkdir(dir, os.ModePerm)
-	}
-	DistortBusy = false
-}
-
-func init() {
-	DistortCache = make(map[string]string)
 }
