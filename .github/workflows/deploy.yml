@@ -1,0 +1,20 @@
+name: Deploy
+on:
+  push:
+    paths:
+      - '**.go'
+  pull_request:
+    paths:
+      - '**.go'
+jobs:
+  Deploy:
+    runs-on: self-hosted
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+    - name: Build and install bot
+      run: |
+        go build -o telegram-go-chatbot
+        sudo cp -fu telegram-go-chatbot /home/telegram/bot/
+    - name: Restarting telegram-go-chatbot service
+      run: sudo systemctl restart telegram-go-chatbot
