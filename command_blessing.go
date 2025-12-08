@@ -22,6 +22,7 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 	// If no plural rule matched it will be ignored and processed as usual formatting
 	prt := message.NewPrinter(language.Russian)
 
+	sender := context.Message.From
 	victim := context.Message.From
 	ricochetText := ""
 
@@ -49,7 +50,7 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 			if ricochetVictim.GetStatus() == "member" {
 				*victim = ricochetVictim.GetUser()
 				ChatMember = ricochetVictim
-				ricochetText = prt.Sprintf("Пуля отскакивает от головы %v и летит в голову %v.\n", MentionUser(context.Message.From), MentionUser(victim))
+				ricochetText = prt.Sprintf("Пуля отскакивает от головы %v и летит в голову %v.\n", MentionUser(sender), MentionUser(victim))
 				rows.Close()
 				break
 			}
