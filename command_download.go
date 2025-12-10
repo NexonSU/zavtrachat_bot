@@ -79,6 +79,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		NoPlaylist().
 		NoOverwrites().
 		Format("bv*[height<=720][ext=mp4][vcodec^=avc1]+ba").
+		RecodeVideo("mp4").
 		EmbedMetadata().
 		NoEmbedChapters().
 		Output(filePath).
