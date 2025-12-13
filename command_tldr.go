@@ -170,7 +170,7 @@ func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	if strings.Contains(link, "zavtrabot.nexon.su") {
-		os.Remove(strings.Replace(link, "https://", "/home/nginx/", -1))
+		os.Remove(strings.Replace(link, "https://", "/home/telegram/tldr/", -1))
 	}
 
 	_, err = context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{})
@@ -190,23 +190,23 @@ func webProxy(url string) (link string, error error) {
 		return "", err
 	}
 
-	err = os.WriteFile(fmt.Sprintf("/home/nginx/zavtrabot.nexon.su/%x.html", linkName), body, 0644)
+	err = os.WriteFile(fmt.Sprintf("/home/telegram/tldr/%x.html", linkName), body, 0644)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("https://zavtrabot.nexon.su/%x.html", linkName), nil
+	return fmt.Sprintf("https://zavtrabot.nexon.su/tldr/%x.html", linkName), nil
 }
 
 func createPage(text string) (link string, error error) {
 	linkName := fmt.Sprintf("%x", md5.Sum([]byte(text)))
 
-	text = "<!doctype html><html><head><title>Пересказ сообщения</title></head><body><p>" + text + "</p></body></html>"
+	text = "<!doctype html><html><head><title>Message</title></head><body><p>" + text + "</p></body></html>"
 
-	err := os.WriteFile(fmt.Sprintf("/home/nginx/zavtrabot.nexon.su/%x.html", linkName), []byte(text), 0644)
+	err := os.WriteFile(fmt.Sprintf("/home/telegram/tldr/%x.html", linkName), []byte(text), 0644)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("https://zavtrabot.nexon.su/%x.html", linkName), nil
+	return fmt.Sprintf("https://zavtrabot.nexon.su/tldr/%x.html", linkName), nil
 }
