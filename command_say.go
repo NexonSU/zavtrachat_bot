@@ -14,7 +14,7 @@ func Say(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	if len(context.Args()) == 1 {
-		return ReplyAndRemove("Укажите сообщение.", *context)
+		return ReplyAndRemoveWithTarget("Укажите сообщение.", *context)
 	}
 	context.Message.Delete(bot, nil)
 	_, text, _ := strings.Cut(context.EffectiveMessage.Text, " ")

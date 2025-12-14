@@ -21,8 +21,8 @@ func Pidordel(bot *gotgbot.Bot, context *ext.Context) error {
 	pidor = PidorList(user)
 	result := DB.Delete(&pidor)
 	if result.RowsAffected != 0 {
-		return ReplyAndRemove(fmt.Sprintf("Пользователь %v удалён из игры <b>Пидор Дня</b>!", MentionUser(&user)), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь %v удалён из игры <b>Пидор Дня</b>!", MentionUser(&user)), *context)
 	} else {
-		return ReplyAndRemove(fmt.Sprintf("Не удалось удалить пользователя:\n<code>%v</code>", result.Error.Error()), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("Не удалось удалить пользователя:\n<code>%v</code>", result.Error.Error()), *context)
 	}
 }

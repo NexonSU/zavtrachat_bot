@@ -17,7 +17,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 	filePath := fmt.Sprintf("%v/%v.mp3", os.TempDir(), context.Message.MessageId)
 
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
-		return ReplyAndRemove("Пример использования: <code>/mp3 {ссылка на ютуб/ресурс}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/mp3</code>", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/mp3 {ссылка на ютуб/ресурс}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/mp3</code>", *context)
 	}
 
 	if strings.Contains(context.EffectiveMessage.Text, " remove") {

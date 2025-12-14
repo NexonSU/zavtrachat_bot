@@ -31,5 +31,5 @@ func Getall(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 	Bot.SendMessage(context.Message.From.Id, getall, nil)
-	return ReplyAndRemove("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", *context)
+	return ReplyAndRemoveWithTarget("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", *context)
 }

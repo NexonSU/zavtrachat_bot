@@ -15,7 +15,7 @@ import (
 func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 	var get Get
 	if len(context.Args()) == 1 {
-		return ReplyAndRemove("Пример использования: <code>/get {гет}</code>", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/get {гет}</code>", *context)
 	}
 	_, text, _ := strings.Cut(strings.ToLower(context.EffectiveMessage.Text), " ")
 	result := DB.Where(&Get{Name: text}).First(&get)
@@ -44,10 +44,10 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 			_, err := context.Message.Reply(bot, get.Data, &gotgbot.SendMessageOpts{LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: false}})
 			return err
 		default:
-			return ReplyAndRemove(fmt.Sprintf("Ошибка при определении типа гета, я не знаю тип <code>%v</code>.", get.Type), *context)
+			return ReplyAndRemoveWithTarget(fmt.Sprintf("Ошибка при определении типа гета, я не знаю тип <code>%v</code>.", get.Type), *context)
 		}
 	} else {
-		return ReplyAndRemove(fmt.Sprintf("Гет <code>%v</code> не найден.\nИспользуйте inline-режим бота, чтобы найти гет.", text), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("Гет <code>%v</code> не найден.\nИспользуйте inline-режим бота, чтобы найти гет.", text), *context)
 	}
 }
 

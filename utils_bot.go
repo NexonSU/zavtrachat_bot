@@ -35,7 +35,7 @@ func BotInit() error {
 	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
 		// If an error is returned by a handler, log it and continue going.
 		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
-			reportErr := ReplyAndRemove("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), *context)
+			reportErr := ReplyAndRemoveWithTarget("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), *context)
 			if reportErr != nil {
 				log.Println("error when reporting a... error: " + reportErr.Error())
 			}
@@ -152,7 +152,7 @@ func ErrorReporting(err error) {
 	// _, fn, line, _ := runtime.Caller(1)
 	// log.Printf("[%s:%d] %v", fn, line, err)
 	// if context != nil && context.Message != nil && context.Chat().Id == Config.Chat {
-	// 	ReplyAndRemove(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), *context)
+	// 	ReplyAndRemoveWithTarget(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), *context)
 	// }
 	// text := fmt.Sprintf("<pre>[%s:%d]\n%v</pre>", fn, line, strings.ReplaceAll(err.Error(), Config.Token, ""))
 	if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {

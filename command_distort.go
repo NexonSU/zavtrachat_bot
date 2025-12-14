@@ -37,10 +37,10 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemove("Пример использования: <code>/distort</code> в ответ на какое-либо сообщение с видео.", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/distort</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
 	if !IsContainsMedia(context.Message.ReplyToMessage) {
-		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", *context)
+		return ReplyAndRemoveWithTarget("Какого-либо видео нет в указанном сообщении.", *context)
 	}
 
 	media, err := GetMedia(context.Message.ReplyToMessage)
@@ -66,7 +66,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	if fileId, ok := DistortCache[media.FileID]; ok {
 		_, err = Bot.SendDocument(recepient, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ReplyParameters: &gotgbot.ReplyParameters{}})
 		if recepient == context.Message.From.Id {
-			ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
+			ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 		}
 		return err
 	}
@@ -75,11 +75,11 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	case "video", "animation", "photo", "audio", "voice", "sticker":
 		break
 	default:
-		return ReplyAndRemove("Неподдерживаемая операция", *context)
+		return ReplyAndRemoveWithTarget("Неподдерживаемая операция", *context)
 	}
 
 	if DistortBusy {
-		return ReplyAndRemove("Команда занята", *context)
+		return ReplyAndRemoveWithTarget("Команда занята", *context)
 	}
 
 	var done = make(chan bool, 1)
@@ -135,12 +135,12 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 
 		if framesInt > 1000 && !IsAdminOrModer(context.Message.From.Id) {
-			return ReplyAndRemove("Видео слишком длинное. Максимум 1000 фреймов.", *context)
+			return ReplyAndRemoveWithTarget("Видео слишком длинное. Максимум 1000 фреймов.", *context)
 		}
 	}
 
 	if err := os.Mkdir(workdir, os.ModePerm); err != nil {
-		return ReplyAndRemove("Обработка файла уже выполняется", *context)
+		return ReplyAndRemoveWithTarget("Обработка файла уже выполняется", *context)
 	}
 	defer func(workdir string) {
 		os.RemoveAll(workdir)
@@ -161,7 +161,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", workdir+"/audio.mp3")), &gotgbot.SendAudioOpts{ReplyParameters: options})
 		DistortCache[media.FileID] = resultMessage.Audio.FileId
 		if recepient == context.Message.From.Id {
-			ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
+			ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 		}
 		return err
 	}
@@ -248,7 +248,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	for {
 		time.Sleep(1 * time.Second)
 		if time.Now().Unix()-jobStarted > 300 {
-			return ReplyAndRemove("Слишком долгое выполнение операции", *context)
+			return ReplyAndRemoveWithTarget("Слишком долгое выполнение операции", *context)
 		}
 		if pool.QueueLength() == 0 {
 			break
@@ -269,7 +269,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", outputFile)), &gotgbot.SendDocumentOpts{ReplyParameters: options})
 	DistortCache[media.FileID] = resultMessage.Document.FileId
 	if recepient == context.Message.From.Id {
-		ReplyAndRemove("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
+		ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 	}
 	return err
 }

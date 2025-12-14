@@ -16,7 +16,7 @@ func Convert(bot *gotgbot.Bot, context *ext.Context) error {
 				return Download(bot, context)
 			}
 		}
-		return ReplyAndRemove("Пример использования: <code>/convert</code> в ответ на какое-либо сообщение с медиа-файлом.\nДопольнительные параметры: gif,mp3,ogg,jpg.", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/convert</code> в ответ на какое-либо сообщение с медиа-файлом.\nДопольнительные параметры: gif,mp3,ogg,jpg.", *context)
 	}
 	if !IsContainsMedia(context.Message.ReplyToMessage) {
 		for _, entity := range context.Message.ReplyToMessage.Entities {
@@ -24,7 +24,7 @@ func Convert(bot *gotgbot.Bot, context *ext.Context) error {
 				return Download(bot, context)
 			}
 		}
-		return ReplyAndRemove("Какого-либо медиа файла нет в указанном сообщении.", *context)
+		return ReplyAndRemoveWithTarget("Какого-либо медиа файла нет в указанном сообщении.", *context)
 	}
 
 	media, err := GetMedia(context.Message.ReplyToMessage)

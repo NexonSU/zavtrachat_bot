@@ -15,7 +15,7 @@ func Unmute(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
-		return ReplyAndRemove("Пример использования: <code>/unmute {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/unmute</code>", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/unmute {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/unmute</code>", *context)
 	}
 	target, err := FindUserInMessage(*context)
 	if err != nil {
@@ -25,5 +25,5 @@ func Unmute(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	return ReplyAndRemove(fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a> снова может отправлять сообщения в чат.", target.Id, UserFullName(&target)), *context)
+	return ReplyAndRemoveWithTarget(fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a> снова может отправлять сообщения в чат.", target.Id, UserFullName(&target)), *context)
 }

@@ -16,9 +16,9 @@ func Duelstats(bot *gotgbot.Bot, context *ext.Context) error {
 	var duelist Duelist
 	result := DB.Model(Duelist{}).Where(context.Message.From.Id).First(&duelist)
 	if result.RowsAffected == 0 {
-		return ReplyAndRemove("У тебя нет статистики.", *context)
+		return ReplyAndRemoveWithTarget("У тебя нет статистики.", *context)
 	}
 	winsMessage := prt.Sprintf("%d побед", duelist.Kills)
 	deathsMessage := prt.Sprintf("%d смертей", duelist.Deaths)
-	return ReplyAndRemove(prt.Sprintf("У тебя %s и %s", winsMessage, deathsMessage), *context)
+	return ReplyAndRemoveWithTarget(prt.Sprintf("У тебя %s и %s", winsMessage, deathsMessage), *context)
 }

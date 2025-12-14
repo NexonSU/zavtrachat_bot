@@ -292,15 +292,15 @@ func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	status := cm.GetStatus()
 	if status == "left" {
-		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
 	}
 	if status == "kicked" {
-		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
 	}
 	mcm := cm.MergeChatMember()
 	if !mcm.CanSendMessages && status == "restricted" {
 		duration := (mcm.UntilDate - time.Now().Local().Unix()) / 60
-		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
 	}
 	return nil
 }
@@ -569,7 +569,7 @@ func DownloadFile(filepath string, url string) (err error) {
 	return nil
 }
 
-func ReplyAndRemove(message string, context ext.Context) error {
+func ReplyAndRemoveWithTarget(message string, context ext.Context) error {
 	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
 	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
@@ -582,6 +582,22 @@ func ReplyAndRemove(message string, context ext.Context) error {
 		time.Sleep(30 * time.Second)
 		Bot.DeleteMessages(context.Message.Chat.Id, messages, nil)
 	}([]int64{context.Message.MessageId, sentMessage.MessageId})
+	return nil
+}
+
+func ReplyAndRemove(message string, context ext.Context) error {
+	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
+	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+	if err != nil {
+		return err
+	}
+	if context.Message == nil || context.Message.MessageId == 0 {
+		return nil
+	}
+	go func(msgid int64) {
+		time.Sleep(30 * time.Second)
+		Bot.DeleteMessage(context.Message.Chat.Id, msgid, nil)
+	}(sentMessage.MessageId)
 	return nil
 }
 

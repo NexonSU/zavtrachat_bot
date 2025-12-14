@@ -10,7 +10,7 @@ import (
 func Pidoreg(bot *gotgbot.Bot, context *ext.Context) error {
 	var pidor PidorList
 	if DB.First(&pidor, context.Message.From.Id).RowsAffected != 0 {
-		return ReplyAndRemove("Эй, ты уже в игре!", *context)
+		return ReplyAndRemoveWithTarget("Эй, ты уже в игре!", *context)
 	} else {
 		pidor = PidorList(*context.Message.From)
 		result := DB.Clauses(clause.OnConflict{
@@ -19,6 +19,6 @@ func Pidoreg(bot *gotgbot.Bot, context *ext.Context) error {
 		if result.Error != nil {
 			return result.Error
 		}
-		return ReplyAndRemove("OK! Ты теперь участвуешь в игре <b>Пидор Дня</b>!", *context)
+		return ReplyAndRemoveWithTarget("OK! Ты теперь участвуешь в игре <b>Пидор Дня</b>!", *context)
 	}
 }

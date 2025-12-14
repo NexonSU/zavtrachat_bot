@@ -11,10 +11,10 @@ import (
 // Invert given file
 func Invert(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemove("Пример использования: <code>/invert</code> в ответ на какое-либо сообщение с видео.", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/invert</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
 	if !IsContainsMedia(context.Message.ReplyToMessage) {
-		return ReplyAndRemove("Какого-либо видео нет в указанном сообщении.", *context)
+		return ReplyAndRemoveWithTarget("Какого-либо видео нет в указанном сообщении.", *context)
 	}
 
 	media, err := GetMedia(context.Message.ReplyToMessage)
@@ -39,14 +39,14 @@ func Invert(bot *gotgbot.Bot, context *ext.Context) error {
 	case "audio", "mp3":
 		targetArg = "audio"
 	default:
-		return ReplyAndRemove("Неподдерживаемая операция", *context)
+		return ReplyAndRemoveWithTarget("Неподдерживаемая операция", *context)
 	}
 
 	targetArg = targetArg + "_reverse"
 
 	if targetArg == "sticker_reverse" {
 		if !context.Message.ReplyToMessage.Sticker.IsVideo {
-			return ReplyAndRemove("Неподдерживаемая операция", *context)
+			return ReplyAndRemoveWithTarget("Неподдерживаемая операция", *context)
 		}
 	}
 

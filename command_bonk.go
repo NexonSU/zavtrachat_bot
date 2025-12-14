@@ -15,7 +15,7 @@ import (
 // Write username on bonk picture and send to target
 func Bonk(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemove("Просто отправь <code>/bonk</code> в ответ на чье-либо сообщение.", *context)
+		return ReplyAndRemoveWithTarget("Просто отправь <code>/bonk</code> в ответ на чье-либо сообщение.", *context)
 	}
 	context.Message.Delete(bot, nil)
 

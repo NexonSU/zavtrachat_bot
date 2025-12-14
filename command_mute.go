@@ -17,7 +17,7 @@ func Mute(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) == 1) || (context.Message.ReplyToMessage != nil && len(context.Args()) > 2) {
-		return ReplyAndRemove("Пример использования: <code>/mute {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/mute</code>\nЕсли нужно замьютить на время, то добавь время в секундах через пробел.", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/mute {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/mute</code>\nЕсли нужно замьютить на время, то добавь время в секундах через пробел.", *context)
 	}
 	target, err := FindUserInMessage(*context)
 	for _, arg := range context.Args() {
@@ -35,5 +35,5 @@ func Mute(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	return ReplyAndRemove(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> больше не может отправлять сообщения%v.", target.Id, UserFullName(&target), RestrictionTimeMessage(untildate)), *context)
+	return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> больше не может отправлять сообщения%v.", target.Id, UserFullName(&target), RestrictionTimeMessage(untildate)), *context)
 }

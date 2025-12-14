@@ -91,11 +91,11 @@ func GetIdName(ID string) string {
 // Reply currency "cur"
 func Cur(bot *gotgbot.Bot, context *ext.Context) error {
 	if Config.CurrencyKey == "" {
-		return ReplyAndRemove("Конвертация валют не настроена", *context)
+		return ReplyAndRemoveWithTarget("Конвертация валют не настроена", *context)
 	}
 	println(context.Args()[1])
 	if len(context.Args()) != 4 {
-		return ReplyAndRemove("Пример использования:\n/cur 1 USD RUB", *context)
+		return ReplyAndRemoveWithTarget("Пример использования:\n/cur 1 USD RUB", *context)
 	}
 	amount, err := strconv.ParseFloat(context.Args()[1], 64)
 	if err != nil {

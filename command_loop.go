@@ -11,11 +11,11 @@ import (
 // Invert given file
 func Loop(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemove("Пример использования: <code>/loop</code> в ответ на какое-либо сообщение с видео.", *context)
+		return ReplyAndRemoveWithTarget("Пример использования: <code>/loop</code> в ответ на какое-либо сообщение с видео.", *context)
 	}
 
 	if !IsContainsMedia(context.Message.ReplyToMessage) {
-		return ReplyAndRemove("Какого-либо медиа нет в указанном сообщении.", *context)
+		return ReplyAndRemoveWithTarget("Какого-либо медиа нет в указанном сообщении.", *context)
 	}
 
 	media, err := GetMedia(context.Message.ReplyToMessage)
@@ -32,7 +32,7 @@ func Loop(bot *gotgbot.Bot, context *ext.Context) error {
 	case "animation":
 		targetArg = "animation"
 	default:
-		return ReplyAndRemove("Неподдерживаемая операция", *context)
+		return ReplyAndRemoveWithTarget("Неподдерживаемая операция", *context)
 	}
 
 	targetArg = targetArg + "_loop"

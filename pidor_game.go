@@ -16,7 +16,7 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 		return nil
 	}
 	if busyPidor["pidor"] {
-		return ReplyAndRemove("Команда занята. Попробуйте позже.", *context)
+		return ReplyAndRemoveWithTarget("Команда занята. Попробуйте позже.", *context)
 	}
 	busyPidor["pidor"] = true
 	defer func() { busyPidor["pidor"] = false }()
@@ -28,15 +28,15 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 		TargetChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, pidorToday.Id, nil)
 		if err != nil {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что с <a href=\"tg://user?id=%v\">%v</a> что-то не так, так что попробуйте еще раз, пока я удаляю его из игры! Ошибка:\n<code>%v</code>", pidorToday.Id, pidorToday.Username, err.Error()), *context)
+			return ReplyAndRemoveWithTarget(fmt.Sprintf("Я нашел пидора дня, но похоже, что с <a href=\"tg://user?id=%v\">%v</a> что-то не так, так что попробуйте еще раз, пока я удаляю его из игры! Ошибка:\n<code>%v</code>", pidorToday.Id, pidorToday.Username, err.Error()), *context)
 		}
 		if TargetChatMember.GetStatus() == "left" {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> вышел из этого чата (вот пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
+			return ReplyAndRemoveWithTarget(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> вышел из этого чата (вот пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
 		if TargetChatMember.GetStatus() == "kicked" {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemove(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
+			return ReplyAndRemoveWithTarget(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
 		pidor.UserID = pidorToday.Id
 		pidor.Date = time.Now()
@@ -60,7 +60,7 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	} else {
 		DB.Model(PidorList{}).Where(pidor.UserID).First(&pidorToday)
-		return ReplyAndRemove(fmt.Sprintf("Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - %v!", pidorToday.Username), *context)
+		return ReplyAndRemoveWithTarget(fmt.Sprintf("Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - %v!", pidorToday.Username), *context)
 	}
 	return nil
 }

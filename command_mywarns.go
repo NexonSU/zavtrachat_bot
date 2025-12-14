@@ -27,5 +27,5 @@ func Mywarns(bot *gotgbot.Bot, context *ext.Context) error {
 		warn.LastWarn = time.Unix(0, 0)
 		warn.Amount = 0
 	}
-	return ReplyAndRemove(prt.Sprintf("У тебя %d предупреждений.", warn.Amount), *context)
+	return ReplyAndRemoveWithTarget(prt.Sprintf("У тебя %d предупреждений.", warn.Amount), *context)
 }

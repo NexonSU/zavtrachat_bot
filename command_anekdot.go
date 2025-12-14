@@ -34,5 +34,5 @@ func Anekdot(bot *gotgbot.Bot, context *ext.Context) error {
 	text = br.ReplaceAllString(text, `$1 $2`)
 	text = strings.ReplaceAll(text, "<br>", "\n")
 
-	return ReplyAndRemove(text, *context)
+	return ReplyAndRemoveWithTarget(text, *context)
 }

@@ -16,7 +16,7 @@ import (
 func Hug(bot *gotgbot.Bot, context *ext.Context) error {
 	var err error
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemove("Просто отправь <code>/hug</code> в ответ на чье-либо сообщение.", *context)
+		return ReplyAndRemoveWithTarget("Просто отправь <code>/hug</code> в ответ на чье-либо сообщение.", *context)
 	}
 	context.Message.Delete(bot, nil)
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(hug_png))
