@@ -60,7 +60,7 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 			}).Create(&duelist)
 			duration := 1
 			prependText := ""
-			if context.Message.From.IsPremium {
+			if victim.IsPremium {
 				duration = duration * 2
 				prependText += "премиально "
 			}
