@@ -131,11 +131,12 @@ func FindUserInMessage(context ext.Context) (gotgbot.User, error) {
 			user, err = GetUserFromDB(arg)
 			if err != nil {
 				continue
+			} else {
+				return user, err
 			}
-			return user, fmt.Errorf("пользователь не найден в сообщении")
 		}
+		return user, fmt.Errorf("пользователь не найден в сообщении")
 	}
-	return user, err
 }
 
 func GetUserFromDB(findstring string) (gotgbot.User, error) {
