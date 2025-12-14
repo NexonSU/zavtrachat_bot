@@ -13,7 +13,7 @@ func BlessingTop(bot *gotgbot.Bot, context *ext.Context) error {
 	var userIdStr string
 	var count int64
 	var text = "Топ-10 исекаев чата:\n\n"
-	result, err := DB.Select("user_id, deaths").Table("duelist").Order("deaths DESC").Limit(10).Rows()
+	result, err := DB.Select("user_id, deaths").Table("duelists").Order("deaths DESC").Limit(10).Rows()
 	if err != nil {
 		return err
 	}
