@@ -69,9 +69,10 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 			}
 			victimsCount++
 
-			text += fmt.Sprintf("%v %v%v. Респавн через %d мин.\n", UserFullName(&victim), prependText, GetBless(), duration)
+			text += fmt.Sprintf("%v %v%v.\n", UserFullName(&victim), prependText, GetBless())
 		}
 	}
+	text += "\nРеспавн через пару минут."
 	_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{DisableNotification: true})
 	return err
 }
