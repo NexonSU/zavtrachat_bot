@@ -700,8 +700,12 @@ func KillSender(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	if ChatMember.GetStatus() != "member" {
-		return fmt.Errorf("ошибка выполнения команды, статус юзера %v", ChatMember.GetStatus())
+	status := ChatMember.GetStatus()
+	if status != "member" {
+		if status == "administrator" {
+			return fmt.Errorf("недостаточно прав")
+		}
+		return fmt.Errorf("ошибка выполнения команды, статус юзера %v", status)
 	}
 	var duelist Duelist
 	result := DB.Model(Duelist{}).Where(context.Message.From.Id).First(&duelist)
