@@ -14,7 +14,7 @@ func Slap(bot *gotgbot.Bot, context *ext.Context) error {
 	if IsAdminOrModer(context.Message.From.Id) {
 		action = "дал отцовского леща"
 	}
-	target, _, err := FindUserInMessage(*context)
+	target, err := FindUserInMessage(*context)
 	if err != nil {
 		return err
 	}

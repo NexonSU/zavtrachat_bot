@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -9,6 +11,7 @@ import (
 
 // Ban user on /ban
 func Ban(bot *gotgbot.Bot, context *ext.Context) error {
+	var untildate = time.Now().Unix() + 86400
 	if !IsAdminOrModer(context.Message.From.Id) {
 		_, err := bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"), &gotgbot.SendAnimationOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 		return err
@@ -16,7 +19,15 @@ func Ban(bot *gotgbot.Bot, context *ext.Context) error {
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) == 1) || (context.Message.ReplyToMessage != nil && len(context.Args()) > 2) {
 		return ReplyAndRemove("Пример использования: <code>/ban {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/ban</code>\nЕсли нужно забанить на время, то добавь время в секундах через пробел.", *context)
 	}
-	target, untildate, err := FindUserInMessage(*context)
+	target, err := FindUserInMessage(*context)
+	for _, arg := range context.Args() {
+		addtime, err := strconv.ParseInt(arg, 10, 64)
+		if err != nil {
+			continue
+		}
+		untildate = time.Now().Unix() + addtime
+		break
+	}
 	if err != nil {
 		return err
 	}

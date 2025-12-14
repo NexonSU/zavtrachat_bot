@@ -116,52 +116,26 @@ func RestrictionTimeMessage(seconds int64) string {
 	return message
 }
 
-func FindUserInMessage(context ext.Context) (gotgbot.User, int64, error) {
+func FindUserInMessage(context ext.Context) (gotgbot.User, error) {
 	var user gotgbot.User
-	var err error = nil
-	var untildate = time.Now().Unix() + 86400
+	var err error
 	for _, entity := range context.Message.Entities {
 		if entity.Type == "text_mention" {
-			user = *entity.User
-			if len(context.Args()) == 3 {
-				addtime, err := strconv.ParseInt(context.Args()[2], 10, 64)
-				if err != nil {
-					return user, untildate, err
-				}
-				untildate += addtime - 86400
-			}
-			return user, untildate, err
+			return *entity.User, err
 		}
 	}
 	if context.Message.ReplyToMessage != nil {
-		user = *context.Message.ReplyToMessage.From
-		if len(context.Args()) == 2 {
-			addtime, err := strconv.ParseInt(context.Args()[1], 10, 64)
-			if err != nil {
-				return user, untildate, errors.New("время указано неверно")
-			}
-			untildate += addtime - 86400
-		}
+		return *context.Message.ReplyToMessage.From, nil
 	} else {
-		if len(context.Args()) == 1 {
-			err = errors.New("пользователь не найден")
-			return user, untildate, err
-		}
-		if user.Id == 0 {
-			user, err = GetUserFromDB(context.Args()[1])
+		for _, arg := range context.Args() {
+			user, err = GetUserFromDB(arg)
 			if err != nil {
-				return user, untildate, err
+				continue
 			}
-		}
-		if len(context.Args()) == 3 {
-			addtime, err := strconv.ParseInt(context.Args()[2], 10, 64)
-			if err != nil {
-				return user, untildate, errors.New("время указано неверно")
-			}
-			untildate += addtime - 86400
+			return user, fmt.Errorf("пользователь не найден в сообщении")
 		}
 	}
-	return user, untildate, err
+	return user, err
 }
 
 func GetUserFromDB(findstring string) (gotgbot.User, error) {
@@ -171,6 +145,9 @@ func GetUserFromDB(findstring string) (gotgbot.User, error) {
 		user.Username = findstring[1:]
 	} else {
 		user.Id, err = strconv.ParseInt(findstring, 10, 64)
+		if err != nil {
+			return *user, err
+		}
 	}
 	result := DB.Where("lower(username) = ? OR id = ?", strings.ToLower(user.Username), user.Id).First(user)
 	if result.Error != nil {
@@ -302,7 +279,7 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
-	user, _, err := FindUserInMessage(*context)
+	user, err := FindUserInMessage(*context)
 	if err != nil {
 		log.Println(err)
 		return err
