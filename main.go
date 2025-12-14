@@ -57,6 +57,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "isekai", Description: "попасть в исекай"}, Blessing},
 		{gotgbot.BotCommand{Command: "isekaitop", Description: "топ исекая чата"}, BlessingTop},
 		{gotgbot.BotCommand{Command: "marco", Description: "поло"}, Marco},
+		{gotgbot.BotCommand{Command: "date", Description: "вернуть дату и время сервера"}, Date},
 		{gotgbot.BotCommand{Command: "me", Description: "аналог команды /me из IRC (/me пошел спать)"}, Me},
 		{gotgbot.BotCommand{Command: "mp3", Description: "скачать музыку по ссылке"}, Mp3},
 		{gotgbot.BotCommand{Command: "meow", Description: "получить гифку с котиком"}, Meow},
