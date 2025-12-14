@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -303,10 +304,12 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
 	user, _, err := FindUserInMessage(*context)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	cm, err := bot.GetChatMember(context.EffectiveChat.Id, user.Id, nil)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	status := cm.GetStatus()
