@@ -691,3 +691,34 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 
 	return result, nil
 }
+
+// Kill user on admin command
+func KillSender(bot *gotgbot.Bot, context *ext.Context) error {
+	victim := *context.Message.From
+
+	ChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, context.Message.From.Id, nil)
+	if err != nil {
+		return err
+	}
+	if ChatMember.GetStatus() != "member" {
+		return fmt.Errorf("ошибка выполнения команды, статус юзера %v", ChatMember.GetStatus())
+	}
+	var duelist Duelist
+	result := DB.Model(Duelist{}).Where(context.Message.From.Id).First(&duelist)
+	if result.RowsAffected == 0 {
+		duelist.UserID = context.Message.From.Id
+		duelist.Kills = 0
+		duelist.Deaths = 0
+	}
+	duelist.Deaths++
+	DB.Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(&duelist)
+	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()})
+	if err != nil {
+		return err
+	}
+	command := strings.Split(context.Args()[0], "@")[0]
+	_, err = context.EffectiveChat.SendMessage(bot, fmt.Sprintf("<code>💥 %v убился об админскую команду %v.\nРеспавн через минуту.</code>", UserFullName(&victim), command), &gotgbot.SendMessageOpts{})
+	return err
+}

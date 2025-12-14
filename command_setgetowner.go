@@ -11,8 +11,7 @@ import (
 // Send Get to user on /get
 func SetGetOwner(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		_, err := bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"), &gotgbot.SendAnimationOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
-		return err
+		return KillSender(bot, context)
 	}
 	var get Get
 	if len(context.Args()) != 2 || context.Message.ReplyToMessage == nil {

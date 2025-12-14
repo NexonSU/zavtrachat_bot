@@ -11,8 +11,7 @@ import (
 // Adds nope text to DB
 func AddNope(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.EffectiveSender.User.Id) {
-		_, err := bot.SendAnimation(context.EffectiveChat.Id, gotgbot.InputFileByID("CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"), &gotgbot.SendAnimationOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
-		return err
+		return KillSender(bot, context)
 	}
 	var nope Nope
 	if (context.EffectiveMessage.ReplyToMessage == nil && len(context.Args()) == 1) || (context.EffectiveMessage.ReplyToMessage != nil && len(context.Args()) != 1) {
