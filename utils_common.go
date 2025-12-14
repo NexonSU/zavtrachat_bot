@@ -296,6 +296,31 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 			statsIncrease(4, startOfDay, getWordID(word))
 		}
 	}
+	go CheckUserBan(bot, context)
+	return nil
+}
+
+func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
+	user, _, err := FindUserInMessage(*context)
+	if err != nil {
+		return err
+	}
+	cm, err := bot.GetChatMember(context.EffectiveChat.Id, user.Id, nil)
+	if err != nil {
+		return err
+	}
+	status := cm.GetStatus()
+	if status == "left" {
+		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
+	}
+	if status == "kicked" {
+		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
+	}
+	mcm := cm.MergeChatMember()
+	if !mcm.CanSendMessages && status == "restricted" {
+		duration := (mcm.UntilDate - time.Now().Local().Unix()) / 60
+		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
+	}
 	return nil
 }
 
