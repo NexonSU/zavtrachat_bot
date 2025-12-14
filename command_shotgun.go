@@ -35,7 +35,11 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	defer rows.Close()
+	victimsCount := 0
 	for rows.Next() {
+		if victimsCount > 9 {
+			break
+		}
 		rows.Scan(&userID)
 		ricochetVictim, err := Bot.GetChatMember(context.EffectiveChat.Id, userID, nil)
 		if err != nil {
@@ -64,6 +68,7 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 			if err != nil {
 				continue
 			}
+			victimsCount++
 
 			text += fmt.Sprintf("%v %v%v. Респавн через %d мин.\n", UserFullName(&victim), prependText, GetBless(), duration)
 		}
