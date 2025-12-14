@@ -292,15 +292,15 @@ func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	status := cm.GetStatus()
 	if status == "left" {
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
+		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
 	}
 	if status == "kicked" {
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
+		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
 	}
 	mcm := cm.MergeChatMember()
 	if !mcm.CanSendMessages && status == "restricted" {
 		duration := (mcm.UntilDate - time.Now().Local().Unix()) / 60
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
+		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
 	}
 	return nil
 }
