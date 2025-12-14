@@ -58,7 +58,7 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 			DB.Clauses(clause.OnConflict{
 				UpdateAll: true,
 			}).Create(&duelist)
-			duration := RandInt(2, 5)
+			duration := 1
 			prependText := ""
 			if context.Message.From.IsPremium {
 				duration = duration * 2
