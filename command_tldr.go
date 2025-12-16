@@ -159,7 +159,7 @@ func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 
-	text := doc.Find(".summary .summary-content .summary-text").Text()
+	text := doc.Find(".summary .summary-content .summary-text .summary-scroll").Text()
 
 	text = regexp.MustCompile(`\n`).ReplaceAllString(text, "")
 	text = regexp.MustCompile(`•`).ReplaceAllString(text, "\n•")
