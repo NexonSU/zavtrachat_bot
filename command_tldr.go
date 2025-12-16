@@ -57,7 +57,7 @@ func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	if link == "" {
-		if len(message.Text) < 200 && len(message.Caption) < 200 {
+		if len(message.Text) < 20 && len(message.Caption) < 20 {
 			return ReplyAndRemoveWithTarget("Бот заберёт статью по ссылке (или сам текст больше 200 символов) и сделает её краткое описание.\nПример использования:\n<code>/tldr ссылка</code>.\nИли отправь в ответ на какое-либо сообщение с ссылкой.", *context)
 		}
 		if message.Text != "" {
@@ -105,7 +105,7 @@ func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			if len(message.Text) < 200 && len(message.Caption) < 200 {
+			if len(message.Text) < 20 && len(message.Caption) < 20 {
 				return fmt.Errorf("webProxy-link status code error: %d %s", resp.StatusCode, resp.Status)
 			}
 			if message.Text != "" {
