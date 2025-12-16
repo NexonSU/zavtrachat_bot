@@ -10,6 +10,7 @@ import (
 
 type Configuration struct {
 	Token                 string   `json:"token"`
+	DSN                   string   `json:"dsn"`
 	AppID                 int      `json:"app_id"`
 	AppHash               string   `json:"app_hash"`
 	BotApiUrl             string   `json:"bot_api_url"`

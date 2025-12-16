@@ -17,7 +17,7 @@ func Pidorall(bot *gotgbot.Bot, context *ext.Context) error {
 	var username string
 	var count int64
 	var pidorall = "Топ-10 пидоров за всё время:\n\n"
-	result, err := DB.Select("username, COUNT(*) as count").Table("pidor_stats, pidor_lists").Where("pidor_stats.user_id=pidor_lists.id").Group("user_id").Order("count DESC").Limit(10).Rows()
+	result, err := DB.Select("username, COUNT(*) as count").Table("pidor_stats, pidor_lists").Where("pidor_stats.user_id=pidor_lists.id").Group("user_id, pidor_lists.username").Order("count DESC").Limit(10).Rows()
 	if err != nil {
 		return err
 	}

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -72,25 +71,19 @@ type Bless struct {
 	Text string `gorm:"primaryKey"`
 }
 
-func DataBaseInit(file string) gorm.DB {
-	database, err := gorm.Open(
-		sqlite.Open(file),
-		&gorm.Config{
-			Logger:      logger.Default.LogMode(logger.Warn),
-			PrepareStmt: true,
-		},
+func DataBaseInit(dsn string) (gorm.DB, error) {
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Warn),
+	},
 	)
 	if err != nil {
-		log.Fatal(err)
+		return *database, err
 	}
 
 	//Create tables, if they not exists in DB
 	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{})
 	if err != nil {
-		log.Println(err)
+		return *database, err
 	}
-	database.Exec("VACUUM;")
-	return *database
+	return *database, nil
 }
-
-var DB = DataBaseInit("bot.db")

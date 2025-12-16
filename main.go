@@ -14,6 +14,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 	"github.com/gotd/td/telegram"
+	"gorm.io/gorm"
 )
 
 type commandList struct {
@@ -22,6 +23,7 @@ type commandList struct {
 }
 
 var Config *Configuration
+var DB gorm.DB
 var HTTPClientProxy func(*http.Request) (*url.URL, error)
 var Bot *gotgbot.Bot
 var BotDispatcher *ext.Dispatcher
@@ -34,6 +36,11 @@ func main() {
 	err := ConfigInit()
 	if err != nil {
 		panic(fmt.Errorf("config init failed: %s", err))
+	}
+	log.Println("init: database")
+	DB, err = DataBaseInit(Config.DSN)
+	if err != nil {
+		panic(fmt.Errorf("database init failed: %s", err))
 	}
 	log.Println("init: bot")
 	err = BotInit()
