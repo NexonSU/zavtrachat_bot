@@ -33,6 +33,8 @@ type Configuration struct {
 	YandexSummarizerToken string   `json:"yandex_summarizer_token"`
 	FontPath              string   `json:"fontpath"`
 	Proxy                 string   `json:"proxy"`
+	OllamaURL             string   `json:"ollama_url"`
+	OllamaModel           string   `json:"ollama_model"`
 }
 
 func ConfigInit() error {
