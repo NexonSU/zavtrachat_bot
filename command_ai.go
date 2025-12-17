@@ -71,26 +71,28 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 		System: AISystem,
 	}
 
-	if len(context.Message.ReplyToMessage.Photo) > 0 {
-		file, err := Bot.GetFile(context.Message.ReplyToMessage.Photo[0].FileId, nil)
-		if err != nil {
-			return err
-		}
-		imgData, err := os.ReadFile(file.FilePath)
-		if err != nil {
-			return err
-		}
-		req.Images = []api.ImageData{imgData}
-	}
-
 	req.Prompt = strings.Join(slices.Delete(context.Args(), 0, 1), " ")
 
-	if len(context.Message.ReplyToMessage.Caption) > 0 {
-		req.Prompt += "\nПодпись: " + context.Message.ReplyToMessage.Caption
-	}
+	if context.Message.ReplyToMessage != nil {
+		if len(context.Message.ReplyToMessage.Photo) > 0 {
+			file, err := Bot.GetFile(context.Message.ReplyToMessage.Photo[0].FileId, nil)
+			if err != nil {
+				return err
+			}
+			imgData, err := os.ReadFile(file.FilePath)
+			if err != nil {
+				return err
+			}
+			req.Images = []api.ImageData{imgData}
+		}
 
-	if len(context.Message.ReplyToMessage.Text) > 0 {
-		req.Prompt += "\nТекст: " + context.Message.ReplyToMessage.Text
+		if len(context.Message.ReplyToMessage.Caption) > 0 {
+			req.Prompt += "\nПодпись: " + context.Message.ReplyToMessage.Caption
+		}
+
+		if len(context.Message.ReplyToMessage.Text) > 0 {
+			req.Prompt += "\nТекст: " + context.Message.ReplyToMessage.Text
+		}
 	}
 
 	err = client.Generate(ctx, req, func(resp api.GenerateResponse) error {
