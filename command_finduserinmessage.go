@@ -9,7 +9,13 @@ import (
 
 // Mute user on /mute
 func FindUserInMessageTest(bot *gotgbot.Bot, context *ext.Context) error {
-	user, err := FindUserInMessage(*context)
+	if !IsAdminOrModer(context.Message.From.Id) {
+		return KillSender(bot, context)
+	}
+	if context.Message.ReplyToMessage == nil {
+		return ReplyAndRemoveWithTarget("Укажите сообщение", *context)
+	}
+	user, err := FindUserInMessage(*context.Message.ReplyToMessage)
 	if err != nil {
 		return err
 	}

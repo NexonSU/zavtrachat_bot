@@ -17,7 +17,7 @@ func Getid(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	if len(context.Args()) == 2 {
-		target, err := FindUserInMessage(*context)
+		target, err := FindUserInMessage(*context.Message)
 		if err != nil {
 			return err
 		}

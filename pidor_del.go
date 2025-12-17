@@ -13,7 +13,7 @@ func Pidordel(bot *gotgbot.Bot, context *ext.Context) error {
 		return KillSender(bot, context)
 	}
 	var pidor PidorList
-	user, err := FindUserInMessage(*context)
+	user, err := FindUserInMessage(*context.Message)
 	if err != nil {
 		return err
 	}

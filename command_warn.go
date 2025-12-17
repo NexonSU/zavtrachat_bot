@@ -18,7 +18,7 @@ func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
 		return ReplyAndRemoveWithTarget("Пример использования: <code>/warn {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/warn</code>", *context)
 	}
-	target, err := FindUserInMessage(*context)
+	target, err := FindUserInMessage(*context.Message)
 	if err != nil {
 		return err
 	}

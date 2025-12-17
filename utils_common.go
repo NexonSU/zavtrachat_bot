@@ -116,18 +116,18 @@ func RestrictionTimeMessage(seconds int64) string {
 	return message
 }
 
-func FindUserInMessage(context ext.Context) (gotgbot.User, error) {
+func FindUserInMessage(message gotgbot.Message) (gotgbot.User, error) {
 	var user gotgbot.User
 	var err error
-	for _, entity := range context.Message.Entities {
+	for _, entity := range message.Entities {
 		if entity.Type == "text_mention" {
 			return *entity.User, err
 		}
 	}
-	if context.Message.ReplyToMessage != nil {
-		return *context.Message.ReplyToMessage.From, nil
+	if message.ReplyToMessage != nil {
+		return *message.ReplyToMessage.From, nil
 	} else {
-		for _, arg := range context.Args() {
+		for _, arg := range strings.Split(message.Text, " ") {
 			user, err = GetUserFromDB(arg)
 			if err != nil {
 				continue
@@ -280,7 +280,7 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
-	user, err := FindUserInMessage(*context)
+	user, err := FindUserInMessage(*context.Message)
 	if err != nil {
 		log.Println(err)
 		return err

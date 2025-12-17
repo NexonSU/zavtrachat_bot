@@ -18,7 +18,7 @@ func Mute(bot *gotgbot.Bot, context *ext.Context) error {
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) == 1) || (context.Message.ReplyToMessage != nil && len(context.Args()) > 2) {
 		return ReplyAndRemoveWithTarget("Пример использования: <code>/mute {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/mute</code>\nЕсли нужно замьютить на время, то добавь время в секундах через пробел.", *context)
 	}
-	target, err := FindUserInMessage(*context)
+	target, err := FindUserInMessage(*context.Message)
 	for _, arg := range context.Args() {
 		addtime, err := strconv.ParseInt(arg, 10, 64)
 		if err != nil {
