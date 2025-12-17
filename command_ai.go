@@ -56,14 +56,6 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 	}()
 	DistortBusy = true
 
-	var msg *gotgbot.Message
-
-	if context.Message.ReplyToMessage != nil {
-		msg = context.Message.ReplyToMessage
-	} else {
-		msg = context.Message
-	}
-
 	url, err := url.Parse(Config.OllamaURL)
 	if err != nil {
 		return err
@@ -79,8 +71,8 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 		System: AISystem,
 	}
 
-	if len(msg.Photo) > 0 {
-		file, err := Bot.GetFile(msg.Photo[0].FileId, nil)
+	if len(context.Message.ReplyToMessage.Photo) > 0 {
+		file, err := Bot.GetFile(context.Message.ReplyToMessage.Photo[0].FileId, nil)
 		if err != nil {
 			return err
 		}
@@ -93,12 +85,12 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 
 	req.Prompt = strings.Join(slices.Delete(context.Args(), 0, 1), " ")
 
-	if len(msg.Caption) > 0 {
-		req.Prompt += "\nПодпись: " + msg.Caption
+	if len(context.Message.ReplyToMessage.Caption) > 0 {
+		req.Prompt += "\nПодпись: " + context.Message.ReplyToMessage.Caption
 	}
 
-	if len(msg.Text) > 0 {
-		req.Prompt += "\nТекст: " + msg.Text
+	if len(context.Message.ReplyToMessage.Text) > 0 {
+		req.Prompt += "\nТекст: " + context.Message.ReplyToMessage.Text
 	}
 
 	err = client.Generate(ctx, req, func(resp api.GenerateResponse) error {
