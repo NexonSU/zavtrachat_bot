@@ -150,6 +150,9 @@ func GetUserFromDB(findstring string) (gotgbot.User, error) {
 			return *user, err
 		}
 	}
+	if user.Username == "" && user.Id == 0 {
+		return *user, fmt.Errorf("пользователь не найден")
+	}
 	result := DB.Where("lower(username) = ? OR id = ?", strings.ToLower(user.Username), user.Id).First(user)
 	if result.Error != nil {
 		err = result.Error
