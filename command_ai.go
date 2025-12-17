@@ -18,11 +18,17 @@ import (
 
 var AIBusy bool
 var MarkdownBold = regexp.MustCompile(`\*\*(.*)\*\*`)
-var AISystem = Config.OllamaSystem
-var AIModel = Config.OllamaModel
+var AISystem string
+var AIModel string
 
 // Send shrug in chat on /shrug
 func AI(bot *gotgbot.Bot, context *ext.Context) error {
+	if AISystem == "" {
+		AISystem = Config.OllamaSystem
+	}
+	if AIModel == "" {
+		AIModel = Config.OllamaModel
+	}
 	if DistortBusy {
 		return ReplyAndRemoveWithTarget("Команда занята", *context)
 	}
