@@ -108,7 +108,8 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 	result := fmt.Sprint(err)
 	result = strings.ReplaceAll(result, "<", "&lt;")
 	result = strings.ReplaceAll(result, ">", "&gt;")
-	result = MarkdownBold.ReplaceAllString(result, `<b>$1</b>`)
+	result = strings.ReplaceAll(result, "*", "")
+	//result = MarkdownBold.ReplaceAllString(result, `<b>$1</b>`)
 	_, err = context.Message.Reply(bot, result, nil)
 	return err
 }
