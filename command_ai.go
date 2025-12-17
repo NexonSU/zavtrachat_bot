@@ -68,6 +68,7 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 	req := &api.GenerateRequest{
 		Model:  Config.OllamaModel,
 		Stream: new(bool),
+		System: Config.OllamaSystem,
 	}
 
 	if len(msg.Photo) > 0 {

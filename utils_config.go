@@ -35,6 +35,7 @@ type Configuration struct {
 	Proxy                 string   `json:"proxy"`
 	OllamaURL             string   `json:"ollama_url"`
 	OllamaModel           string   `json:"ollama_model"`
+	OllamaSystem          string   `json:"ollama_system"`
 }
 
 func ConfigInit() error {
