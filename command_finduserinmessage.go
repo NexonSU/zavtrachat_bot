@@ -11,7 +11,7 @@ import (
 func FindUserInMessageTest(bot *gotgbot.Bot, context *ext.Context) error {
 	user, err := FindUserInMessage(*context)
 	if err != nil {
-		return nil
+		return err
 	}
 	return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь %v:\nUsername: %v\nID: %v\nFirstname: %v\nLastname: %v", MentionUser(&user), user.Username, user.Id, user.FirstName, user.LastName), *context)
 }
