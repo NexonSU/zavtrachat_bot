@@ -18,6 +18,8 @@ import (
 
 var AIBusy bool
 var MarkdownBold = regexp.MustCompile(`\*\*(.*)\*\*`)
+var AISystem = Config.OllamaSystem
+var AIModel = Config.OllamaModel
 
 // Send shrug in chat on /shrug
 func AI(bot *gotgbot.Bot, context *ext.Context) error {
@@ -66,9 +68,9 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 	ctx := cntx.Background()
 
 	req := &api.GenerateRequest{
-		Model:  Config.OllamaModel,
+		Model:  AIModel,
 		Stream: new(bool),
-		System: Config.OllamaSystem,
+		System: AISystem,
 	}
 
 	if len(msg.Photo) > 0 {
