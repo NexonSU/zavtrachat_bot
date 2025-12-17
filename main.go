@@ -84,6 +84,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "blessing", Description: "устроиться в роскомнадзор"}, Blessing},
 		{gotgbot.BotCommand{Command: "blessingtop", Description: "топ роскомнадзоров чата"}, BlessingTop},
 		{gotgbot.BotCommand{Command: "bonk", Description: "бонкнуть кого-нибудь"}, Bonk},
+		{gotgbot.BotCommand{Command: "finduserinmessage", Description: "найти юзера в сообщении"}, FindUserInMessageTest},
 		{gotgbot.BotCommand{Command: "cur", Description: "посмотреть курс валют"}, Cur},
 		{gotgbot.BotCommand{Command: "del", Description: "удалить гет"}, Del},
 		{gotgbot.BotCommand{Command: "distort", Description: "переебать медиа"}, Distort},
