@@ -125,6 +125,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "ban", Description: "забанить кого-нибудь"}, Ban},
 		{gotgbot.BotCommand{Command: "bless", Description: "попросить помолчать кого-нибудь"}, Kill},
 		{gotgbot.BotCommand{Command: "debug", Description: "получить сообщение в виде JSON"}, Debug},
+		{gotgbot.BotCommand{Command: "debuguser", Description: "получить сообщение в виде JSON"}, DebugUser},
 		{gotgbot.BotCommand{Command: "say", Description: "заставить бота сказать что-нибудь"}, Say},
 		{gotgbot.BotCommand{Command: "setgetowner", Description: "задать владельца гета"}, SetGetOwner},
 		{gotgbot.BotCommand{Command: "unban", Description: "разбанить кого-нибудь"}, Unban},
