@@ -147,13 +147,13 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}(workdir)
 
 	if media.Type == "video" && data.FirstAudioStream() != nil {
-		ffmpeg.Input(inputFile).Output(workdir + "/input_audio.mp3").OverWriteOutput().ErrorToStdOut().Run()
-		ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
-		additionalInputArgs = "-i " + workdir + "/audio.mp3 -c:a aac"
+		ffmpeg.Input(inputFile).Output(workdir+"/input_audio.aac", ffmpeg.KwArgs{"vn": "", "acodec": "copy"}).OverWriteOutput().ErrorToStdOut().Run()
+		ffmpeg.Input(workdir+"/input_audio.aac").Output(workdir+"/audio.aac", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
+		additionalInputArgs = "-i " + workdir + "/audio.aac -c:a aac"
 	}
 
 	if media.Type == "audio" || media.Type == "voice" {
-		ffmpeg.Input(inputFile).Output(workdir + "/input_audio.mp3").OverWriteOutput().ErrorToStdOut().Run()
+		ffmpeg.Input(inputFile).Output(workdir+"/input_audio.mp3", ffmpeg.KwArgs{"vn": ""}).OverWriteOutput().ErrorToStdOut().Run()
 		err = ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
 		if err != nil {
 			return err
@@ -187,16 +187,16 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		height++
 	}
 
-	err = ffmpeg.Input(inputFile).Output(workdir+"/%09d.png", ffmpeg.KwArgs{"vf": fmt.Sprintf("scale=%d:%d", width, height)}).OverWriteOutput().ErrorToStdOut().Run()
+	err = ffmpeg.Input(inputFile).Output(workdir+"/%09d.jpg", ffmpeg.KwArgs{"vf": fmt.Sprintf("scale=%d:%d", width, height)}).OverWriteOutput().ErrorToStdOut().Run()
 	if err != nil {
 		return err
 	}
 
 	if media.Type == "photo" || (media.Type == "sticker" && !context.Message.ReplyToMessage.Sticker.IsAnimated && !context.Message.ReplyToMessage.Sticker.IsVideo) {
 		framerate = "15/1"
-		src := workdir + "/000000001.png"
+		src := workdir + "/000000001.jpg"
 		for i := 2; i < 31; i++ {
-			dst := fmt.Sprintf("%v/%09d.png", workdir, i)
+			dst := fmt.Sprintf("%v/%09d.jpg", workdir, i)
 
 			sourceFileStat, err := os.Stat(src)
 			if err != nil {
@@ -225,7 +225,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 
-	files, err := filepath.Glob(workdir + "/*.png")
+	files, err := filepath.Glob(workdir + "/*.jpg")
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 
-	ffmpegCommand := fmt.Sprintf("ffmpeg -y -framerate %v -i %v/%%09d.png %v -c:v: libx264 -preset fast -crf 26 -pix_fmt yuv420p -movflags +faststart -hide_banner -loglevel fatal %v", framerate, workdir, additionalInputArgs, outputFile)
+	ffmpegCommand := fmt.Sprintf("ffmpeg -y -framerate %v -i %v/%%09d.jpg %v -c:v: libx264 -preset fast -crf 26 -pix_fmt yuv420p -movflags +faststart -hide_banner -loglevel fatal %v", framerate, workdir, additionalInputArgs, outputFile)
 	ffmpegCommandExec := strings.Fields(ffmpegCommand)
 	err = exec.Command(ffmpegCommandExec[0], ffmpegCommandExec[1:]...).Run()
 	if err != nil {
