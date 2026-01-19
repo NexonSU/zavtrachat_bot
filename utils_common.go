@@ -443,11 +443,11 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 		extension = "ogg"
 		targetType = "voice"
 	case "photo", "jpg":
-		KwArgs = ffmpeg.KwArgs{"vf": "select=eq(n\\,0)", "format": "image2"}
+		KwArgs = ffmpeg.KwArgs{"vf": "pad=ceil(iw/2)*2:ceil(ih/2)*2, select=eq(n\\,0)", "format": "image2"}
 		extension = "jpg"
 		targetType = "photo"
 	case "sticker", "webp":
-		KwArgs = ffmpeg.KwArgs{"vf": "select=eq(n\\,0)", "format": "image2"}
+		KwArgs = ffmpeg.KwArgs{"vf": "pad=ceil(iw/2)*2:ceil(ih/2)*2, select=eq(n\\,0)", "format": "image2"}
 		extension = "webp"
 		targetType = "sticker"
 	case "animation", "gif":
@@ -459,15 +459,15 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 		extension = "mp4"
 		targetType = "video"
 	case "video_reverse", "reverse", "invert":
-		KwArgs = ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{videoKwArgs, {"c:a": "aac", "vf": "reverse", "af": "areverse"}})
+		KwArgs = ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{videoKwArgs, {"c:a": "aac", "vf": "pad=ceil(iw/2)*2:ceil(ih/2)*2, reverse", "af": "areverse"}})
 		extension = "mp4"
 		targetType = "video"
 	case "animation_reverse":
-		KwArgs = ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{videoKwArgs, {"an": "", "vf": "reverse"}})
+		KwArgs = ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{videoKwArgs, {"an": "", "vf": "pad=ceil(iw/2)*2:ceil(ih/2)*2, reverse"}})
 		extension = "mp4"
 		targetType = "animation"
 	case "sticker_reverse", "webm":
-		KwArgs = ffmpeg.KwArgs{"c:v": "libvpx-vp9", "an": "", "vf": "reverse"}
+		KwArgs = ffmpeg.KwArgs{"c:v": "libvpx-vp9", "an": "", "vf": "pad=ceil(iw/2)*2:ceil(ih/2)*2, reverse"}
 		extension = "mp4"
 		targetType = "sticker"
 	case "audio_reverse":
@@ -479,14 +479,14 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 		extension = "ogg"
 		targetType = "voice"
 	case "animation_loop", "loop":
-		KwArgs = ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{videoKwArgs, {"an": "", "filter_complex": "[0]reverse[r];[0][r]concat,loop=1:2,setpts=PTS-STARTPTS"}})
+		KwArgs = ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{videoKwArgs, {"an": "", "filter_complex": "[0]reverse[r];[0][r]concat,loop=1:2,setpts=PTS-STARTPTS,pad=ceil(iw/2)*2:ceil(ih/2)*2"}})
 		extension = "mp4"
 		targetType = "animation"
 	default:
 		return fmt.Errorf("targetType %v not supported", targetType)
 	}
 
-	resultFilePath := fmt.Sprintf("%v/%v_converted.%v", os.TempDir(), name, extension)
+	resultFilePath := fmt.Sprintf("%v/%v_%v_converted.%v", os.TempDir(), name, time.Now().Unix(), extension)
 
 	err = ffmpeg.Input(media.FilePath).Output(resultFilePath, ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{defaultKwArgs, KwArgs})).OverWriteOutput().ErrorToStdOut().Run()
 	if err != nil {
