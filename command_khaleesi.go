@@ -265,7 +265,7 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	_, err := Bot.SendMessage(context.EffectiveChat.Id, textOutput, &gotgbot.SendMessageOpts{
 		ReplyParameters: &gotgbot.ReplyParameters{
-			MessageId:                context.Message.MessageId,
+			MessageId:                context.Message.ReplyToMessage.MessageId,
 			AllowSendingWithoutReply: true,
 		},
 	})
