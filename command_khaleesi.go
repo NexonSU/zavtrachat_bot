@@ -269,5 +269,6 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 			AllowSendingWithoutReply: true,
 		},
 	})
+	context.Message.Delete(bot, nil)
 	return err
 }
