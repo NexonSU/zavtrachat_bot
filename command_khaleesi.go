@@ -243,13 +243,26 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 		{"ъ", "ь"},
 	}
 
-	text := strings.ToLower(context.Message.ReplyToMessage.Text)
+	textInput := context.Message.ReplyToMessage.Text
+
+	if context.Message.ReplyToMessage.Text == "" {
+		textInput = context.Message.ReplyToMessage.Caption
+	}
+
+	if textInput == "" {
+		return ReplyAndRemoveWithTarget("Текст не найден в указанном сообщении.", *context)
+	}
+
+	textOutput := textInput
 
 	for i := range dict {
-		if strings.Contains(strings.ToLower(context.Message.ReplyToMessage.Text), dict[i][0]) {
-			text = strings.ReplaceAll(text, dict[i][0], dict[i][1])
+		if strings.Contains(textInput, dict[i][0]) {
+			textOutput = strings.ReplaceAll(textOutput, dict[i][0], dict[i][1])
+		}
+		if strings.Contains(textInput, strings.ToUpper(dict[i][0])) {
+			textOutput = strings.ReplaceAll(textOutput, strings.ToUpper(dict[i][0]), strings.ToUpper(dict[i][1]))
 		}
 	}
-	_, err := context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{})
+	_, err := context.Message.Reply(bot, textOutput, &gotgbot.SendMessageOpts{})
 	return err
 }
