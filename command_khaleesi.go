@@ -263,6 +263,11 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 			textOutput = strings.ReplaceAll(textOutput, strings.ToUpper(dict[i][0]), strings.ToUpper(dict[i][1]))
 		}
 	}
-	_, err := context.Message.Reply(bot, textOutput, &gotgbot.SendMessageOpts{})
+	_, err := Bot.SendMessage(context.EffectiveChat.Id, textOutput, &gotgbot.SendMessageOpts{
+		ReplyParameters: &gotgbot.ReplyParameters{
+			MessageId:                context.Message.MessageId,
+			AllowSendingWithoutReply: true,
+		},
+	})
 	return err
 }
