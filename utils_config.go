@@ -36,6 +36,10 @@ type Configuration struct {
 	OllamaURL             string   `json:"ollama_url"`
 	OllamaModel           string   `json:"ollama_model"`
 	OllamaSystem          string   `json:"ollama_system"`
+	OpenWebUIURL          string   `json:"openwebui_url"`
+	OpenWebUIToken        string   `json:"openwebui_token"`
+	OpenWebUIModel        string   `json:"openwebui_model"`
+	OpenWebUISystem       string   `json:"openwebui_system"`
 }
 
 func ConfigInit() error {
