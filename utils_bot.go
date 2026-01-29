@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NexonSU/go-ytdlp"
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/gotd/contrib/bg"
 	"github.com/gotd/td/telegram"
-	"github.com/lrstanley/go-ytdlp"
 )
 
 func BotInit() error {

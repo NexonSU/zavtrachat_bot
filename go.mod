@@ -4,13 +4,13 @@ go 1.24.1
 
 require (
 	github.com/Jeffail/tunny v0.1.4
+	github.com/NexonSU/go-ytdlp v0.0.0-20260129133802-632315d9ba56
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.33
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/arran4/golang-ical v0.3.2
 	github.com/fogleman/gg v1.3.0
 	github.com/gotd/contrib v0.21.1
 	github.com/gotd/td v0.138.0
-	github.com/lrstanley/go-ytdlp v1.2.7
 	github.com/miguelmota/go-coinmarketcap v0.1.8
 	github.com/neonxp/StemmerRu v0.0.0-20190528102440-5c7748b15e2f
 	github.com/tidwall/gjson v1.18.0

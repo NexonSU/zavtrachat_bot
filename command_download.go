@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NexonSU/go-ytdlp"
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
-	"github.com/lrstanley/go-ytdlp"
 )
 
 // Convert given  file
