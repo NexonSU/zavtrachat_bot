@@ -15,8 +15,6 @@ import (
 	"github.com/NexonSU/go-ytdlp"
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
-	"github.com/gotd/contrib/bg"
-	"github.com/gotd/td/telegram"
 )
 
 func BotInit() error {
@@ -118,34 +116,6 @@ func BotInit() error {
 	BotUpdater = updater
 
 	return nil
-}
-
-func gotdClientInit() error {
-	if Config.AppID == 0 || Config.AppHash == "" {
-		return nil
-	}
-	client := telegram.NewClient(Config.AppID, Config.AppHash, telegram.Options{})
-	return client.Run(context.Background(), func(ctx context.Context) error {
-		stop, err := bg.Connect(client)
-		if err != nil {
-			ErrorReporting(err)
-			return err
-		}
-		defer func() { _ = stop() }()
-
-		_, err = client.Auth().Bot(ctx, Bot.Token)
-		if err != nil {
-			ErrorReporting(err)
-			return err
-		}
-
-		GotdClient = client
-		GotdContext = ctx
-
-		for {
-			time.Sleep(time.Second * time.Duration(60))
-		}
-	})
 }
 
 func ErrorReporting(err error) {

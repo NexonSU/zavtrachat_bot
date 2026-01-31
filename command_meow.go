@@ -11,19 +11,19 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-var channel *tg.Channel
+var meowChannel *tg.Channel
 
 // Reply with GIF from Pan Kotek's channel
 func Meow(bot *gotgbot.Bot, context *ext.Context) error {
-	api := GotdClient.API()
+	api := GoTGProtoClient.API()
 
 	//get channel object
-	if channel == nil {
-		channelResolve, err := api.ContactsResolveUsername(GotdContext, &tg.ContactsResolveUsernameRequest{Username: "imacat"})
+	if meowChannel == nil {
+		channelResolve, err := api.ContactsResolveUsername(GoTGProtoContext, &tg.ContactsResolveUsernameRequest{Username: "imacat"})
 		if err != nil {
 			return err
 		}
-		channel = channelResolve.GetChats()[0].(*tg.Channel)
+		meowChannel = channelResolve.GetChats()[0].(*tg.Channel)
 	}
 	//prepare message query
 	messagesQuery := []tg.InputMessageClass{}
@@ -33,8 +33,8 @@ func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 		messagesQuery = append(messagesQuery, messageObject.AsInputMessageID())
 	}
 	//query messages
-	messagesResult, err := api.ChannelsGetMessages(GotdContext, &tg.ChannelsGetMessagesRequest{
-		Channel: channel.AsInput(),
+	messagesResult, err := api.ChannelsGetMessages(GoTGProtoContext, &tg.ChannelsGetMessagesRequest{
+		Channel: meowChannel.AsInput(),
 		ID:      messagesQuery,
 	})
 	if err != nil {
@@ -64,7 +64,7 @@ func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 			if docFile.MimeType == "video/quicktime" {
 				continue
 			}
-			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GotdContext, &buf)
+			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GoTGProtoContext, &buf)
 			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 			return err
 		} else {

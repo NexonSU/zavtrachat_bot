@@ -15,11 +15,11 @@ var woofChannel *tg.Channel
 
 // Reply with GIF from Pan Kotek's channel
 func Woof(bot *gotgbot.Bot, context *ext.Context) error {
-	api := GotdClient.API()
+	api := GoTGProtoClient.API()
 
 	//get channel object
 	if woofChannel == nil {
-		channelResolve, err := api.ContactsResolveUsername(GotdContext, &tg.ContactsResolveUsernameRequest{Username: "imnotacat"})
+		channelResolve, err := api.ContactsResolveUsername(GoTGProtoContext, &tg.ContactsResolveUsernameRequest{Username: "imnotacat"})
 		if err != nil {
 			return err
 		}
@@ -33,7 +33,10 @@ func Woof(bot *gotgbot.Bot, context *ext.Context) error {
 		messagesQuery = append(messagesQuery, messageObject.AsInputMessageID())
 	}
 	//query messages
-	messagesResult, err := api.ChannelsGetMessages(GotdContext, &tg.ChannelsGetMessagesRequest{
+	api.ChannelsGetMessages(GoTGProtoContext, &tg.ChannelsGetMessagesRequest{
+		Channel: &tg.InputChannelEmpty{},
+	})
+	messagesResult, err := api.ChannelsGetMessages(GoTGProtoContext, &tg.ChannelsGetMessagesRequest{
 		Channel: woofChannel.AsInput(),
 		ID:      messagesQuery,
 	})
@@ -64,7 +67,7 @@ func Woof(bot *gotgbot.Bot, context *ext.Context) error {
 			if docFile.MimeType == "video/quicktime" {
 				continue
 			}
-			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GotdContext, &buf)
+			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GoTGProtoContext, &buf)
 			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 			return err
 		} else {

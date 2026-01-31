@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
-	"github.com/gotd/td/telegram"
 	"gorm.io/gorm"
 )
 
@@ -28,8 +26,6 @@ var HTTPClientProxy func(*http.Request) (*url.URL, error)
 var Bot *gotgbot.Bot
 var BotDispatcher *ext.Dispatcher
 var BotUpdater *ext.Updater
-var GotdClient *telegram.Client
-var GotdContext context.Context
 
 func main() {
 	log.Println("init: config")
