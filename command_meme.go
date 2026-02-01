@@ -11,33 +11,30 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-var woofChannel *tg.Channel
+var memeChannel *tg.Channel
 
-// Reply with GIF from Pan Kotek's channel
-func Woof(bot *gotgbot.Bot, context *ext.Context) error {
+// Reply with meme from thedankestmemes
+func Meme(bot *gotgbot.Bot, context *ext.Context) error {
 	api := GoTGProtoClient.API()
 
 	//get channel object
-	if woofChannel == nil {
-		channelResolve, err := api.ContactsResolveUsername(GoTGProtoContext, &tg.ContactsResolveUsernameRequest{Username: "imnotacat"})
+	if memeChannel == nil {
+		channelResolve, err := api.ContactsResolveUsername(GoTGProtoContext, &tg.ContactsResolveUsernameRequest{Username: "thedankestmemes"})
 		if err != nil {
 			return err
 		}
-		woofChannel = channelResolve.GetChats()[0].(*tg.Channel)
+		memeChannel = channelResolve.GetChats()[0].(*tg.Channel)
 	}
 	//prepare message query
 	messagesQuery := []tg.InputMessageClass{}
-	firstMessageId := RandInt(2, 4853)
+	firstMessageId := RandInt(3, 62363)
 	for message_id := firstMessageId; message_id < firstMessageId+10; message_id++ {
 		messageObject := tg.Message{ID: message_id}
 		messagesQuery = append(messagesQuery, messageObject.AsInputMessageID())
 	}
 	//query messages
-	api.ChannelsGetMessages(GoTGProtoContext, &tg.ChannelsGetMessagesRequest{
-		Channel: &tg.InputChannelEmpty{},
-	})
 	messagesResult, err := api.ChannelsGetMessages(GoTGProtoContext, &tg.ChannelsGetMessagesRequest{
-		Channel: woofChannel.AsInput(),
+		Channel: memeChannel.AsInput(),
 		ID:      messagesQuery,
 	})
 	if err != nil {
@@ -62,6 +59,9 @@ func Woof(bot *gotgbot.Bot, context *ext.Context) error {
 			filename := fileNameObj.FileName
 			if !check {
 				filename = strings.ReplaceAll(docFile.MimeType, "/", ".")
+			}
+			if docFile.MimeType == "video/quicktime" {
+				continue
 			}
 			buf := bytes.Buffer{}
 			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GoTGProtoContext, &buf)

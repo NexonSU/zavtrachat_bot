@@ -66,6 +66,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "date", Description: "вернуть дату и время сервера"}, Date},
 		{gotgbot.BotCommand{Command: "me", Description: "аналог команды /me из IRC (/me пошел спать)"}, Me},
 		{gotgbot.BotCommand{Command: "mp3", Description: "скачать музыку по ссылке"}, Mp3},
+		{gotgbot.BotCommand{Command: "meme", Description: "получить мем"}, Meme},
 		{gotgbot.BotCommand{Command: "meow", Description: "получить гифку с котиком"}, Meow},
 		{gotgbot.BotCommand{Command: "woof", Description: "получить гифку с не котиком"}, Woof},
 		{gotgbot.BotCommand{Command: "mlem", Description: "получить гифку с котиком"}, Meow},
