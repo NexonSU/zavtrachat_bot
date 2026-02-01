@@ -7,6 +7,7 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/gotd/td/fileid"
 	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/tg"
 )
@@ -46,7 +47,10 @@ func Meme(bot *gotgbot.Bot, context *ext.Context) error {
 			continue
 		}
 		messageMediaClass, check := mc.(*tg.Message).GetMedia()
-		if check && reflect.TypeOf(messageMediaClass) == reflect.TypeOf(&tg.MessageMediaDocument{}) {
+		if !check {
+			continue
+		}
+		if reflect.TypeOf(messageMediaClass) == reflect.TypeOf(&tg.MessageMediaDocument{}) {
 			document, check := messageMediaClass.(*tg.MessageMediaDocument).GetDocument()
 			if !check {
 				continue
@@ -75,6 +79,24 @@ func Meme(bot *gotgbot.Bot, context *ext.Context) error {
 			if strings.Contains(docFile.MimeType, "image") {
 				_, err = bot.SendPhoto(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendPhotoOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 			}
+			return err
+		} else if reflect.TypeOf(messageMediaClass) == reflect.TypeOf(&tg.MessageMediaPhoto{}) {
+			photo, check := messageMediaClass.(*tg.MessageMediaPhoto).GetPhoto()
+			if !check {
+				continue
+			}
+			photoFile, check := photo.AsNotEmpty()
+			if !check {
+				continue
+			}
+			fileid := fileid.FromPhoto(photoFile, []rune(photoFile.Sizes[len(photoFile.Sizes)-1].GetType())[0])
+			inputfile, check := fileid.AsInputFileLocation()
+			if !check {
+				continue
+			}
+			buf := bytes.Buffer{}
+			downloader.NewDownloader().Download(api, inputfile).Stream(GoTGProtoContext, &buf)
+			_, err = bot.SendPhoto(context.Message.Chat.Id, gotgbot.InputFileByReader(messageMediaClass.String(), &buf), &gotgbot.SendPhotoOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 			return err
 		} else {
 			continue

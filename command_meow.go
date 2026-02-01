@@ -60,9 +60,6 @@ func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 			if !check {
 				filename = strings.ReplaceAll(docFile.MimeType, "/", ".")
 			}
-			if docFile.MimeType == "video/quicktime" {
-				continue
-			}
 			buf := bytes.Buffer{}
 			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GoTGProtoContext, &buf)
 			if strings.Contains(docFile.MimeType, "video") {
