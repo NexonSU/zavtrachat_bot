@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,11 +9,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/NexonSU/go-ytdlp"
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -105,7 +106,7 @@ func BotInit() error {
 			return err
 		}
 		exPath := filepath.Dir(ex)
-		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v\nyt-dlp version: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath, ytdlp.Version), &gotgbot.SendMessageOpts{})
+		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v\nyt-dlp version: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath, ytdlpGetVer()), &gotgbot.SendMessageOpts{})
 		if err != nil {
 			return err
 		}
@@ -167,4 +168,17 @@ func middlewareClient() middlewareBotClient {
 			},
 		},
 	}
+}
+
+func ytdlpGetVer() string {
+	var stdout bytes.Buffer
+
+	cmd := exec.Command("yt-dlp", "--version")
+	cmd.Stdout = &stdout
+
+	if err := cmd.Run(); err != nil {
+		return "Unknown"
+	}
+
+	return strings.TrimSpace(stdout.String())
 }
