@@ -15,11 +15,6 @@ import (
 
 // Convert given  file
 func Download(bot *gotgbot.Bot, context *ext.Context) error {
-	_, err := ytdlp.Install(cntx.TODO(), &ytdlp.InstallOptions{AllowVersionMismatch: true})
-	if err != nil {
-		return err
-	}
-
 	filePath := fmt.Sprintf("%v/%v.mp4", os.TempDir(), context.Message.MessageId)
 
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
