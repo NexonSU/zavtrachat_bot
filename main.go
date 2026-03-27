@@ -99,7 +99,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "bet", Description: "поставить ставку"}, Bet},
 		{gotgbot.BotCommand{Command: "allbets", Description: "список актуальных ставок"}, AllBets},
 		{gotgbot.BotCommand{Command: "delbet", Description: "удалить ставку"}, DelBet},
-		{gotgbot.BotCommand{Command: "convert", Description: "конвертировать файл, доппараметры: mp3,ogg,gif,audio,voice,animation"}, Convert},
+		{gotgbot.BotCommand{Command: "convert", Description: "конвертировать файл, доп.параметры: mp3,ogg,gif,audio,voice,animation"}, Convert},
 		{gotgbot.BotCommand{Command: "download", Description: "скачать файл"}, Download},
 		{gotgbot.BotCommand{Command: "wget", Description: "скачать файл"}, Download},
 		{gotgbot.BotCommand{Command: "getid", Description: "получить ID юзера"}, Getid},
