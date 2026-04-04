@@ -26,7 +26,7 @@ func Pidorstats(bot *gotgbot.Bot, context *ext.Context) error {
 			return err
 		}
 		if argYear == 2077 {
-			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CRXO-MQADWWB4LQABzrOqWPkq-JXIi4TIixY4dwACPw4AArBgwUt5sRu-_fDR5x4E"), &gotgbot.SendVideoOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
+			_, err := bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CRXO-MQADWWB4LQABzrOqWPkq-JXIi4TIixY4dwACPw4AArBgwUt5sRu-_fDR5x4E"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 			return err
 		}
 		if argYear < year && argYear > 2018 {
@@ -49,6 +49,6 @@ func Pidorstats(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	DB.Model(PidorList{}).Count(&count)
 	pidorall += prt.Sprintf("\nВсего участников — %d", count)
-	_, err = context.Message.Reply(bot, pidorall, &gotgbot.SendMessageOpts{})
+	_, err = context.Message.Reply(bot, pidorall, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

@@ -573,7 +573,7 @@ func DownloadFile(filepath string, url string) (err error) {
 
 func ReplyAndRemoveWithTarget(message string, context ext.Context) error {
 	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
-	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
 		return err
 	}
@@ -589,7 +589,7 @@ func ReplyAndRemoveWithTarget(message string, context ext.Context) error {
 
 func ReplyAndRemove(message string, context ext.Context) error {
 	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
-	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
 		return err
 	}
@@ -691,6 +691,13 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 	result.FileName = filepath.Base(file.FilePath)
 	result.FileURL = file.URL(Bot, nil)
 
+	if _, err := os.Stat(result.FilePath); err != nil {
+		localPath := Config.BotApiDataDir + "/" + Config.Token + "/" + result.FilePath
+		if _, err := os.Stat(localPath); err == nil {
+			result.FilePath = localPath
+		}
+	}
+
 	return result, nil
 }
 
@@ -725,6 +732,6 @@ func KillSender(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	command := strings.Split(context.Args()[0], "@")[0]
-	_, err = context.EffectiveChat.SendMessage(bot, fmt.Sprintf("<code>💥 %v убился об админскую команду %v.\nРеспавн через минуту.</code>", UserFullName(&victim), command), &gotgbot.SendMessageOpts{})
+	_, err = context.EffectiveChat.SendMessage(bot, fmt.Sprintf("<code>💥 %v убился об админскую команду %v.\nРеспавн через минуту.</code>", UserFullName(&victim), command), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

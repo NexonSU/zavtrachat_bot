@@ -173,7 +173,7 @@ func TLDR(bot *gotgbot.Bot, context *ext.Context) error {
 		os.Remove(strings.Replace(link, "https://", "/home/telegram/tldr/", -1))
 	}
 
-	_, err = context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{})
+	_, err = context.Message.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }
 

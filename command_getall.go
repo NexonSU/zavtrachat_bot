@@ -26,10 +26,10 @@ func Getall(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 		getall += get.Name
 		if len([]rune(getall)) > 4000 {
-			Bot.SendMessage(context.Message.From.Id, getall, nil)
+			Bot.SendMessage(context.Message.From.Id, getall, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 			getall = ""
 		}
 	}
-	Bot.SendMessage(context.Message.From.Id, getall, nil)
+	Bot.SendMessage(context.Message.From.Id, getall, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return ReplyAndRemoveWithTarget("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", *context)
 }

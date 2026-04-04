@@ -64,13 +64,13 @@ func Meow(bot *gotgbot.Bot, context *ext.Context) error {
 			downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation()).Stream(GoTGProtoContext, &buf)
 			if strings.Contains(docFile.MimeType, "video") {
 				if docFile.MimeType == "video/quicktime" {
-					_, err = bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendAnimationOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
+					_, err = bot.SendAnimation(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendAnimationOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 				} else {
-					_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendVideoOpts{SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
+					_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, SupportsStreaming: true, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 				}
 			}
 			if strings.Contains(docFile.MimeType, "image") {
-				_, err = bot.SendPhoto(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendPhotoOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
+				_, err = bot.SendPhoto(context.Message.Chat.Id, gotgbot.InputFileByReader(filename, &buf), &gotgbot.SendPhotoOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}})
 			}
 			return err
 		} else {

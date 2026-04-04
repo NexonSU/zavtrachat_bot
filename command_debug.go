@@ -22,6 +22,6 @@ func Debug(bot *gotgbot.Bot, context *ext.Context) error {
 		message = context.Message.ReplyToMessage
 	}
 	MarshalledMessage, _ := json.MarshalIndent(message, "", "    ")
-	_, err = Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(MarshalledMessage)), &gotgbot.SendMessageOpts{})
+	_, err = Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(MarshalledMessage)), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

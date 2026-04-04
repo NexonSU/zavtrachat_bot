@@ -29,6 +29,6 @@ func DebugUser(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(marsh)), &gotgbot.SendMessageOpts{})
+	_, err = Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(marsh)), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

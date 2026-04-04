@@ -122,6 +122,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	videoOpts := &gotgbot.SendVideoOpts{
+		ParseMode:         gotgbot.ParseModeHTML,
 		SupportsStreaming: true,
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                context.EffectiveMessage.MessageId,

@@ -64,7 +64,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	if fileId, ok := DistortCache[media.FileID]; ok {
-		_, err = Bot.SendDocument(recepient, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ReplyParameters: &gotgbot.ReplyParameters{}})
+		_, err = Bot.SendDocument(recepient, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{}})
 		if recepient == context.Message.From.Id {
 			ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 		}
@@ -158,7 +158,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		if err != nil {
 			return err
 		}
-		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", workdir+"/audio.mp3")), &gotgbot.SendAudioOpts{ReplyParameters: options})
+		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", workdir+"/audio.mp3")), &gotgbot.SendAudioOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
 		DistortCache[media.FileID] = resultMessage.Audio.FileId
 		if recepient == context.Message.From.Id {
 			ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
@@ -266,7 +266,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	DistortBusy = false
-	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", outputFile)), &gotgbot.SendDocumentOpts{ReplyParameters: options})
+	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", outputFile)), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
 	DistortCache[media.FileID] = resultMessage.Document.FileId
 	if recepient == context.Message.From.Id {
 		ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)

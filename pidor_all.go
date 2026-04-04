@@ -32,6 +32,6 @@ func Pidorall(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	DB.Model(PidorList{}).Count(&count)
 	pidorall += prt.Sprintf("\nВсего участников — %v", count)
-	_, err = context.Message.Reply(bot, pidorall, &gotgbot.SendMessageOpts{})
+	_, err = context.Message.Reply(bot, pidorall, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

@@ -11,7 +11,7 @@ import (
 // Adds bless text to DB
 func AddBless(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.EffectiveSender.User.Id) {
-		_, err := bot.SendAnimation(context.EffectiveChat.Id, gotgbot.InputFileByID("CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"), &gotgbot.SendAnimationOpts{ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
+		_, err := bot.SendAnimation(context.EffectiveChat.Id, gotgbot.InputFileByID("CgACAgQAAx0CQvXPNQABH62yYQHUkpaPOe79NW4ZnwYZWCNJXW8AAgoBAAK-qkVQnRXXGK03dEMgBA"), &gotgbot.SendAnimationOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId, AllowSendingWithoutReply: true}})
 		return err
 	}
 	var bless Bless

@@ -14,6 +14,6 @@ func Sed(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.ReplyToMessage == nil || foo == "" || bar == "" || len(context.Args()) != 2 {
 		return ReplyAndRemoveWithTarget("Пример использования:\n/sed {патерн вида s/foo/bar/} в ответ на сообщение.", *context)
 	}
-	_, err := context.Message.Reply(bot, strings.ReplaceAll(context.Message.ReplyToMessage.Text, foo, bar), &gotgbot.SendMessageOpts{})
+	_, err := context.Message.Reply(bot, strings.ReplaceAll(context.Message.ReplyToMessage.Text, foo, bar), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

@@ -2,12 +2,9 @@ package main
 
 import (
 	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,7 +17,6 @@ import (
 
 func BotInit() error {
 	bot, err := gotgbot.NewBot(Config.Token, &gotgbot.BotOpts{
-		BotClient:         middlewareClient(),
 		DisableTokenCheck: false,
 		RequestOpts: &gotgbot.RequestOpts{
 			Timeout: time.Second * 30,
@@ -106,7 +102,7 @@ func BotInit() error {
 			return err
 		}
 		exPath := filepath.Dir(ex)
-		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v\nyt-dlp version: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath, ytdlpGetVer()), &gotgbot.SendMessageOpts{})
+		_, err = bot.SendMessage(Config.SysAdmin, fmt.Sprintf("<a href=\"tg://user?id=%v\">Bot</a> has finished starting up.\nConnection type: %v\nAPI Server: %v\nWorking directory: %v\nyt-dlp version: %v", bot.Id, connectionType, bot.GetAPIURL(nil), exPath, ytdlpGetVer()), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 		if err != nil {
 			return err
 		}
@@ -140,34 +136,7 @@ func ErrorReporting(err error) {
 	// jsonMessage := html.EscapeString(marshalledContextWithoutNil)
 	// text += fmt.Sprintf("\n\nMessage:\n<pre>%v</pre>", jsonMessage)
 	fmt.Println(err.Error())
-	Bot.SendMessage(Config.SysAdmin, strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), nil)
-}
-
-type middlewareBotClient struct {
-	gotgbot.BotClient
-}
-
-func (b middlewareBotClient) RequestWithContext(ctx context.Context, token string, method string, params map[string]string, data map[string]gotgbot.FileReader, opts *gotgbot.RequestOpts) (json.RawMessage, error) {
-	params["parse_mode"] = "HTML"
-
-	return b.BotClient.RequestWithContext(ctx, token, method, params, data, opts)
-}
-
-func middlewareClient() middlewareBotClient {
-	return middlewareBotClient{
-		BotClient: &gotgbot.BaseBotClient{
-			Client: http.Client{
-				Transport: &http.Transport{
-					Proxy: HTTPClientProxy,
-				},
-			},
-			UseTestEnvironment: false,
-			DefaultRequestOpts: &gotgbot.RequestOpts{
-				Timeout: time.Second * 30,
-				APIURL:  Config.BotApiUrl,
-			},
-		},
-	}
+	Bot.SendMessage(Config.SysAdmin, strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 }
 
 func ytdlpGetVer() string {

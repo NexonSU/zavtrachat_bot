@@ -73,6 +73,6 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 	text += "\nРеспавн через пару минут."
-	_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{DisableNotification: true})
+	_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, DisableNotification: true})
 	return err
 }

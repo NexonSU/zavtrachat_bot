@@ -108,6 +108,6 @@ func Kill(bot *gotgbot.Bot, context *ext.Context) error {
 	if victimText != "" {
 		text = prt.Sprintf("💥 %v\n%v отправился на респавн на %d мин.", victimText, UserFullName(&target), duration)
 	}
-	_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{})
+	_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

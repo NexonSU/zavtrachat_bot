@@ -43,6 +43,11 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("bot init failed: %s", err))
 	}
+	log.Println("init: ai")
+	err = AiInit()
+	if err != nil {
+		fmt.Printf("ai init failed: %s", err)
+	}
 	commandList := []commandList{
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов"}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь"}, Request},
@@ -60,9 +65,9 @@ func main() {
 		{gotgbot.BotCommand{Command: "isekai", Description: "попасть в исекай"}, Blessing},
 		{gotgbot.BotCommand{Command: "isekaitop", Description: "топ исекая чата"}, BlessingTop},
 		{gotgbot.BotCommand{Command: "marco", Description: "поло"}, Marco},
-		{gotgbot.BotCommand{Command: "ai", Description: "ИИшечка, поддерживаются текст и картинки"}, AI},
-		{gotgbot.BotCommand{Command: "aisetmodel", Description: "сменить модель"}, AISetModel},
-		{gotgbot.BotCommand{Command: "aisetsystem", Description: "сменить системный промпт"}, AISetSystem},
+		{gotgbot.BotCommand{Command: "ai", Description: "причина твоей переплаты за оперативу"}, AI},
+		{gotgbot.BotCommand{Command: "restartai", Description: "перезапуск причины переплаты за оперативу"}, RestartAI},
+		{gotgbot.BotCommand{Command: "setaisystem", Description: "сменить системный промпт причины переплаты за оперативу"}, SetAISystem},
 		{gotgbot.BotCommand{Command: "date", Description: "вернуть дату и время сервера"}, Date},
 		{gotgbot.BotCommand{Command: "me", Description: "аналог команды /me из IRC (/me пошел спать)"}, Me},
 		{gotgbot.BotCommand{Command: "mp3", Description: "скачать музыку по ссылке"}, Mp3},

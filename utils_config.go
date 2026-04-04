@@ -14,6 +14,7 @@ type Configuration struct {
 	AppID                 int      `json:"app_id"`
 	AppHash               string   `json:"app_hash"`
 	BotApiUrl             string   `json:"bot_api_url"`
+	BotApiDataDir         string   `json:"bot_api_datadir"`
 	AllowedUpdates        []string `json:"allowed_updates"`
 	Listen                string   `json:"listen"`
 	EndpointPublicURL     string   `json:"endpoint_public_url"`
@@ -33,13 +34,12 @@ type Configuration struct {
 	YandexSummarizerToken string   `json:"yandex_summarizer_token"`
 	FontPath              string   `json:"fontpath"`
 	Proxy                 string   `json:"proxy"`
-	OllamaURL             string   `json:"ollama_url"`
-	OllamaModel           string   `json:"ollama_model"`
-	OllamaSystem          string   `json:"ollama_system"`
-	OpenWebUIURL          string   `json:"openwebui_url"`
-	OpenWebUIToken        string   `json:"openwebui_token"`
-	OpenWebUIModel        string   `json:"openwebui_model"`
-	OpenWebUISystem       string   `json:"openwebui_system"`
+	AIURL                 string   `json:"ai_url"`
+	AIToken               string   `json:"ai_token"`
+	AIToolModel           string   `json:"ai_tool_model"`
+	AIVisionModel         string   `json:"ai_vision_model"`
+	AISystem              string   `json:"ai_system"`
+	AIAdminOnlyTools      []string `json:"ai_admin_only_tools"`
 }
 
 func ConfigInit() error {
