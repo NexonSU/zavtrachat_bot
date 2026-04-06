@@ -22,9 +22,9 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 
 	aiCntx := cntx.WithValue(cntx.Background(), "tgUser", context.EffectiveSender.User.Id)
 
-	//if AIBusy {
-	//	return ReplyAndRemoveWithTarget("Команда занята", *context)
-	//}
+	if AIBusy {
+		return ReplyAndRemoveWithTarget("Команда занята", *context)
+	}
 	if AIAgent == nil {
 		return ReplyAndRemoveWithTarget("Агент не инициализирован", *context)
 	}
