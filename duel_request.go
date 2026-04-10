@@ -28,7 +28,7 @@ func Request(bot *gotgbot.Bot, context *ext.Context) error {
 		busy["russianroulette"] = false
 		busy["russianroulettePending"] = false
 		busy["russianrouletteInProgress"] = false
-		_, _, err := Bot.EditMessageText(fmt.Sprintf("%v не пришел на дуэль.", UserFullName(Message.Entities[0].User)), &gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+		_, _, err := Bot.EditMessageText(fmt.Sprintf("%v не пришел на дуэль.", UserFullName(Message.Entities[0].User)), &gotgbot.EditMessageTextOpts{ParseMode: gotgbot.ParseModeHTML, ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		return err
 	}
 	if busy["russianrouletteInProgress"] && time.Now().Unix()-Message.Date > 120 {

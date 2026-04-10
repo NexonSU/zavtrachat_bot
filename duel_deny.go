@@ -22,6 +22,6 @@ func Deny(bot *gotgbot.Bot, context *ext.Context) error {
 	busy["russianroulette"] = false
 	busy["russianroulettePending"] = false
 	busy["russianrouletteInProgress"] = false
-	_, _, err = Bot.EditMessageText(fmt.Sprintf("%v отказался от дуэли.", UserFullName(context.EffectiveSender.User)), &gotgbot.EditMessageTextOpts{ChatId: context.EffectiveChat.Id, MessageId: context.EffectiveMessage.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+	_, _, err = Bot.EditMessageText(fmt.Sprintf("%v отказался от дуэли.", UserFullName(context.EffectiveSender.User)), &gotgbot.EditMessageTextOpts{ParseMode: gotgbot.ParseModeHTML, ChatId: context.EffectiveChat.Id, MessageId: context.EffectiveMessage.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 	return err
 }
