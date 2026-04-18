@@ -15,6 +15,9 @@ func AiInit() error {
 	//system message
 	AISystem = Config.AISystem
 
+	//reset busy
+	AIBusy = false
+
 	//context
 	context := cntx.Background()
 
