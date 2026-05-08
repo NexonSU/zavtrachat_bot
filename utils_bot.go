@@ -37,7 +37,7 @@ func BotInit() error {
 			log.Println("an error occurred while handling update:", err.Error())
 			return ext.DispatcherActionNoop
 		},
-		MaxRoutines: ext.DefaultMaxRoutines,
+		MaxRoutines: -1,
 	})
 	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{
 		UnhandledErrFunc: ErrorReporting,
