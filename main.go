@@ -12,6 +12,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/reaction"
 	"gorm.io/gorm"
 )
 
@@ -162,6 +163,7 @@ func main() {
 	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: ForwardPost, Filter: message.ChatID(Config.Channel)})
 	BotDispatcher.AddHandler(handlers.NewMessage(nil, OnText))
 	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, GetInline))
+	BotDispatcher.AddHandler(handlers.NewReaction(reaction.ChatID(Config.Chat), OnReaction))
 
 	go gotdClientInit()
 

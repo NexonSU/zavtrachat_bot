@@ -735,3 +735,16 @@ func KillSender(bot *gotgbot.Bot, context *ext.Context) error {
 	_, err = context.EffectiveChat.SendMessage(bot, fmt.Sprintf("<code>💥 %v убился об админскую команду %v.\nРеспавн через минуту.</code>", UserFullName(&victim), command), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }
+
+func OnReaction(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.MessageReaction == nil {
+		return nil
+	}
+	if len(context.MessageReaction.NewReaction) == 0 {
+		return nil
+	}
+
+	statsIncrease(6, GetStartOfDay(), context.MessageReaction.MessageId)
+
+	return nil
+}
