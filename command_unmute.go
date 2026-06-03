@@ -20,7 +20,20 @@ func Unmute(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{CanSendMessages: true}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()})
+	trueVal := true
+	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
+		CanSendMessages:       true,
+		CanSendAudios:         true,
+		CanSendDocuments:      true,
+		CanSendPhotos:         true,
+		CanSendVideos:         true,
+		CanSendVideoNotes:     true,
+		CanSendVoiceNotes:     true,
+		CanSendPolls:          true,
+		CanSendOtherMessages:  true,
+		CanAddWebPagePreviews: true,
+		CanReactToMessages:    &trueVal,
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()})
 	if err != nil {
 		return err
 	}

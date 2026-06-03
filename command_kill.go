@@ -94,7 +94,11 @@ func Kill(bot *gotgbot.Bot, context *ext.Context) error {
 	if victimText != "" {
 		duration = 1
 	}
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
+	trueVal := true
+	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
+		CanSendMessages:    false,
+		CanReactToMessages: &trueVal,
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
 	if err != nil {
 		return err
 	}

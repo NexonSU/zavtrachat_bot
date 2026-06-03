@@ -141,7 +141,11 @@ func Accept(bot *gotgbot.Bot, context *ext.Context) error {
 		if result.Error != nil {
 			return result.Error
 		}
-		_, err = Bot.RestrictChatMember(context.EffectiveChat.Id, PlayerChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duelist.Deaths)).Unix()})
+		trueVal := true
+		_, err = Bot.RestrictChatMember(context.EffectiveChat.Id, PlayerChatMember.GetUser().Id, gotgbot.ChatPermissions{
+			CanSendMessages:    false,
+			CanReactToMessages: &trueVal,
+		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duelist.Deaths)).Unix()})
 		if err != nil {
 			return err
 		}
@@ -187,7 +191,11 @@ func Accept(bot *gotgbot.Bot, context *ext.Context) error {
 	if player.IsBot {
 		VictimDuelist.Deaths = 1
 	}
-	_, err = Bot.RestrictChatMember(context.EffectiveChat.Id, VictimChatMember.GetUser().Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*VictimDuelist.Deaths)).Unix()})
+	trueVal := true
+	_, err = Bot.RestrictChatMember(context.EffectiveChat.Id, VictimChatMember.GetUser().Id, gotgbot.ChatPermissions{
+		CanSendMessages:    false,
+		CanReactToMessages: &trueVal,
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*VictimDuelist.Deaths)).Unix()})
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ func Revive(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
+	trueVal := true
 	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
 		CanSendMessages:       true,
 		CanSendAudios:         true,
@@ -31,6 +32,7 @@ func Revive(bot *gotgbot.Bot, context *ext.Context) error {
 		CanSendPolls:          true,
 		CanSendOtherMessages:  true,
 		CanAddWebPagePreviews: true,
+		CanReactToMessages:    &trueVal,
 	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()})
 	if err != nil {
 		return err

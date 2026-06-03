@@ -30,7 +30,11 @@ func Mute(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: untildate})
+	trueVal := true
+	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
+		CanSendMessages:    false,
+		CanReactToMessages: &trueVal,
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: untildate})
 	if err != nil {
 		return err
 	}

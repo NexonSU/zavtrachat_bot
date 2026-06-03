@@ -63,7 +63,11 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 				duration = duration * 2
 				prependText += "премиально "
 			}
-			_, err = Bot.RestrictChatMember(context.Message.Chat.Id, victim.Id, gotgbot.ChatPermissions{CanSendMessages: false}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
+			trueVal := true
+			_, err = Bot.RestrictChatMember(context.Message.Chat.Id, victim.Id, gotgbot.ChatPermissions{
+				CanSendMessages:    false,
+				CanReactToMessages: &trueVal,
+			}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
 			if err != nil {
 				continue
 			}
