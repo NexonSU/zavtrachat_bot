@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"time"
+	"unicode/utf8"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -13,16 +15,25 @@ func Redemption(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
 		return KillSender(bot, context)
 	}
-	rows, err := DB.Model(&Stats{}).Select("context_id").Where("stat_type = 3").Order("last_update desc").Limit(1000).Rows()
+
+	_, err := context.Message.Delete(bot, nil)
+	if err != nil {
+		return err
+	}
+
+	var userID int64
+	text := fmt.Sprintf("✨ %v кастует редемпшн!\n\n", MentionUser(context.EffectiveUser))
+	rows, err := DB.Model(&Stats{}).Select("context_id").Where("stat_type = 3").Order("last_update desc").Limit(100).Rows()
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	var userID int64
-	text := fmt.Sprintf("✨ %v кастует редемпшн!\n\n", MentionUser(context.EffectiveUser))
-	revivesCount := 0
+	revived := []int64{}
 	for rows.Next() {
 		rows.Scan(&userID)
+		if slices.Contains(revived, userID) {
+			continue
+		}
 		target, err := Bot.GetChatMember(context.EffectiveChat.Id, userID, nil)
 		if err != nil {
 			continue
@@ -34,16 +45,18 @@ func Redemption(bot *gotgbot.Bot, context *ext.Context) error {
 				continue
 			}
 
-			revivesCount++
+			revived = append(revived, user.Id)
 
-			text += fmt.Sprintf("%v возродился в чате.\n", UserFullName(&user))
+			if utf8.RuneCountInString(text) < 3600 {
+				text += fmt.Sprintf("%v возродился в чате.\n", UserFullName(&user))
+			}
 		}
 	}
-	if revivesCount == 0 {
+	if len(revived) == 0 {
 		text += "Но никто не воскрес..."
 		_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, DisableNotification: true})
 		return err
 	}
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgIAAxkBAAEBP4dqIE0GwitYu8CoX2Lme3RPF69CmQACuZcAAmsTAAFJjP46l_bNQoE6BA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: text})
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgIAAx0CTSN9dQACGxtqIF4VpuUIWpnabA9lbsBZO4MJqgACuZcAAmsTAAFJTvlY4-Qfso86BA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: text})
 	return err
 }
