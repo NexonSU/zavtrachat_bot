@@ -57,6 +57,6 @@ func Redemption(bot *gotgbot.Bot, context *ext.Context) error {
 		_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, DisableNotification: true})
 		return err
 	}
-	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgIAAx0CTSN9dQACGxtqIF4VpuUIWpnabA9lbsBZO4MJqgACuZcAAmsTAAFJTvlY4-Qfso86BA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: text})
+	_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("CgACAgIAAxkBAAEBP4dqIE0GwitYu8CoX2Lme3RPF69CmQACuZcAAmsTAAFJjP46l_bNQoE6BA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: text})
 	return err
 }
