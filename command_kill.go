@@ -106,7 +106,7 @@ func Kill(bot *gotgbot.Bot, context *ext.Context) error {
 	if command == "/bless" {
 		text = prt.Sprintf("🤫 %v %vпопросил %v помолчать %d минут.", UserFullName(context.Message.From), prependText, UserFullName(&target), duration)
 	}
-	if strings.Contains(command, "bite") {
+	if strings.Contains(command, "bite") || strings.Contains(command, "mlem") {
 		text = prt.Sprintf("😼 %v %vсделал кусь %v.\n%v отправился на респавн на %d мин.", UserFullName(context.Message.From), prependText, UserFullName(&target), UserFullName(&target), duration)
 	}
 	if victimText != "" {
