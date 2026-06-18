@@ -115,6 +115,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "kick", Description: "кикнуть кого-нибудь"}, Kick},
 		{gotgbot.BotCommand{Command: "gigabite", Description: "укусить чат"}, Shotgun},
 		{gotgbot.BotCommand{Command: "gigakill", Description: "выстрелить из шотгана"}, Shotgun},
+		{gotgbot.BotCommand{Command: "ultrakill", Description: "выстрелить из ультрашотгана"}, Shotgun},
 		{gotgbot.BotCommand{Command: "shotgun", Description: "выстрелить из шотгана"}, Shotgun},
 		{gotgbot.BotCommand{Command: "bite", Description: "укусить кого-нибудь"}, Kill},
 		{gotgbot.BotCommand{Command: "kilobite", Description: "сильно укусить кого-нибудь"}, Kill},
