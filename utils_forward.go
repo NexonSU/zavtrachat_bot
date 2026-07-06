@@ -4,18 +4,11 @@ import (
 	"log"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
-
-type AlbumCache struct {
-	mu     sync.Mutex
-	timers map[string]*time.Timer
-	groups map[string][]int64
-}
 
 var cache = &AlbumCache{
 	timers: make(map[string]*time.Timer),

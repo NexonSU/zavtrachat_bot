@@ -18,13 +18,13 @@ func SaveToPM(bot *gotgbot.Bot, context *ext.Context) error {
 	link := fmt.Sprintf("https://t.me/c/%v/%v", strings.TrimLeft(strings.TrimLeft(strconv.Itoa(int(context.EffectiveChat.Id)), "-1"), "0"), context.EffectiveMessage.ReplyToMessage.MessageId)
 	var err error
 	var msg *gotgbot.MessageId
-	if context.EffectiveMessage.ReplyToMessage.MediaGroupId != "" && chatMediaGroups[context.EffectiveMessage.ReplyToMessage.MediaGroupId] != nil {
-		slices.Sort(chatMediaGroups[context.EffectiveMessage.ReplyToMessage.MediaGroupId])
-		msgs, err := Bot.CopyMessages(context.EffectiveSender.User.Id, context.EffectiveChat.Id, chatMediaGroups[context.EffectiveMessage.ReplyToMessage.MediaGroupId], nil)
+	if context.EffectiveMessage.ReplyToMessage.MediaGroupId != "" && ChatAlbumCache.groups[context.EffectiveMessage.ReplyToMessage.MediaGroupId] != nil {
+		msgIds := ChatAlbumCache.groups[context.EffectiveMessage.ReplyToMessage.MediaGroupId]
+		slices.Sort(msgIds)
+		_, err := Bot.CopyMessages(context.EffectiveSender.User.Id, context.EffectiveChat.Id, msgIds, nil)
 		if err != nil {
 			return err
 		}
-		msg = &msgs[0]
 	} else {
 		msg, err = Bot.CopyMessage(context.EffectiveSender.User.Id, context.EffectiveChat.Id, context.EffectiveMessage.ReplyToMessage.MessageId, nil)
 		if err != nil {

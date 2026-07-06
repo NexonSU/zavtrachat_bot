@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	cntx "context"
@@ -41,10 +42,18 @@ type Media struct {
 	MediaGroupId          string
 }
 
-var onlyWords = regexp.MustCompile(`[,.!?]+`)
+type AlbumCache struct {
+	mu     sync.Mutex
+	timers map[string]*time.Timer
+	groups map[string][]int64
+}
 
-var channelMediaGroups = make(map[string][]int64)
-var chatMediaGroups = make(map[string][]int64)
+var ChatAlbumCache = &AlbumCache{
+	timers: make(map[string]*time.Timer),
+	groups: make(map[string][]int64),
+}
+
+var onlyWords = regexp.MustCompile(`[,.!?]+`)
 
 func UserFullName(user *gotgbot.User) string {
 	fullname := user.FirstName
@@ -197,10 +206,6 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 
-	if context.EffectiveMessage.MediaGroupId != "" {
-		chatMediaGroups[context.EffectiveMessage.MediaGroupId] = append(chatMediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
-	}
-
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
@@ -226,6 +231,22 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 	go CheckUserBan(bot, context)
+	if context.EffectiveMessage.MediaGroupId != "" {
+		go CacheAlbumId(bot, context)
+	}
+	return nil
+}
+
+func CacheAlbumId(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.EffectiveMessage.MediaGroupId == "" {
+		return nil
+	}
+
+	ChatAlbumCache.mu.Lock()
+	defer ChatAlbumCache.mu.Unlock()
+
+	groupID := context.EffectiveMessage.MediaGroupId
+	ChatAlbumCache.groups[groupID] = append(ChatAlbumCache.groups[groupID], context.EffectiveMessage.MessageId)
 	return nil
 }
 
