@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -142,6 +140,9 @@ func FindUserInMessage(message gotgbot.Message) (gotgbot.User, error) {
 func GetUserFromDB(findstring string) (gotgbot.User, error) {
 	var err error = nil
 	user := &gotgbot.User{}
+	if findstring == "" {
+		return *user, fmt.Errorf("пользователь не найден")
+	}
 	if string(findstring[0]) == "@" {
 		user.Username = findstring[1:]
 	} else {
@@ -158,60 +159,6 @@ func GetUserFromDB(findstring string) (gotgbot.User, error) {
 		err = result.Error
 	}
 	return *user, err
-}
-
-// Forward channel post to chat
-func ForwardPost(bot *gotgbot.Bot, context *ext.Context) error {
-	if context.EffectiveMessage == nil || context.EffectiveChat.Id != Config.Channel {
-		return nil
-	}
-	var err error
-	if context.EffectiveMessage.MediaGroupId != "" {
-		channelMediaGroups[context.EffectiveMessage.MediaGroupId] = append(channelMediaGroups[context.EffectiveMessage.MediaGroupId], context.EffectiveMessage.MessageId)
-		go func(bot *gotgbot.Bot, context *ext.Context) {
-			time.Sleep(5 * time.Second)
-			if channelMediaGroups[context.EffectiveMessage.MediaGroupId][0] == context.EffectiveMessage.MessageId {
-				slices.Sort(channelMediaGroups[context.EffectiveMessage.MediaGroupId])
-				_, err := bot.ForwardMessages(Config.Chat, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
-				if err != nil {
-					ErrorReporting(err)
-				}
-				if Config.StreamChannel != 0 {
-					if strings.Contains(context.EffectiveMessage.GetText(), "zavtracast/live") {
-						_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
-						if err != nil {
-							ErrorReporting(err)
-						}
-					}
-					for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
-						if entity.Type == "url" || entity.Type == "text_link" {
-							if strings.Contains(entity.Url, "zavtracast/live") {
-								_, err := bot.ForwardMessages(Config.StreamChannel, context.EffectiveChat.Id, channelMediaGroups[context.EffectiveMessage.MediaGroupId], nil)
-								if err != nil {
-									ErrorReporting(err)
-								}
-							}
-						}
-					}
-				}
-			}
-		}(bot, context)
-	} else {
-		_, err = bot.ForwardMessage(Config.Chat, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-		if Config.StreamChannel != 0 {
-			if strings.Contains(context.EffectiveMessage.GetText(), "zavtracast/live") {
-				_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-			}
-			for _, entity := range append(context.EffectiveMessage.CaptionEntities, context.EffectiveMessage.Entities...) {
-				if entity.Type == "url" || entity.Type == "text_link" {
-					if strings.Contains(entity.Url, "zavtracast/live") {
-						_, err = Bot.ForwardMessage(Config.StreamChannel, context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
-					}
-				}
-			}
-		}
-	}
-	return err
 }
 
 // Remove message
@@ -285,13 +232,11 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
 	user, err := FindUserInMessage(*context.Message)
 	if err != nil {
-		log.Println(err)
-		return err
+		return nil
 	}
 	cm, err := bot.GetChatMember(context.EffectiveChat.Id, user.Id, nil)
 	if err != nil {
-		log.Println(err)
-		return err
+		return nil
 	}
 	mcm := cm.MergeChatMember()
 	if mcm.Status == "left" {

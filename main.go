@@ -166,7 +166,7 @@ func main() {
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), Accept))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), Deny))
 	BotDispatcher.AddHandler(handlers.Message{Response: RemoveJoinMessageAndJoinUser, Filter: message.ChatID(Config.ReserveChat)})
-	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: ForwardPost, Filter: message.ChatID(Config.Channel)})
+	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: ForwardChannelPost, Filter: message.ChatID(Config.Channel)})
 	BotDispatcher.AddHandler(handlers.NewMessage(nil, OnText))
 	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, GetInline))
 	BotDispatcher.AddHandler(handlers.NewReaction(reaction.ChatID(Config.Chat), OnReaction))
