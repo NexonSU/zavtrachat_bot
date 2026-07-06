@@ -206,6 +206,12 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}
 
+	if context.EffectiveMessage.MediaGroupId != "" {
+		go CacheAlbumId(bot, context)
+	}
+
+	go CheckUserBan(bot, context)
+
 	//User update
 	UserResult := DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
@@ -229,10 +235,6 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 		if len([]rune(word)) > 0 {
 			statsIncrease(4, startOfDay, getWordID(word))
 		}
-	}
-	go CheckUserBan(bot, context)
-	if context.EffectiveMessage.MediaGroupId != "" {
-		go CacheAlbumId(bot, context)
 	}
 	return nil
 }

@@ -19,12 +19,15 @@ func SaveToPM(bot *gotgbot.Bot, context *ext.Context) error {
 	var err error
 	var msg *gotgbot.MessageId
 	if context.EffectiveMessage.ReplyToMessage.MediaGroupId != "" && ChatAlbumCache.groups[context.EffectiveMessage.ReplyToMessage.MediaGroupId] != nil {
+		ChatAlbumCache.mu.Lock()
 		msgIds := ChatAlbumCache.groups[context.EffectiveMessage.ReplyToMessage.MediaGroupId]
+		ChatAlbumCache.mu.Unlock()
 		slices.Sort(msgIds)
-		_, err := Bot.CopyMessages(context.EffectiveSender.User.Id, context.EffectiveChat.Id, msgIds, nil)
+		msgs, err := Bot.CopyMessages(context.EffectiveSender.User.Id, context.EffectiveChat.Id, msgIds, nil)
 		if err != nil {
 			return err
 		}
+		msg = &msgs[0]
 	} else {
 		msg, err = Bot.CopyMessage(context.EffectiveSender.User.Id, context.EffectiveChat.Id, context.EffectiveMessage.ReplyToMessage.MessageId, nil)
 		if err != nil {
