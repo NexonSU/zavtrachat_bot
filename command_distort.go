@@ -158,7 +158,11 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		if err != nil {
 			return err
 		}
-		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", workdir+"/audio.mp3")), &gotgbot.SendAudioOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
+		f, err := os.Open(workdir + "/audio.mp3")
+		if err != nil {
+			return err
+		}
+		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByReader(media.FileName+"_distorted.mp3", f), &gotgbot.SendAudioOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
 		DistortCache[media.FileID] = resultMessage.Audio.FileId
 		if recepient == context.Message.From.Id {
 			ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
@@ -266,7 +270,14 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	DistortBusy = false
-	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByURL(fmt.Sprintf("file://%v", outputFile)), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
+	f, err := os.Open(outputFile)
+	if err != nil {
+		return err
+	}
+	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByReader(media.FileName+"_distorted.mp4", f), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
+	if err != nil {
+		return err
+	}
 	DistortCache[media.FileID] = resultMessage.Document.FileId
 	if recepient == context.Message.From.Id {
 		ReplyAndRemoveWithTarget("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
