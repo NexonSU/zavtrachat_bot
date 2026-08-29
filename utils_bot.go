@@ -37,6 +37,7 @@ func BotInit() error {
 			log.Println("an error occurred while handling update:", err.Error())
 			return ext.DispatcherActionNoop
 		},
+		Logger:      Logger,
 		MaxRoutines: -1,
 	})
 	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{
@@ -122,15 +123,15 @@ func ErrorReporting(err error) {
 	// 	Reply(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), *context)
 	// }
 	// text := fmt.Sprintf("<pre>[%s:%d]\n%v</pre>", fn, line, strings.ReplaceAll(err.Error(), Config.Token, ""))
-	if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
-		return
-	}
-	if strings.Contains(err.Error(), "message to delete not found") {
-		return
-	}
-	if strings.Contains(err.Error(), "context does not contain message") {
-		return
-	}
+	// if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
+	// 	return
+	// }
+	// if strings.Contains(err.Error(), "message to delete not found") {
+	// 	return
+	// }
+	// if strings.Contains(err.Error(), "context does not contain message") {
+	// 	return
+	// }
 	// marshalledContext, _ := json.MarshalIndent(context.Update(), "", "    ")
 	// marshalledContextWithoutNil := regexp.MustCompile(`.*": (null|""|0|false)(,|)\n`).ReplaceAllString(string(marshalledContext), "")
 	// jsonMessage := html.EscapeString(marshalledContextWithoutNil)
