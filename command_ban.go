@@ -16,7 +16,7 @@ func Ban(bot *gotgbot.Bot, context *ext.Context) error {
 		return KillSender(bot, context)
 	}
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) == 1) || (context.Message.ReplyToMessage != nil && len(context.Args()) > 2) {
-		return ReplyAndRemoveWithTarget("Пример использования: <code>/ban {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/ban</code>\nЕсли нужно забанить на время, то добавь время в секундах через пробел.", *context)
+		return Reply("Пример использования: <code>/ban {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/ban</code>\nЕсли нужно забанить на время, то добавь время в секундах через пробел.", *context)
 	}
 	target, err := FindUserInMessage(*context.Message)
 	for _, arg := range context.Args() {
@@ -35,8 +35,8 @@ func Ban(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	if result {
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен%v.", target.Id, UserFullName(&target), RestrictionTimeMessage(untildate)), *context)
+		return Reply(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен%v.", target.Id, UserFullName(&target), RestrictionTimeMessage(untildate)), *context)
 	} else {
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен%v.", target.Id, UserFullName(&target), RestrictionTimeMessage(untildate)), *context)
+		return Reply(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен%v.", target.Id, UserFullName(&target), RestrictionTimeMessage(untildate)), *context)
 	}
 }

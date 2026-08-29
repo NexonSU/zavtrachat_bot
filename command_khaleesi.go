@@ -10,7 +10,7 @@ import (
 // Khaleesi Replace text in target message
 func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemoveWithTarget("Пример использования:\n/khaleesi в ответ на сообщение.", *context)
+		return Reply("Пример использования:\n/khaleesi в ответ на сообщение.", *context)
 	}
 	dict := [][]string{
 		{"стра", "стля"},
@@ -247,7 +247,7 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	if textInput == "" {
-		return ReplyAndRemoveWithTarget("Текст не найден в указанном сообщении.", *context)
+		return Reply("Текст не найден в указанном сообщении.", *context)
 	}
 
 	textOutput := textInput

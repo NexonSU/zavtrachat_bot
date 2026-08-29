@@ -14,7 +14,7 @@ func RestartAI(bot *gotgbot.Bot, context *ext.Context) error {
 	err := AiInit()
 
 	if err == nil {
-		return ReplyAndRemoveWithTarget("Агент перезапущен", *context)
+		return Reply("Агент перезапущен", *context)
 	} else {
 		return err
 	}

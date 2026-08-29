@@ -32,5 +32,5 @@ func Advice(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 
-	return ReplyAndRemoveWithTarget(advice.Text, *context)
+	return Reply(advice.Text, *context)
 }

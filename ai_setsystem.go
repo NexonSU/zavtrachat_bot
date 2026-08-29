@@ -19,5 +19,5 @@ func SetAISystem(bot *gotgbot.Bot, context *ext.Context) error {
 
 	AISystem = Config.AISystem + "\n" + system
 
-	return ReplyAndRemoveWithTarget(fmt.Sprintf("Системный промпт изменен на:\n%s", system), *context)
+	return Reply(fmt.Sprintf("Системный промпт изменен на:\n%s", system), *context)
 }

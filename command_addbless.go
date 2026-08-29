@@ -16,7 +16,7 @@ func AddBless(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	var bless Bless
 	if (context.EffectiveMessage.ReplyToMessage == nil && len(context.Args()) == 1) || (context.EffectiveMessage.ReplyToMessage != nil && len(context.Args()) != 1) {
-		return ReplyAndRemoveWithTarget("Пример использования: <code>/addbless {текст}</code>\nИли отправь в ответ на сообщение с текстом <code>/addbless</code>", *context)
+		return Reply("Пример использования: <code>/addbless {текст}</code>\nИли отправь в ответ на сообщение с текстом <code>/addbless</code>", *context)
 	}
 	if context.EffectiveMessage.ReplyToMessage == nil {
 		_, bless.Text, _ = strings.Cut(context.EffectiveMessage.Text, " ")
@@ -24,15 +24,15 @@ func AddBless(bot *gotgbot.Bot, context *ext.Context) error {
 		if context.EffectiveMessage.ReplyToMessage.Text != "" {
 			bless.Text = context.EffectiveMessage.ReplyToMessage.Text
 		} else {
-			return ReplyAndRemoveWithTarget("Я не смог найти текст в указанном сообщении.", *context)
+			return Reply("Я не смог найти текст в указанном сообщении.", *context)
 		}
 	}
 	if len([]rune(bless.Text)) > 200 {
-		return ReplyAndRemoveWithTarget("Bless не может быть длиннее 200 символов.", *context)
+		return Reply("Bless не может быть длиннее 200 символов.", *context)
 	}
 	result := DB.Create(&bless)
 	if result.Error != nil {
 		return result.Error
 	}
-	return ReplyAndRemoveWithTarget(fmt.Sprintf("Bless добавлен как <code>%v</code>.", bless.Text), *context)
+	return Reply(fmt.Sprintf("Bless добавлен как <code>%v</code>.", bless.Text), *context)
 }

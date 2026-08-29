@@ -16,7 +16,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 	var inputGet string
 	//args check
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) < 3) || (context.Message.ReplyToMessage != nil && len(context.Args()) == 1) {
-		return ReplyAndRemoveWithTarget("Пример использования: <code>/set {гет} {значение}</code>\nИли отправь в ответ на какое-либо сообщение <code>/set {гет}</code>", *context)
+		return Reply("Пример использования: <code>/set {гет} {значение}</code>\nИли отправь в ответ на какое-либо сообщение <code>/set {гет}</code>", *context)
 	}
 	if context.Message.ReplyToMessage == nil {
 		inputGet = context.Args()[2]
@@ -31,7 +31,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 			return err
 		}
 		if get.Creator != context.Message.From.Id && !IsAdminOrModer(context.Message.From.Id) {
-			return ReplyAndRemoveWithTarget(fmt.Sprintf("Данный гет могут изменять либо администраторы, либо %v.", UserFullName(&creator)), *context)
+			return Reply(fmt.Sprintf("Данный гет могут изменять либо администраторы, либо %v.", UserFullName(&creator)), *context)
 		}
 	}
 	//filling Get from message
@@ -69,7 +69,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 			get.Type = "Text"
 			get.Data = context.Message.ReplyToMessage.OriginalHTML()
 		default:
-			return ReplyAndRemoveWithTarget("Не удалось распознать файл в сообщении, возможно, он не поддерживается.", *context)
+			return Reply("Не удалось распознать файл в сообщении, возможно, он не поддерживается.", *context)
 		}
 	}
 	get.Creator = context.Message.From.Id
@@ -80,5 +80,5 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	return ReplyAndRemoveWithTarget(fmt.Sprintf("Гет <code>%v</code> сохранён как <code>%v</code>.", get.Name, get.Type), *context)
+	return Reply(fmt.Sprintf("Гет <code>%v</code> сохранён как <code>%v</code>.", get.Name, get.Type), *context)
 }

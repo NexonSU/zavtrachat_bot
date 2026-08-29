@@ -15,7 +15,7 @@ func SetGetOwner(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	var get Get
 	if len(context.Args()) != 2 || context.Message.ReplyToMessage == nil {
-		return ReplyAndRemoveWithTarget("Пример использования: <code>/setgetowner {гет}</code> в ответ пользователю, которого нужно задать владельцем.", *context)
+		return Reply("Пример использования: <code>/setgetowner {гет}</code> в ответ пользователю, которого нужно задать владельцем.", *context)
 	}
 	result := DB.Where(&Get{Name: strings.ToLower(context.Args()[1])}).First(&get)
 	if result.RowsAffected != 0 {
@@ -24,8 +24,8 @@ func SetGetOwner(bot *gotgbot.Bot, context *ext.Context) error {
 		if result.Error != nil {
 			return result.Error
 		}
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("Владелец гета <code>%v</code> изменён на %v.", get.Name, MentionUser(context.Message.ReplyToMessage.From)), *context)
+		return Reply(fmt.Sprintf("Владелец гета <code>%v</code> изменён на %v.", get.Name, MentionUser(context.Message.ReplyToMessage.From)), *context)
 	} else {
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("Гет <code>%v</code> не найден.", context.Message.Text), *context)
+		return Reply(fmt.Sprintf("Гет <code>%v</code> не найден.", context.Message.Text), *context)
 	}
 }

@@ -263,14 +263,14 @@ func CheckUserBan(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	mcm := cm.MergeChatMember()
 	if mcm.Status == "left" {
-		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
+		return Reply(fmt.Sprintf("%v не сможет ответить, т.к. вышел из чата.", MentionUser(&user)), *context)
 	}
 	if mcm.Status == "kicked" {
-		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
+		return Reply(fmt.Sprintf("%v не сможет ответить, т.к. был забанен в чате.", MentionUser(&user)), *context)
 	}
 	if !mcm.CanSendMessages && mcm.Status == "restricted" {
 		duration := (mcm.UntilDate - time.Now().Local().Unix()) / 60
-		return ReplyAndRemove(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
+		return Reply(fmt.Sprintf("%v не сможет ответить, т.к. умир.\nРеспавн через %d мин.", MentionUser(&user), duration), *context)
 	}
 	return nil
 }
@@ -539,25 +539,17 @@ func DownloadFile(filepath string, url string) (err error) {
 	return nil
 }
 
-func ReplyAndRemoveWithTarget(message string, context ext.Context) error {
-	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
-	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+func Reply(message string, context ext.Context) error {
+	_, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReceiverUserId: context.EffectiveUser.Id, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
 		return err
 	}
-	if context.Message == nil || context.Message.MessageId == 0 {
-		return nil
-	}
-	go func(messages []int64) {
-		time.Sleep(30 * time.Second)
-		Bot.DeleteMessages(context.Message.Chat.Id, messages, nil)
-	}([]int64{context.Message.MessageId, sentMessage.MessageId})
 	return nil
 }
 
 func ReplyAndRemove(message string, context ext.Context) error {
 	message += "\n\nЭто сообщение самоуничтожится через 30 секунд."
-	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
+	sentMessage, err := Bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, ReceiverUserId: context.EffectiveUser.Id, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}})
 	if err != nil {
 		return err
 	}
@@ -599,11 +591,17 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 
 	switch {
 	case message.Photo != nil:
+		photoIndex := 0
+		for ndx, photo := range message.Photo {
+			if photo.FileSize > message.Photo[photoIndex].FileSize {
+				photoIndex = ndx
+			}
+		}
 		result.Type = "photo"
-		result.FileID = message.Photo[0].FileId
-		result.Height = message.Photo[0].Height
-		result.Width = message.Photo[0].Width
-		result.FileSize = message.Photo[0].FileSize
+		result.FileID = message.Photo[photoIndex].FileId
+		result.Height = message.Photo[photoIndex].Height
+		result.Width = message.Photo[photoIndex].Width
+		result.FileSize = message.Photo[photoIndex].FileSize
 	case message.Voice != nil:
 		result.Type = "voice"
 		result.FileID = message.Voice.FileId

@@ -7,5 +7,5 @@ import (
 
 // Reply "Pong!" on /ping
 func Ping(bot *gotgbot.Bot, context *ext.Context) error {
-	return ReplyAndRemoveWithTarget("Pong!", *context)
+	return Reply("Pong!", *context)
 }

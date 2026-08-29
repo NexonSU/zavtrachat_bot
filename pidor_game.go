@@ -16,7 +16,7 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 		return nil
 	}
 	if busyPidor["pidor"] {
-		return ReplyAndRemoveWithTarget("Команда занята. Попробуйте позже.", *context)
+		return Reply("Команда занята. Попробуйте позже.", *context)
 	}
 	busyPidor["pidor"] = true
 	defer func() { busyPidor["pidor"] = false }()
@@ -28,15 +28,15 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 		TargetChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, pidorToday.Id, nil)
 		if err != nil {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemoveWithTarget(fmt.Sprintf("Я нашел пидора дня, но похоже, что с <a href=\"tg://user?id=%v\">%v</a> что-то не так, так что попробуйте еще раз, пока я удаляю его из игры! Ошибка:\n<code>%v</code>", pidorToday.Id, pidorToday.Username, err.Error()), *context)
+			return Reply(fmt.Sprintf("Я нашел пидора дня, но похоже, что с <a href=\"tg://user?id=%v\">%v</a> что-то не так, так что попробуйте еще раз, пока я удаляю его из игры! Ошибка:\n<code>%v</code>", pidorToday.Id, pidorToday.Username, err.Error()), *context)
 		}
 		if TargetChatMember.GetStatus() == "left" {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemoveWithTarget(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> вышел из этого чата (вот пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
+			return Reply(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> вышел из этого чата (вот пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
 		if TargetChatMember.GetStatus() == "kicked" {
 			DB.Delete(&pidorToday)
-			return ReplyAndRemoveWithTarget(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
+			return Reply(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
 		pidor.UserID = pidorToday.Id
 		pidor.Date = time.Now()
@@ -47,20 +47,25 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 			{"Высокий приоритет мобильному юниту.", "Ох...", "Ого-го...", "Так, что тут у нас?", "В этом совершенно нет смысла...", "Что с нами стало...", "Тысяча чертей!", "Ведётся захват подозреваемого..."},
 			{"Стоять! Не двигаться! Ты объявлен пидором дня, ", "Ого, вы посмотрите только! А пидор дня то - ", "Пидор дня обыкновенный, 1шт. - ", ".∧＿∧ \n( ･ω･｡)つ━☆・*。 \n⊂  ノ    ・゜+. \nしーＪ   °。+ *´¨) \n         .· ´¸.·*´¨) \n          (¸.·´ (¸.·'* ☆ ВЖУХ И ТЫ ПИДОР, ", "Ага! Поздравляю! Сегодня ты пидор - ", "Кажется, пидор дня - ", "Анализ завершен. Ты пидор, "},
 		}
-		for i := 0; i <= 3; i++ {
+		message := messages[0][RandInt(0, len(messages[0])-1)]
+		sentMsg, err := bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+		if err != nil {
+			return err
+		}
+		for i := 1; i <= 3; i++ {
 			duration := time.Second * time.Duration(i*2)
-			message := messages[i][RandInt(0, len(messages[i])-1)]
+			message += "\n" + messages[i][RandInt(0, len(messages[i])-1)]
 			if i == 3 {
 				message += fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", pidorToday.Id, pidorToday.Username)
 			}
-			go func() {
+			go func(text string, duration time.Duration) {
 				time.Sleep(duration)
-				bot.SendMessage(context.Message.Chat.Id, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, DisableNotification: true})
-			}()
+				bot.EditMessageText(&gotgbot.EditMessageTextOpts{ChatId: context.Message.Chat.Id, MessageId: sentMsg.MessageId, Text: text, ParseMode: gotgbot.ParseModeHTML})
+			}(message, duration)
 		}
 	} else {
 		DB.Model(PidorList{}).Where(pidor.UserID).First(&pidorToday)
-		return ReplyAndRemoveWithTarget(fmt.Sprintf("Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - %v!", pidorToday.Username), *context)
+		return Reply(fmt.Sprintf("Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - %v!", pidorToday.Username), *context)
 	}
 	return nil
 }

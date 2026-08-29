@@ -125,6 +125,7 @@ func main() {
 		{gotgbot.BotCommand{Command: "kill", Description: "пристрелить кого-нибудь"}, Kill},
 		{gotgbot.BotCommand{Command: "mute", Description: "заглушить кого-нибудь"}, Mute},
 		{gotgbot.BotCommand{Command: "pidordel", Description: "удалить игрока из \"Пидор Дня!\""}, Pidordel},
+		{gotgbot.BotCommand{Command: "pidorremovetoday", Description: "удалить сегодняшнего \"Пидор Дня!\""}, PidorRemoveToday},
 		{gotgbot.BotCommand{Command: "pidorlist", Description: "список всех игроков \"Пидор Дня!\""}, Pidorlist},
 		{gotgbot.BotCommand{Command: "restart", Description: "перезапуск бота"}, Restart},
 		{gotgbot.BotCommand{Command: "resurrect", Description: "возродить кого-нибудь"}, Revive},

@@ -13,11 +13,11 @@ func FindUserInMessageTest(bot *gotgbot.Bot, context *ext.Context) error {
 		return KillSender(bot, context)
 	}
 	if context.Message.ReplyToMessage == nil {
-		return ReplyAndRemoveWithTarget("Укажите сообщение", *context)
+		return Reply("Укажите сообщение", *context)
 	}
 	user, err := FindUserInMessage(*context.Message.ReplyToMessage)
 	if err != nil {
 		return err
 	}
-	return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь %v:\nUsername: %v\nID: %v\nFirstname: %v\nLastname: %v", MentionUser(&user), user.Username, user.Id, user.FirstName, user.LastName), *context)
+	return Reply(fmt.Sprintf("Пользователь %v:\nUsername: %v\nID: %v\nFirstname: %v\nLastname: %v", MentionUser(&user), user.Username, user.Id, user.FirstName, user.LastName), *context)
 }

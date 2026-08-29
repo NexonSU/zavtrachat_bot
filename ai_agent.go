@@ -23,10 +23,10 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 	aiCntx := cntx.WithValue(cntx.Background(), "tgUser", context.EffectiveSender.User.Id)
 
 	if AIBusy {
-		return ReplyAndRemoveWithTarget("Команда занята", *context)
+		return Reply("Команда занята", *context)
 	}
 	if AIAgent == nil {
-		return ReplyAndRemoveWithTarget("Агент не инициализирован", *context)
+		return Reply("Агент не инициализирован", *context)
 	}
 
 	context.EffectiveMessage.SetReaction(Bot, &gotgbot.SetMessageReactionOpts{
@@ -140,9 +140,9 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 
 			tgmdMsg := tgmd.Convert(completeMsg)
 
-			_, _, err = bot.EditMessageText(tgmdMsg.Text, &gotgbot.EditMessageTextOpts{ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId, Entities: toEntities(tgmdMsg.Entities)})
+			_, _, err = bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: tgmdMsg.Text, ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId, Entities: toEntities(tgmdMsg.Entities)})
 			if err != nil {
-				bot.EditMessageText(tgmdMsg.Text, &gotgbot.EditMessageTextOpts{ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId})
+				bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: tgmdMsg.Text, ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId})
 			}
 		}
 	}
@@ -151,9 +151,9 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 
 	tgmdMsg := tgmd.Convert(completeMsg)
 
-	_, _, err = bot.EditMessageText(tgmdMsg.Text, &gotgbot.EditMessageTextOpts{ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId, Entities: toEntities(tgmdMsg.Entities)})
+	_, _, err = bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: tgmdMsg.Text, ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId, Entities: toEntities(tgmdMsg.Entities)})
 	if err != nil {
-		bot.EditMessageText(tgmdMsg.Text, &gotgbot.EditMessageTextOpts{ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId})
+		bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: tgmdMsg.Text, ChatId: sentMsg.Chat.Id, MessageId: sentMsg.MessageId})
 	}
 
 	return nil

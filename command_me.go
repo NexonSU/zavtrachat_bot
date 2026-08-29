@@ -11,7 +11,7 @@ import (
 // Send formatted text on /me
 func Me(bot *gotgbot.Bot, context *ext.Context) error {
 	if len(context.Args()) == 1 {
-		return ReplyAndRemoveWithTarget("Пример использования:\n<code>/me {делает что-то}</code>", *context)
+		return Reply("Пример использования:\n<code>/me {делает что-то}</code>", *context)
 	}
 	Remove(bot, context)
 	_, text, _ := strings.Cut(context.EffectiveMessage.Text, " ")

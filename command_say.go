@@ -13,7 +13,7 @@ func Say(bot *gotgbot.Bot, context *ext.Context) error {
 		return KillSender(bot, context)
 	}
 	if len(context.Args()) == 1 {
-		return ReplyAndRemoveWithTarget("Укажите сообщение.", *context)
+		return Reply("Укажите сообщение.", *context)
 	}
 	context.Message.Delete(bot, nil)
 	_, text, _ := strings.Cut(context.EffectiveMessage.Text, " ")

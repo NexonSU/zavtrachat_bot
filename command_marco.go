@@ -7,5 +7,5 @@ import (
 
 // Reply "Polo!" on "marco"
 func Marco(bot *gotgbot.Bot, context *ext.Context) error {
-	return ReplyAndRemoveWithTarget("Polo!", *context)
+	return Reply("Polo!", *context)
 }

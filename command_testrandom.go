@@ -20,5 +20,5 @@ func TestRandom(bot *gotgbot.Bot, context *ext.Context) error {
 	for number, count := range numbers {
 		text = fmt.Sprintf("%v%v - %v\n", text, number, count)
 	}
-	return ReplyAndRemoveWithTarget(text, *context)
+	return Reply(text, *context)
 }

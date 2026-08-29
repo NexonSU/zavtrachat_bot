@@ -21,14 +21,14 @@ func Request(bot *gotgbot.Bot, context *ext.Context) error {
 		if time.Now().Unix()-Message.Date > 3600 {
 			busy["bot_is_dead"] = false
 		} else {
-			return ReplyAndRemoveWithTarget("Я не могу провести игру, т.к. я немного умер. Зайдите позже.", *context)
+			return Reply("Я не могу провести игру, т.к. я немного умер. Зайдите позже.", *context)
 		}
 	}
 	if busy["russianroulettePending"] && !busy["russianrouletteInProgress"] && time.Now().Unix()-Message.Date > 60 {
 		busy["russianroulette"] = false
 		busy["russianroulettePending"] = false
 		busy["russianrouletteInProgress"] = false
-		_, _, err := Bot.EditMessageText(fmt.Sprintf("%v не пришел на дуэль.", UserFullName(Message.Entities[0].User)), &gotgbot.EditMessageTextOpts{ParseMode: gotgbot.ParseModeHTML, ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+		_, _, err := Bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: fmt.Sprintf("%v не пришел на дуэль.", UserFullName(Message.Entities[0].User)), ParseMode: gotgbot.ParseModeHTML, ChatId: context.Message.Chat.Id, MessageId: context.Message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		return err
 	}
 	if busy["russianrouletteInProgress"] && time.Now().Unix()-Message.Date > 120 {
@@ -37,22 +37,22 @@ func Request(bot *gotgbot.Bot, context *ext.Context) error {
 		busy["russianrouletteInProgress"] = false
 	}
 	if busy["russianroulette"] || busy["russianroulettePending"] || busy["russianrouletteInProgress"] {
-		return ReplyAndRemoveWithTarget("Команда занята. Попробуйте позже.", *context)
+		return Reply("Команда занята. Попробуйте позже.", *context)
 	}
 	busy["russianroulette"] = true
 	defer func() { busy["russianroulette"] = false }()
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
-		return ReplyAndRemoveWithTarget("Пример использования: <code>/russianroulette {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/russianroulette</code>", *context)
+		return Reply("Пример использования: <code>/russianroulette {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/russianroulette</code>", *context)
 	}
 	target, err := FindUserInMessage(*context.Message)
 	if err != nil {
 		return err
 	}
 	if target.Id == context.Message.From.Id {
-		return ReplyAndRemoveWithTarget("Как ты себе это представляешь? Нет, нельзя вызвать на дуэль самого себя.", *context)
+		return Reply("Как ты себе это представляешь? Нет, нельзя вызвать на дуэль самого себя.", *context)
 	}
 	if target.IsBot {
-		return ReplyAndRemoveWithTarget("Бота нельзя вызвать на дуэль.", *context)
+		return Reply("Бота нельзя вызвать на дуэль.", *context)
 	}
 	ChatMember, err := bot.GetChatMember(context.Message.Chat.Id, target.Id, nil)
 	if err != nil {

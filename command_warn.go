@@ -16,7 +16,7 @@ func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	var warn Warn
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
-		return ReplyAndRemoveWithTarget("Пример использования: <code>/warn {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/warn</code>", *context)
+		return Reply("Пример использования: <code>/warn {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/warn</code>", *context)
 	}
 	target, err := FindUserInMessage(*context.Message)
 	if err != nil {
@@ -54,7 +54,7 @@ func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 			return err
 		}
 		if result {
-			return ReplyAndRemoveWithTarget(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен, т.к. набрал 3 предупреждения.", target.Id, UserFullName(&target)), *context)
+			return Reply(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен, т.к. набрал 3 предупреждения.", target.Id, UserFullName(&target)), *context)
 		}
 	}
 	return err
