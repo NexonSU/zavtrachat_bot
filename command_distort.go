@@ -48,10 +48,26 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	additionalInputArgs := ""
+	options := &gotgbot.ReplyParameters{AllowSendingWithoutReply: true}
 	var resultMessage *gotgbot.Message
+	var recepient int64
+
+	ChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, context.Message.From.Id, nil)
+	if err != nil {
+		return err
+	}
+	if time.Now().Local().Hour() > 21 || time.Now().Local().Hour() < 7 || ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" {
+		recepient = context.Message.Chat.Id
+		options = &gotgbot.ReplyParameters{MessageId: context.Message.MessageId, AllowSendingWithoutReply: true}
+	} else {
+		recepient = context.Message.From.Id
+	}
 
 	if fileId, ok := DistortCache[media.FileID]; ok {
-		_, err = Bot.SendDocument(context.EffectiveChat.Id, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReceiverUserId: context.EffectiveUser.Id, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId}})
+		_, err = Bot.SendDocument(recepient, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{}})
+		if recepient == context.Message.From.Id {
+			Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
+		}
 		return err
 	}
 
@@ -146,8 +162,11 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		if err != nil {
 			return err
 		}
-		resultMessage, err = Bot.SendAudio(context.EffectiveChat.Id, gotgbot.InputFileByReader(media.FileName+"_distorted.mp3", f), &gotgbot.SendAudioOpts{ParseMode: gotgbot.ParseModeHTML, ReceiverUserId: context.EffectiveUser.Id, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId}})
+		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByReader(media.FileName+"_distorted.mp3", f), &gotgbot.SendAudioOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
 		DistortCache[media.FileID] = resultMessage.Audio.FileId
+		if recepient == context.Message.From.Id {
+			Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
+		}
 		return err
 	}
 
@@ -255,10 +274,13 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	resultMessage, err = Bot.SendDocument(context.EffectiveChat.Id, gotgbot.InputFileByReader(media.FileName+"_distorted.mp4", f), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReceiverUserId: context.EffectiveUser.Id, ReplyParameters: &gotgbot.ReplyParameters{MessageId: context.EffectiveMessage.MessageId}})
+	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByReader(media.FileName+"_distorted.mp4", f), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
 	if err != nil {
 		return err
 	}
 	DistortCache[media.FileID] = resultMessage.Document.FileId
-	return nil
+	if recepient == context.Message.From.Id {
+		Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
+	}
+	return err
 }
