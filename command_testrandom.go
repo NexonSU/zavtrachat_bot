@@ -10,7 +10,7 @@ import (
 // Kill user on /blessing, /suicide
 func TestRandom(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	text := "1000xRandInt(0, 9):\n"
 	numbers := [10]int{}

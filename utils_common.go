@@ -182,7 +182,7 @@ func Remove(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func RemoveJoinMessageAndJoinUser(bot *gotgbot.Bot, context *ext.Context) error {
-	context.Message.Delete(bot, nil)
+	Remove(bot, context)
 	for _, user := range context.Message.NewChatMembers {
 		context.EffectiveChat.Unban(bot, user.Id, nil)
 	}
@@ -672,43 +672,9 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 	return result, nil
 }
 
-// Kill user on admin command
-func KillSender(bot *gotgbot.Bot, context *ext.Context) error {
-	victim := *context.Message.From
-
-	ChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, context.Message.From.Id, nil)
-	if err != nil {
-		return err
-	}
-	status := ChatMember.GetStatus()
-	if status != "member" {
-		if status == "administrator" {
-			return fmt.Errorf("недостаточно прав")
-		}
-		return fmt.Errorf("ошибка выполнения команды, статус юзера %v", status)
-	}
-	var duelist Duelist
-	result := DB.Model(Duelist{}).Where(context.Message.From.Id).First(&duelist)
-	if result.RowsAffected == 0 {
-		duelist.UserID = context.Message.From.Id
-		duelist.Kills = 0
-		duelist.Deaths = 0
-	}
-	duelist.Deaths++
-	DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&duelist)
-	trueVal := true
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
-		CanSendMessages:    false,
-		CanReactToMessages: &trueVal,
-	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()})
-	if err != nil {
-		return err
-	}
-	command := strings.Split(context.Args()[0], "@")[0]
-	_, err = context.EffectiveChat.SendMessage(bot, fmt.Sprintf("<code>💥 %v убился об админскую команду %v.\nРеспавн через минуту.</code>", UserFullName(&victim), command), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
-	return err
+// Deny message on admin command
+func Denied(bot *gotgbot.Bot, context *ext.Context) error {
+	return Reply(GetNope(), *context)
 }
 
 func OnReaction(bot *gotgbot.Bot, context *ext.Context) error {

@@ -17,7 +17,7 @@ func Bonk(bot *gotgbot.Bot, context *ext.Context) error {
 	if context.Message.ReplyToMessage == nil {
 		return Reply("Просто отправь <code>/bonk</code> в ответ на чье-либо сообщение.", *context)
 	}
-	context.Message.Delete(bot, nil)
+	Remove(bot, context)
 
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(bonk_png))
 	im, _, err := image.Decode(reader)

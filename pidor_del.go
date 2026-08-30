@@ -10,7 +10,7 @@ import (
 // Remove user in DB on /pidordel
 func Pidordel(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	var pidor PidorList
 	user, err := FindUserInMessage(*context.Message)

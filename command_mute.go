@@ -13,7 +13,7 @@ import (
 func Mute(bot *gotgbot.Bot, context *ext.Context) error {
 	var untildate = time.Now().Unix() + 86400
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) == 1) || (context.Message.ReplyToMessage != nil && len(context.Args()) > 2) {
 		return Reply("Пример использования: <code>/mute {ID или никнейм}</code>\nИли отправь в ответ на какое-либо сообщение <code>/mute</code>\nЕсли нужно замьютить на время, то добавь время в секундах через пробел.", *context)

@@ -11,17 +11,14 @@ import (
 // Return message on /debug command
 func Debug(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
-	err := Remove(bot, context)
-	if err != nil {
-		return err
-	}
+	Remove(bot, context)
 	var message = context.Message
 	if context.Message.ReplyToMessage != nil {
 		message = context.Message.ReplyToMessage
 	}
 	MarshalledMessage, _ := json.MarshalIndent(message, "", "    ")
-	_, err = Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(MarshalledMessage)), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+	_, err := Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("<pre>%v</pre>", string(MarshalledMessage)), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
 }

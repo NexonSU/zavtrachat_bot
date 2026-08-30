@@ -12,7 +12,7 @@ import (
 // Send warning to user on /warn
 func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	var warn Warn
 	if (context.Message.ReplyToMessage == nil && len(context.Args()) != 2) || (context.Message.ReplyToMessage != nil && len(context.Args()) != 1) {
@@ -41,20 +41,25 @@ func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 		return result.Error
 	}
 	if warn.Amount == 1 {
-		_, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, у тебя 1 предупреждение.\nЕсль получишь 3 предупреждения за 2 недели, то будешь забанен.", UserFullName(&target)), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
-		return err
+		context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, у тебя 1 предупреждение.\nЕсль получишь 3 предупреждения за 2 недели, то будешь замьючен.", UserFullName(&target)), &gotgbot.SendMessageOpts{ReceiverUserId: target.Id, ParseMode: gotgbot.ParseModeHTML})
+		return Reply(fmt.Sprintf("%v получил предупреждение. Сейчас у него 1 из 3.", UserFullName(&target)), *context)
 	}
 	if warn.Amount == 2 {
-		_, err := context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("%v, у тебя 2 предупреждения.\nЕсли в течении недели получишь ещё одно, то будешь забанен.", UserFullName(&target))), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
-		return err
+		context.EffectiveChat.SendMessage(bot, (fmt.Sprintf("%v, у тебя 2 предупреждения.\nЕсли в течении недели получишь ещё одно, то будешь замьючен.", UserFullName(&target))), &gotgbot.SendMessageOpts{ReceiverUserId: target.Id, ParseMode: gotgbot.ParseModeHTML})
+		return Reply(fmt.Sprintf("%v получил предупреждение. Сейчас у него 2 из 3.", UserFullName(&target)), *context)
 	}
 	if warn.Amount == 3 {
-		result, err := bot.BanChatMember(context.Message.Chat.Id, target.Id, nil)
+		trueVal := true
+		context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, ты набрал 3 предупреждения.", UserFullName(&target)), &gotgbot.SendMessageOpts{ReceiverUserId: target.Id, ParseMode: gotgbot.ParseModeHTML})
+		result, err := Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
+			CanSendMessages:    false,
+			CanReactToMessages: &trueVal,
+		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Hour * time.Duration(168)).Unix()})
 		if err != nil {
 			return err
 		}
 		if result {
-			return Reply(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> забанен, т.к. набрал 3 предупреждения.", target.Id, UserFullName(&target)), *context)
+			return Reply(fmt.Sprintf("Пользователь <a href=\"tg://user?id=%v\">%v</a> замьючен, т.к. набрал 3 предупреждения.", target.Id, UserFullName(&target)), *context)
 		}
 	}
 	return err

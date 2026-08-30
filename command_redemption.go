@@ -13,13 +13,10 @@ import (
 // Revive users on /redemption
 func Redemption(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 
-	_, err := context.Message.Delete(bot, nil)
-	if err != nil {
-		return err
-	}
+	Remove(bot, context)
 
 	var userID int64
 	text := fmt.Sprintf("✨ %v кастует редемпшн!\n\n", MentionUser(context.EffectiveUser))

@@ -10,7 +10,7 @@ import (
 // Send userid on /getid
 func Getid(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	if context.Message.ReplyToMessage != nil && context.Message.ReplyToMessage.From != nil {
 		_, err := Bot.SendMessage(context.Message.From.Id, fmt.Sprintf("Firstname: %v\nLastname: %v\nUsername: %v\nUserID: %v", context.Message.ReplyToMessage.From.FirstName, context.Message.ReplyToMessage.From.LastName, context.Message.ReplyToMessage.From.Username, context.Message.ReplyToMessage.From.Id), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})

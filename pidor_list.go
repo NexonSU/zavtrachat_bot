@@ -10,7 +10,7 @@ import (
 // List add pidors from DB on /pidorlist
 func Pidorlist(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	var pidorlist string
 	var pidor PidorList
@@ -29,16 +29,12 @@ func Pidorlist(bot *gotgbot.Bot, context *ext.Context) error {
 		i++
 		pidorlist += strconv.Itoa(i) + ". @" + pidor.Username + " (" + strconv.FormatInt(pidor.Id, 10) + ")\n"
 		if len(pidorlist) > 3900 {
-			_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+			err = Reply(pidorlist, *context)
 			if err != nil {
 				return err
 			}
 			pidorlist = ""
 		}
 	}
-	_, err = Bot.SendMessage(context.Message.From.Id, pidorlist, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
-	if err != nil {
-		return err
-	}
-	return Reply("Список отправлен в личку.\nЕсли список не пришел, то убедитесь, что бот запущен и не заблокирован в личке.", *context)
+	return Reply(pidorlist, *context)
 }

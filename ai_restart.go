@@ -8,7 +8,7 @@ import (
 // Reinit AI on /restartai
 func RestartAI(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 
 	err := AiInit()

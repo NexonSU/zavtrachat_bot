@@ -10,7 +10,7 @@ import (
 // Restart bot on /restart
 func Restart(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	Remove(bot, context)
 	os.Exit(0)

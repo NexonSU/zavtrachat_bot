@@ -10,12 +10,12 @@ import (
 // Send text in chat on /say
 func Say(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	if len(context.Args()) == 1 {
 		return Reply("Укажите сообщение.", *context)
 	}
-	context.Message.Delete(bot, nil)
+	Remove(bot, context)
 	_, text, _ := strings.Cut(context.EffectiveMessage.Text, " ")
 	for i := range context.Message.Entities {
 		context.Message.Entities[i].Offset = context.Message.Entities[i].Offset - int64(len(strings.Split(context.Message.Text, " ")[0])) - 1

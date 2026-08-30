@@ -25,10 +25,7 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 	victim := *context.Message.From
 	ricochetText := ""
 
-	_, err := context.Message.Delete(bot, nil)
-	if err != nil {
-		return err
-	}
+	Remove(bot, context)
 	ChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, context.Message.From.Id, nil)
 	if err != nil {
 		return err

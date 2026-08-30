@@ -12,7 +12,7 @@ import (
 // Change system on /setaisystem
 func SetAISystem(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 
 	system := strings.Join(slices.Delete(context.Args(), 0, 1), " ")

@@ -11,7 +11,7 @@ import (
 // Return user on /debuguser command
 func DebugUser(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	err := Remove(bot, context)
 	if err != nil {

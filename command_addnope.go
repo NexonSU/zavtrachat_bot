@@ -11,7 +11,7 @@ import (
 // Adds nope text to DB
 func AddNope(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.EffectiveSender.User.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	var nope Nope
 	if (context.EffectiveMessage.ReplyToMessage == nil && len(context.Args()) == 1) || (context.EffectiveMessage.ReplyToMessage != nil && len(context.Args()) != 1) {

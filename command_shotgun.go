@@ -14,13 +14,10 @@ import (
 // Kill users on /shotgun, /gigakill /gigabite
 func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.EffectiveUser.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 
-	_, err := context.Message.Delete(bot, nil)
-	if err != nil {
-		return err
-	}
+	Remove(bot, context)
 
 	var userID int64
 	text := ""

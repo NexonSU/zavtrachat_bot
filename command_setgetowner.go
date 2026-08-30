@@ -11,7 +11,7 @@ import (
 // Send Get to user on /get
 func SetGetOwner(bot *gotgbot.Bot, context *ext.Context) error {
 	if !IsAdminOrModer(context.Message.From.Id) {
-		return KillSender(bot, context)
+		return Denied(bot, context)
 	}
 	var get Get
 	if len(context.Args()) != 2 || context.Message.ReplyToMessage == nil {
