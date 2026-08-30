@@ -37,6 +37,8 @@ type Configuration struct {
 	AIVisionModel     string   `json:"ai_vision_model"`
 	AISystem          string   `json:"ai_system"`
 	AIAdminOnlyTools  []string `json:"ai_admin_only_tools"`
+	AntiSpamWindow    int      `json:"antispam_window"`
+	AntiSpamCount     int      `json:"antispam_count"`
 }
 
 func ConfigInit() error {

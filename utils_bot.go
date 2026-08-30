@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -33,15 +32,15 @@ func BotInit() error {
 		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
 			reportErr := Reply("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), *context)
 			if reportErr != nil {
-				log.Println("error when reporting a... error: " + reportErr.Error())
+				Logger.Error("error when reporting a... error: " + reportErr.Error())
 			}
-			log.Println("an error occurred while handling update:", err.Error())
+			Logger.Error("an error occurred while handling update: " + err.Error())
 			return ext.DispatcherActionNoop
 		},
 		Logger:      Logger,
 		MaxRoutines: -1,
 	})
-	dispatcher.AddHandlerToGroup(NewGlobalMiddleware(5, 10*time.Second), -1)
+	dispatcher.AddHandlerToGroup(NewGlobalMiddleware(), -1)
 	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{
 		UnhandledErrFunc: ErrorReporting,
 	})
@@ -119,26 +118,7 @@ func BotInit() error {
 }
 
 func ErrorReporting(err error) {
-	// _, fn, line, _ := runtime.Caller(1)
-	// log.Printf("[%s:%d] %v", fn, line, err)
-	// if context != nil && context.Message != nil && context.Chat().Id == Config.Chat {
-	// 	Reply(fmt.Sprintf("Ошибка: <code>%v</code>", err.Error()), *context)
-	// }
-	// text := fmt.Sprintf("<pre>[%s:%d]\n%v</pre>", fn, line, strings.ReplaceAll(err.Error(), Config.Token, ""))
-	// if strings.Contains(err.Error(), "specified new message content and reply markup are exactly the same") {
-	// 	return
-	// }
-	// if strings.Contains(err.Error(), "message to delete not found") {
-	// 	return
-	// }
-	// if strings.Contains(err.Error(), "context does not contain message") {
-	// 	return
-	// }
-	// marshalledContext, _ := json.MarshalIndent(context.Update(), "", "    ")
-	// marshalledContextWithoutNil := regexp.MustCompile(`.*": (null|""|0|false)(,|)\n`).ReplaceAllString(string(marshalledContext), "")
-	// jsonMessage := html.EscapeString(marshalledContextWithoutNil)
-	// text += fmt.Sprintf("\n\nMessage:\n<pre>%v</pre>", jsonMessage)
-	fmt.Println(err.Error())
+	Logger.Error(err.Error())
 	Bot.SendMessage(Config.SysAdmin, strings.ReplaceAll(err.Error(), Config.Token, "TOKEN"), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 }
 
@@ -160,16 +140,12 @@ type GlobalMiddleware struct {
 	mu           sync.Mutex
 	timestamps   map[int64][]time.Time
 	lastReportAt map[int64]int64
-	MaxRequests  int
-	WindowLength time.Duration
 }
 
-func NewGlobalMiddleware(maxRequests int, window time.Duration) *GlobalMiddleware {
+func NewGlobalMiddleware() *GlobalMiddleware {
 	return &GlobalMiddleware{
 		timestamps:   make(map[int64][]time.Time),
 		lastReportAt: make(map[int64]int64),
-		MaxRequests:  maxRequests,
-		WindowLength: window,
 	}
 }
 
@@ -290,7 +266,6 @@ func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error
 
 	Logger.Debug(logText)
 
-	// 1. Skip checks if there is no physical user attached to the incoming update
 	if cntx.EffectiveUser == nil {
 		return nil
 	}
@@ -303,12 +278,12 @@ func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error
 
 	var validTimestamps []time.Time
 	for _, t := range m.timestamps[userID] {
-		if now.Sub(t) <= m.WindowLength {
+		if int(now.Sub(t).Seconds()) <= Config.AntiSpamWindow {
 			validTimestamps = append(validTimestamps, t)
 		}
 	}
 
-	if len(validTimestamps) >= m.MaxRequests && now.Unix()-m.lastReportAt[userID] > 10 {
+	if len(validTimestamps) >= Config.AntiSpamCount && now.Unix()-m.lastReportAt[userID] > 10 {
 		m.lastReportAt[userID] = now.Unix()
 		Logger.Warn("[SPAM] " + logText)
 		Bot.SendMessage(Config.SysAdmin, fmt.Sprintf("Возможно спам.\nType: %s\nSender: %s\nChat: %s\nText: <code>%s</code>", cntx.GetType(), sender, chat, text), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
