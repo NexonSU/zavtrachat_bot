@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -40,6 +41,7 @@ func BotInit() error {
 		Logger:      Logger,
 		MaxRoutines: -1,
 	})
+	dispatcher.AddHandlerToGroup(NewGlobalMiddleware(5, 10*time.Second), -1)
 	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{
 		UnhandledErrFunc: ErrorReporting,
 	})
@@ -151,4 +153,169 @@ func ytdlpGetVer() string {
 	}
 
 	return strings.TrimSpace(stdout.String())
+}
+
+// Define your middleware struct
+type GlobalMiddleware struct {
+	mu           sync.Mutex
+	timestamps   map[int64][]time.Time
+	lastReportAt map[int64]int64
+	MaxRequests  int
+	WindowLength time.Duration
+}
+
+func NewGlobalMiddleware(maxRequests int, window time.Duration) *GlobalMiddleware {
+	return &GlobalMiddleware{
+		timestamps:   make(map[int64][]time.Time),
+		lastReportAt: make(map[int64]int64),
+		MaxRequests:  maxRequests,
+		WindowLength: window,
+	}
+}
+
+// Name gives the handler an identifier in the dispatcher
+func (m *GlobalMiddleware) Name() string {
+	return "global_middleware"
+}
+
+// CheckUpdate intercepts EVERYTHING by returning true
+func (m *GlobalMiddleware) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
+	return true
+}
+
+func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error {
+	logText := ""
+	chat := ""
+	sender := ""
+	text := ""
+
+	logText += fmt.Sprintf("Incoming update: %d", cntx.UpdateId)
+	logText += fmt.Sprintf(" | Type: %s", cntx.GetType())
+
+	if cntx.EffectiveChat != nil {
+		chat = cntx.EffectiveChat.Title
+		if cntx.EffectiveChat.FirstName != "" {
+			chat = cntx.EffectiveChat.FirstName
+			if cntx.EffectiveChat.LastName != "" {
+				chat += " " + cntx.EffectiveChat.LastName
+			}
+		}
+		if cntx.EffectiveChat.Username != "" {
+			chat += " (" + cntx.EffectiveChat.Username + ")"
+		}
+	}
+	if chat != "" {
+		logText += fmt.Sprintf(" | Chat: %s", chat)
+	}
+
+	if cntx.EffectiveSender != nil {
+		sender = fmt.Sprintf("%s (%d)", cntx.EffectiveSender.Name(), cntx.EffectiveSender.Id())
+	}
+	if sender != "" {
+		logText += fmt.Sprintf(" | Sender: %s", sender)
+	}
+
+	switch {
+	case cntx.Message != nil:
+		text = cntx.Message.Text + cntx.Message.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.EditedMessage != nil:
+		text = cntx.EditedMessage.Text + cntx.EditedMessage.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.ChannelPost != nil:
+		text = cntx.ChannelPost.Text + cntx.ChannelPost.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.EditedChannelPost != nil:
+		text = cntx.EditedChannelPost.Text + cntx.EditedChannelPost.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.BusinessConnection != nil:
+		cntxBytes, err := MarshalOmitEmptyAll(cntx.BusinessConnection)
+		if err == nil {
+			text = string(cntxBytes)
+			logText += fmt.Sprintf(" | Data: %s", text)
+		}
+
+	case cntx.BusinessMessage != nil:
+		text = cntx.BusinessMessage.Text + cntx.BusinessMessage.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.EditedBusinessMessage != nil:
+		text = cntx.EditedBusinessMessage.Text + cntx.EditedBusinessMessage.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.DeletedBusinessMessages != nil:
+		cntxBytes, err := MarshalOmitEmptyAll(cntx.DeletedBusinessMessages)
+		if err == nil {
+			text = string(cntxBytes)
+			logText += fmt.Sprintf(" | Data: %s", text)
+		}
+
+	case cntx.GuestMessage != nil:
+		text = cntx.GuestMessage.Text + cntx.GuestMessage.Caption
+		logText += fmt.Sprintf(" | Text: %s", text)
+
+	case cntx.MessageReaction != nil:
+		cntxBytes, err := MarshalOmitEmptyAll(cntx.DeletedBusinessMessages)
+		if err == nil {
+			text = string(cntxBytes)
+			logText += fmt.Sprintf(" | Data: %s", text)
+		}
+
+	case cntx.MessageReactionCount != nil:
+		cntxBytes, err := MarshalOmitEmptyAll(cntx.MessageReactionCount)
+		if err == nil {
+			text = string(cntxBytes)
+			logText += fmt.Sprintf(" | Data: %s", text)
+		}
+
+	case cntx.InlineQuery != nil:
+		text = cntx.InlineQuery.Query
+		logText += fmt.Sprintf(" | Query: %s", text)
+
+	case cntx.ChosenInlineResult != nil:
+		text = cntx.ChosenInlineResult.ResultId
+		logText += fmt.Sprintf(" | Chosen: %s", text)
+
+	default:
+		cntxBytes, err := MarshalOmitEmptyAll(cntx)
+		if err == nil {
+			text = string(cntxBytes)
+			logText += fmt.Sprintf(" | Data: %s", text)
+		}
+	}
+
+	Logger.Debug(logText)
+
+	// 1. Skip checks if there is no physical user attached to the incoming update
+	if cntx.EffectiveUser == nil {
+		return nil
+	}
+
+	userID := cntx.EffectiveUser.Id
+	now := time.Now()
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var validTimestamps []time.Time
+	for _, t := range m.timestamps[userID] {
+		if now.Sub(t) <= m.WindowLength {
+			validTimestamps = append(validTimestamps, t)
+		}
+	}
+
+	if len(validTimestamps) >= m.MaxRequests && now.Unix()-m.lastReportAt[userID] > 10 {
+		m.lastReportAt[userID] = now.Unix()
+		Logger.Warn("[SPAM] " + logText)
+		Bot.SendMessage(Config.SysAdmin, fmt.Sprintf("Возможно спам.\nType: %s\nSender: %s\nChat: %s\nText: <code>%s</code>", cntx.GetType(), sender, chat, text), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+	}
+
+	validTimestamps = append(validTimestamps, now)
+	m.timestamps[userID] = validTimestamps
+
+	return nil
 }
