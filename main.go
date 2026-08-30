@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"sort"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -31,10 +30,9 @@ var BotUpdater *ext.Updater
 var Logger *slog.Logger
 
 func main() {
-	Logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
+	Logger = slog.Default()
 	slog.SetDefault(Logger)
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 	slog.Info("init: config")
 	err := ConfigInit()
 	if err != nil {
