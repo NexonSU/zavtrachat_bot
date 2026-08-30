@@ -235,7 +235,7 @@ func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error
 		logText += fmt.Sprintf(" | Text: %s", text)
 
 	case cntx.MessageReaction != nil:
-		cntxBytes, err := MarshalOmitEmptyAll(cntx.DeletedBusinessMessages)
+		cntxBytes, err := MarshalOmitEmptyAll(cntx.MessageReaction)
 		if err == nil {
 			text = string(cntxBytes)
 			logText += fmt.Sprintf(" | Data: %s", text)
