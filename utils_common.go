@@ -172,7 +172,12 @@ func GetUserFromDB(findstring string) (gotgbot.User, error) {
 
 // Remove message
 func Remove(bot *gotgbot.Bot, context *ext.Context) error {
-	_, err := context.Message.Delete(bot, nil)
+	var err error
+	if context.EffectiveMessage.EphemeralMessageId != 0 {
+		_, err = Bot.DeleteEphemeralMessage(context.EffectiveChat.Id, context.EffectiveMessage.ReceiverUser.Id, context.EffectiveMessage.EphemeralMessageId, nil)
+	} else {
+		_, err = Bot.DeleteMessage(context.EffectiveChat.Id, context.EffectiveMessage.MessageId, nil)
+	}
 	return err
 }
 
