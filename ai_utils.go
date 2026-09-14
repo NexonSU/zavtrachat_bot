@@ -14,15 +14,11 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	tgmd "github.com/eekstunt/telegramify-markdown-go"
 
-	"github.com/cloudwego/eino-ext/components/model/ollama"
 	"github.com/cloudwego/eino/flow/agent/react"
 )
 
-var AIBusy bool
 var AISystem string
 var AIAgent *react.Agent
-var AIToolModel *ollama.ChatModel
-var AIVisionModel *ollama.ChatModel
 
 type AuthTransport struct {
 	Header http.Header

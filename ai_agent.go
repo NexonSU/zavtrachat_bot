@@ -22,9 +22,6 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 
 	aiCntx := cntx.WithValue(cntx.Background(), "tgUser", context.EffectiveSender.User.Id)
 
-	if AIBusy {
-		return Reply("Команда занята", *context)
-	}
 	if AIAgent == nil {
 		return Reply("Агент не инициализирован", *context)
 	}
@@ -45,12 +42,6 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 			time.Sleep(time.Second * 5)
 		}
 	}()
-
-	defer func() {
-		AIBusy = false
-		done <- true
-	}()
-	AIBusy = true
 
 	msgText := strings.Join(slices.Delete(context.Args(), 0, 1), " ")
 
