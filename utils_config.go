@@ -33,8 +33,7 @@ type Configuration struct {
 	Proxy             string   `json:"proxy"`
 	AIURL             string   `json:"ai_url"`
 	AIToken           string   `json:"ai_token"`
-	AIToolModel       string   `json:"ai_tool_model"`
-	AIVisionModel     string   `json:"ai_vision_model"`
+	AIModel           string   `json:"ai_model"`
 	AISystem          string   `json:"ai_system"`
 	AIAdminOnlyTools  []string `json:"ai_admin_only_tools"`
 	AntiSpamWindow    int      `json:"antispam_window"`

@@ -2,7 +2,6 @@ package main
 
 import (
 	cntx "context"
-	"net/http"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/flow/agent/react"
@@ -18,17 +17,10 @@ func AiInit() error {
 	context := cntx.Background()
 
 	//model init
-	headers := make(http.Header)
-	headers.Add("Authorization", "Bearer "+Config.AIToken)
 	modelCfg, err := openai.NewChatModel(context, &openai.ChatModelConfig{
-		HTTPClient: &http.Client{
-			Transport: &AuthTransport{
-				Header: headers,
-				Base:   http.DefaultTransport,
-			},
-		},
+		APIKey:  Config.AIToken,
 		BaseURL: Config.AIURL,
-		Model:   Config.AIToolModel,
+		Model:   Config.AIModel,
 	})
 	if err != nil {
 		return err

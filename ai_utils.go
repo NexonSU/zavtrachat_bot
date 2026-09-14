@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"mime"
-	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -19,25 +18,6 @@ import (
 
 var AISystem string
 var AIAgent *react.Agent
-
-type AuthTransport struct {
-	Header http.Header
-	Base   http.RoundTripper
-}
-
-func (t *AuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if t.Base == nil {
-		t.Base = http.DefaultTransport
-	}
-
-	// Clone the request to safely add headers without modifying the original
-	// request object, which might be reused.
-	req = req.Clone(req.Context())
-	for k, v := range t.Header {
-		req.Header[k] = v
-	}
-	return t.Base.RoundTrip(req)
-}
 
 func toEntities(ents []tgmd.Entity) []gotgbot.MessageEntity {
 	out := make([]gotgbot.MessageEntity, len(ents))
