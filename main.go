@@ -51,12 +51,12 @@ func main() {
 		slog.Error(fmt.Sprintf("bot init failed: %s", err))
 		panic(fmt.Errorf("bot init failed: %s", err))
 	}
-	slog.Info("init: ai")
-	err = AiInit()
-	if err != nil {
-		slog.Error(fmt.Sprintf("ai init failed: %s", err))
-		fmt.Printf("ai init failed: %s", err)
-	}
+	// slog.Info("init: ai")
+	// err = AiInit()
+	// if err != nil {
+	// 	slog.Error(fmt.Sprintf("ai init failed: %s", err))
+	// 	fmt.Printf("ai init failed: %s", err)
+	// }
 	commandList := []commandList{
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов", IsEphemeral: true}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь", IsEphemeral: true}, Request},
@@ -74,9 +74,9 @@ func main() {
 		{gotgbot.BotCommand{Command: "isekai", Description: "попасть в исекай", IsEphemeral: true}, Blessing},
 		{gotgbot.BotCommand{Command: "isekaitop", Description: "топ исекая чата", IsEphemeral: true}, BlessingTop},
 		{gotgbot.BotCommand{Command: "marco", Description: "поло", IsEphemeral: true}, Marco},
-		{gotgbot.BotCommand{Command: "ai", Description: "причина твоей переплаты за оперативу", IsEphemeral: false}, AI},
-		{gotgbot.BotCommand{Command: "restartai", Description: "перезапуск причины переплаты за оперативу", IsEphemeral: true}, RestartAI},
-		{gotgbot.BotCommand{Command: "setaisystem", Description: "сменить системный промпт причины переплаты за оперативу", IsEphemeral: true}, SetAISystem},
+		// {gotgbot.BotCommand{Command: "ai", Description: "причина твоей переплаты за оперативу", IsEphemeral: false}, AI},
+		// {gotgbot.BotCommand{Command: "restartai", Description: "перезапуск причины переплаты за оперативу", IsEphemeral: true}, RestartAI},
+		// {gotgbot.BotCommand{Command: "setaisystem", Description: "сменить системный промпт причины переплаты за оперативу", IsEphemeral: true}, SetAISystem},
 		{gotgbot.BotCommand{Command: "date", Description: "вернуть дату и время сервера", IsEphemeral: true}, Date},
 		{gotgbot.BotCommand{Command: "me", Description: "аналог команды /me из IRC (/me пошел спать)", IsEphemeral: true}, Me},
 		{gotgbot.BotCommand{Command: "mp3", Description: "скачать музыку по ссылке", IsEphemeral: true}, Mp3},
