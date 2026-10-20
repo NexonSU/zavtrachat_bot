@@ -115,6 +115,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "resurrect", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "revive", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "addbless", Description: "добавить причину блесса", IsEphemeral: true}, AddBless},
+		{gotgbot.BotCommand{Command: "blesslist", Description: "управление фразами блесса в личке"}, BlessList},
 		{gotgbot.BotCommand{Command: "addnope", Description: "добавить сообщение отказа по кнопке", IsEphemeral: true}, AddNope},
 		{gotgbot.BotCommand{Command: "ban", Description: "забанить кого-нибудь", IsEphemeral: true}, Ban},
 		{gotgbot.BotCommand{Command: "bless", Description: "попросить помолчать кого-нибудь", IsEphemeral: true}, Kill},
@@ -166,9 +167,14 @@ func main() {
 	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeDefault{}})
 
 	commandArray := []gotgbot.BotCommand{}
+	privateCommands := []gotgbot.BotCommand{}
 	for i := range commandList {
 		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, commandList[i].response))
-		commandArray = append(commandArray, commandList[i].command)
+		if commandList[i].command.Command == "blesslist" {
+			privateCommands = append(privateCommands, commandList[i].command)
+		} else {
+			commandArray = append(commandArray, commandList[i].command)
+		}
 	}
 	sort.Slice(commandArray, func(i, j int) bool {
 		return commandArray[i].Command < commandArray[j].Command
@@ -177,10 +183,14 @@ func main() {
 	if err != nil {
 		slog.Error(err.Error())
 	}
+	if _, err = Bot.SetMyCommands(privateCommands, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllPrivateChats{}}); err != nil {
+		slog.Error(err.Error())
+	}
 
 	//non-command handles
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), Accept))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), Deny))
+	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(blessListPrefix), BlessListCallback))
 	BotDispatcher.AddHandler(handlers.Message{Response: RemoveJoinMessageAndJoinUser, Filter: message.ChatID(Config.ReserveChat)})
 	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: ForwardChannelPost, Filter: message.ChatID(Config.Channel)})
 	BotDispatcher.AddHandler(handlers.NewMessage(nil, OnText))

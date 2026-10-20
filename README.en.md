@@ -6,8 +6,8 @@ A Go Telegram bot for one specific chat. It works through the Bot API (long poll
 self-hosted Bot API server supported) and additionally uses an MTProto client for a few commands.
 State is kept in PostgreSQL.
 
-- 90 commands registered in `main.go` (some of them are aliases of the same function)
-- 93 `.go` source files, 158 tests in 24 files
+- 91 commands registered in `main.go` (some of them are aliases of the same function)
+- 94 `.go` source files, 168 tests in 25 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -38,8 +38,16 @@ Access to moderation commands comes from the `ZAVTRA_ADMINS` / `ZAVTRA_MODERS` /
 | `/megamlem` | the same permissions and restrictions as `/shotgun`, with a giant black cat picture |
 | `/isekai`, `suicide`, `blessing`, `/isekaitop`, `/blessingtop` | "get hired by Roskomnadzor" and the chat leaderboard |
 | `/addbless`, `/addnope` | add a blessing reason / a text shown when the duel button is declined |
+| `/blesslist` | manage the shared blessing phrases in PM: pages, selection and deletion confirmation |
 | `/pidor`, `/pidoreg`, `/pidorlist`, `/pidorme`, `/pidorstats`, `/pidorall`, `/pidorules`, `/pidordel`, `/pidorremovetoday` | the "Pidor of the Day!" game |
 | `/slap`, `/hug`, `/bonk`, `/marco`, `/shrug`, `/me` | stickers/meme actions and the IRC-style `/me` |
+
+`/blesslist` is available in PM to users in `ZAVTRA_ADMINS` and `ZAVTRA_MODERS`.
+In groups it only directs users to PM. The pool is shared by `/blessing`, `/kill`, `/shotgun`,
+`/megamlem` and their aliases. Deletion requires a separate confirmation of the exact text;
+the last phrase cannot be deleted. The bot keeps a recovery copy of the deleted text, which can
+be restored through the unchanged `/addbless`. Buttons are bound to the user and message and
+expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statistics are unchanged.
 
 ### Media
 | Command | What it does | Needs |
@@ -155,7 +163,7 @@ CI (`.github/workflows/`):
 ## Tests
 
 ```bash
-go test -race -count=1 ./...                                   # 158 tests
+go test -race -count=1 ./...                                   # 168 tests
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # check datacenter access
 ```
 
