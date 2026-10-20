@@ -329,6 +329,9 @@ func TestBlessListLongAndEmptyPools(t *testing.T) {
 		if len(copies) != 1 || copies[0] != text {
 			t.Fatal("confirmation did not deliver the full legacy text")
 		}
+		if !strings.Contains(blessLastView(t, client).Params["text"].(string), "длиннее 200 символов") {
+			t.Fatal("legacy text confirmation did not explain the existing /addbless limit")
+		}
 		blessClick(bot, blessButton(t, client, "Да, удалить"), 100, 100, 555, "private")
 		if len(copies) != 2 || copies[1] != text || blessCount(t) != 1 {
 			t.Fatal("deletion did not preserve an exact recovery copy")

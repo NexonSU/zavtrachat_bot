@@ -206,7 +206,11 @@ func BlessListCallback(bot *gotgbot.Bot, ctx *ext.Context) error {
 		quote, err = blessListQuote(bot, view.ownerID, view.texts[0])
 		if err == nil {
 			token := rand.Text()
-			err = showBlessListView(bot, token, view, "<b>Удалить эту фразу из общего набора?</b>\n\n"+quote+"\n\nОна перестанет появляться во всех командах, использующих фразы блесса.", [][]gotgbot.InlineKeyboardButton{{blessListButton(token, "Да, удалить", "confirm"), blessListButton(token, "Отмена", fmt.Sprintf("page:%d", view.page))}})
+			note := "\n\nОна перестанет появляться во всех командах, использующих фразы блесса."
+			if len([]rune(view.texts[0])) > 200 {
+				note += "\nЭта старая фраза длиннее 200 символов: /addbless не сможет вернуть её целиком. Сохраните копию перед удалением."
+			}
+			err = showBlessListView(bot, token, view, "<b>Удалить эту фразу из общего набора?</b>\n\n"+quote+note, [][]gotgbot.InlineKeyboardButton{{blessListButton(token, "Да, удалить", "confirm"), blessListButton(token, "Отмена", fmt.Sprintf("page:%d", view.page))}})
 		}
 	case parts[1] == "confirm" && len(parts) == 2 && view.confirm && len(view.texts) == 1:
 		var status string
@@ -216,7 +220,7 @@ func BlessListCallback(bot *gotgbot.Bot, ctx *ext.Context) error {
 			if status == "Фраза удалена." {
 				var quote string
 				quote, err = blessListQuote(bot, view.ownerID, view.texts[0])
-				text += "\n\n" + quote + "\n\nСохраните текст: восстановить фразу можно через /addbless."
+				text += "\n\n" + quote + "\n\nСохраните текст. /addbless принимает фразы до 200 символов."
 			}
 			if err == nil {
 				view.texts, view.confirm = nil, false
