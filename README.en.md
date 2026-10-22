@@ -6,8 +6,8 @@ A Go Telegram bot for one specific chat. It works through the Bot API (long poll
 self-hosted Bot API server supported) and additionally uses an MTProto client for a few commands.
 State is kept in PostgreSQL.
 
-- 91 commands registered in `main.go` (some of them are aliases of the same function)
-- 95 `.go` source files, 180 tests in 28 files
+- 92 commands registered in `main.go` (some of them are aliases of the same function)
+- 97 `.go` source files, 184 tests in 29 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -72,6 +72,28 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 | `/google` | a search link for the given text |
 | `/date`, `/ping`, `/getid`, `/testrandom`, `/tldr` | server date, pong, user ID, randomness check, note about the TLDR button |
 | `/restart` | `os.Exit(0)` — restarts the bot (needs `Restart=always` in systemd) |
+
+### Performance measurement
+
+`/perf` reports performance in PM to users in `ZAVTRA_ADMINS` and `ZAVTRA_MODERS`.
+Group invocations point to PM; other users cannot access the report. Since startup,
+metrics track completed handler calls, returned errors, calls taking at least 5 seconds,
+and mean/max duration. The report lists up to 10 handlers by cumulative time; command
+aliases are separate. All queries through the main GORM client are also counted, with
+errors, mean/max duration and queries taking at least 200 ms, including startup and
+background queries. Record-not-found results and dispatcher flow signals are not errors.
+
+Only aggregates keyed by fixed handler names are retained, without individual messages,
+arguments or user IDs. A restart resets them; no extra database or migration is needed.
+Handler duration includes synchronous Telegram calls but excludes goroutines after return.
+Internally handled errors do not count as handler failures; SQL failures count separately.
+This does not measure the update queue or end-to-end delivery time. Driver BEGIN/COMMIT,
+MTProto storage and third-party SQL clients are outside the GORM counter.
+
+Slow or failed handlers and queries produce duration/failure events in the existing log.
+The new SQL logger never includes SQL, parameters or error text. Existing diagnostics in
+other parts of the bot are unchanged. The server owner can read these events using
+`journalctl -u telegram-go-chatbot --since today | grep -E 'handler performance|database performance'`.
 
 ### Handlers without commands
 - **`reserve_chat`** — deletes join/leave system messages and adds users to the DB.
@@ -165,7 +187,7 @@ CI (`.github/workflows/`):
 ## Tests
 
 ```bash
-go test -race -count=1 ./...                                   # 180 tests, PostgreSQL test optional locally
+go test -race -count=1 ./...                                   # 184 tests, PostgreSQL test optional locally
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # check datacenter access
 ```
 

@@ -6,7 +6,6 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type Get struct {
@@ -73,7 +72,7 @@ type Bless struct {
 
 func DataBaseInit(dsn string) (gorm.DB, error) {
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: newPerformanceDBLogger(botPerformance, Logger),
 	},
 	)
 	if err != nil {

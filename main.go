@@ -115,6 +115,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "resurrect", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "revive", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "addbless", Description: "добавить причину блесса", IsEphemeral: true}, AddBless},
+		{gotgbot.BotCommand{Command: "perf", Description: "производительность бота в личке"}, Perf},
 		{gotgbot.BotCommand{Command: "blesslist", Description: "управление фразами блесса в личке"}, BlessList},
 		{gotgbot.BotCommand{Command: "addnope", Description: "добавить сообщение отказа по кнопке", IsEphemeral: true}, AddNope},
 		{gotgbot.BotCommand{Command: "ban", Description: "забанить кого-нибудь", IsEphemeral: true}, Ban},
@@ -169,8 +170,8 @@ func main() {
 	commandArray := []gotgbot.BotCommand{}
 	privateCommands := []gotgbot.BotCommand{}
 	for i := range commandList {
-		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, commandList[i].response))
-		if commandList[i].command.Command == "blesslist" {
+		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, measureHandler("/"+commandList[i].command.Command, commandList[i].response)))
+		if commandList[i].command.Command == "blesslist" || commandList[i].command.Command == "perf" {
 			privateCommands = append(privateCommands, commandList[i].command)
 		} else {
 			commandArray = append(commandArray, commandList[i].command)
@@ -188,14 +189,14 @@ func main() {
 	}
 
 	//non-command handles
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), Accept))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), Deny))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(blessListPrefix), BlessListCallback))
-	BotDispatcher.AddHandler(handlers.Message{Response: RemoveJoinMessageAndJoinUser, Filter: message.ChatID(Config.ReserveChat)})
-	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: ForwardChannelPost, Filter: message.ChatID(Config.Channel)})
-	BotDispatcher.AddHandler(handlers.NewMessage(nil, OnText))
-	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, GetInline))
-	BotDispatcher.AddHandler(handlers.NewReaction(reaction.ChatID(Config.Chat), OnReaction))
+	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), measureHandler("callback:roulette_accept", Accept)))
+	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), measureHandler("callback:roulette_deny", Deny)))
+	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(blessListPrefix), measureHandler("callback:blesslist", BlessListCallback)))
+	BotDispatcher.AddHandler(handlers.Message{Response: measureHandler("event:reserve", RemoveJoinMessageAndJoinUser), Filter: message.ChatID(Config.ReserveChat)})
+	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: measureHandler("event:channel", ForwardChannelPost), Filter: message.ChatID(Config.Channel)})
+	BotDispatcher.AddHandler(handlers.NewMessage(nil, measureHandler("event:message", OnText)))
+	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, measureHandler("event:inline", GetInline)))
+	BotDispatcher.AddHandler(handlers.NewReaction(reaction.ChatID(Config.Chat), measureHandler("event:reaction", OnReaction)))
 
 	// Keeps retrying on its own, and logs every failure: MTProto needs a
 	// direct connection to the Telegram datacenters, so it stays down when
