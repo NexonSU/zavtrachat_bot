@@ -194,6 +194,24 @@ func TestStatsConcurrentNewCounter(t *testing.T) {
 	}
 }
 
+func TestStatsCounterZeroKeysAndAmounts(t *testing.T) {
+	setupTestEnv(t)
+	for _, update := range []struct{ kind, day, context, amount int64 }{
+		{2, 123, 0, 5}, {2, 123, 0, -2}, {2, 123, 0, 0},
+		{5, 123, 0, 7}, {2, 124, 0, 11},
+	} {
+		if err := statsAdd(update.kind, update.day, update.context, update.amount); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct{ kind, day, want int64 }{{2, 123, 3}, {5, 123, 7}, {2, 124, 11}} {
+		var row Stats
+		if err := DB.Where("context_id = 0 AND stat_type = ? AND day_timestamp = ?", tc.kind, tc.day).First(&row).Error; err != nil || row.Count != tc.want {
+			t.Fatalf("midnight/Sunday or zero/negative amount changed: %+v, %v", row, err)
+		}
+	}
+}
+
 func TestStatsDatabaseFailureAndRecovery(t *testing.T) {
 	bot, _ := setupTestEnv(t)
 	DB.Migrator().DropTable(&StatsWords{})

@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 91 commands registered in `main.go` (some of them are aliases of the same function)
-- 95 `.go` source files, 179 tests in 28 files
+- 95 `.go` source files, 180 tests in 28 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -165,7 +165,7 @@ CI (`.github/workflows/`):
 ## Tests
 
 ```bash
-go test -race -count=1 ./...                                   # 179 tests, PostgreSQL test optional locally
+go test -race -count=1 ./...                                   # 180 tests, PostgreSQL test optional locally
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # check datacenter access
 ```
 
