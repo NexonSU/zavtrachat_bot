@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -90,20 +89,18 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	//update StatsDays(1), StatsHours(2), StatsUsers(3), StatsWords(4), StatsWeekday(5)
 	startOfDay := GetStartOfDay()
 	timeNow := time.Now().Local()
-	statsIncrease(1, startOfDay, int64(timeNow.Day()))
-	statsIncrease(2, startOfDay, int64(timeNow.Hour()))
-	statsIncrease(3, startOfDay, context.Message.From.Id)
-	statsIncrease(5, startOfDay, int64(timeNow.Weekday()))
+	for _, counter := range []struct{ kind, id int64 }{
+		{1, int64(timeNow.Day())}, {2, int64(timeNow.Hour())},
+		{3, context.Message.From.Id}, {5, int64(timeNow.Weekday())},
+	} {
+		if err := statsIncrease(counter.kind, startOfDay, counter.id); err != nil {
+			return err
+		}
+	}
 	if context.Message.Text == "" || string(context.Message.Text[0]) == "/" {
 		return nil
 	}
-	text := strings.ToLower(onlyWords.ReplaceAllString(context.Message.Text, ""))
-	for _, word := range strings.Split(text, " ") {
-		if len([]rune(word)) > 0 {
-			statsIncrease(4, startOfDay, getWordID(word))
-		}
-	}
-	return nil
+	return recordMessageWords(context.Message.Text, startOfDay)
 }
 
 func CacheAlbumId(bot *gotgbot.Bot, context *ext.Context) error {

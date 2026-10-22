@@ -19,6 +19,7 @@ require (
 	github.com/miguelmota/go-coinmarketcap v0.1.8
 	github.com/neonxp/StemmerRu v0.0.0-20190528102440-5c7748b15e2f
 	github.com/u2takey/ffmpeg-go v0.5.0
+	golang.org/x/sync v0.24.0
 	golang.org/x/text v0.43.0
 	golang.org/x/time v0.16.0
 	gopkg.in/vansante/go-ffprobe.v2 v2.3.1
@@ -105,7 +106,6 @@ require (
 	golang.org/x/image v0.47.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

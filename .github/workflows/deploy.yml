@@ -21,6 +21,20 @@ concurrency:
 jobs:
   Test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: testbot
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testbot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
@@ -31,6 +45,8 @@ jobs:
     - name: Vet
       run: go vet ./...
     - name: Test
+      env:
+        ZAVTRA_TEST_POSTGRES_DSN: host=127.0.0.1 port=5432 user=postgres password=test-only-password dbname=testbot sslmode=disable
       run: go test -race -count=1 -timeout 300s -coverprofile=coverage.out ./...
     - name: Coverage
       run: go tool cover -func=coverage.out | tail -1

@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 91 commands registered in `main.go` (some of them are aliases of the same function)
-- 94 `.go` source files, 171 tests in 26 files
+- 95 `.go` source files, 179 tests in 28 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -149,7 +149,8 @@ The image has `WORKDIR /`, `ENTRYPOINT /goapp` and ffmpeg installed; configurati
 
 CI (`.github/workflows/`):
 - `deploy.yml` — on `**.go`, `go.mod`/`go.sum` and workflow changes: `Test` runs `go vet` and
-  `go test -race -count=1` on `ubuntu-latest` (the coverage profile is uploaded as an artifact), then on
+  `go test -race -count=1` on `ubuntu-latest` with a separate PostgreSQL 18 service
+  (the coverage profile is uploaded as an artifact), then on
   `push` to `master` `Deploy` builds `telegram-go-chatbot` on a self-hosted runner, copies it to
   `/home/telegram/bot/` and runs `systemctl restart telegram-go-chatbot`. Pull requests run the tests
   only and never restart production; `concurrency` blocks overlapping deploys;
@@ -164,7 +165,7 @@ CI (`.github/workflows/`):
 ## Tests
 
 ```bash
-go test -race -count=1 ./...                                   # 171 tests
+go test -race -count=1 ./...                                   # 179 tests, PostgreSQL test optional locally
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # check datacenter access
 ```
 
@@ -179,9 +180,23 @@ Album saves to PM are tested with incoming messages and 128 concurrent save requ
 sorts its own snapshot, leaves the shared cache unchanged, and releases its lock before calling
 Telegram. Empty-cache fallback and empty copy results are covered separately.
 
-Tests need no network and no Postgres. Note that tests run on SQLite while production runs on
-PostgreSQL, so production database behaviour is not proven by the tests (`TestDataBaseInit` only
-checks the failure paths). Fourteen tests run the real `ffmpeg`/`ffprobe` over generated one-second
+Most tests use local stand-ins and SQLite. `TestStatsPostgresConcurrent` additionally checks
+concurrent dictionary creation and message, word and mute-time counters against real PostgreSQL:
+32 concurrent workers, each updating every counter 20 times. CI provides a separate service
+container; locally this test runs when `ZAVTRA_TEST_POSTGRES_DSN` points to a test database.
+It creates a random isolated schema and drops it afterwards. Other database operations continue
+to be tested on SQLite.
+
+`TestMessageStatsQueryCount` counts SQL statements in the message handler. With a warm dictionary,
+10 distinct words require 15 statements instead of 25, and 10 repetitions of one word require
+6 instead of 25. BEGIN/COMMIT are excluded from this measurement; atomic counter upserts run as
+single statements without GORM's extra transaction. Repetitions and inflected forms are combined
+by existing dictionary ID, preserving first spellings, periods and historical rows. A FIFO cache
+holds at most 4096 stems of up to 128 bytes, is scoped to its database, and coalesces concurrent
+loads of one stem within the process. Errors and zero IDs are not cached. No database migration
+or historical dictionary deduplication is needed.
+
+Fourteen tests run the real `ffmpeg`/`ffprobe` over generated one-second
 files and skip when the binaries are missing (`TestFFmpegConvert`,
 `TestFFmpegConvertConcurrentSameName`, `TestConvert`, `TestInvert`, `TestDistort`,
 `TestLoopAnimation`, `TestDownloadFile`, `TestFFmpegRemoteMedia`, `TestGetImageForLLM`,
