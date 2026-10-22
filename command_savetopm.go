@@ -19,14 +19,22 @@ func SaveToPM(bot *gotgbot.Bot, context *ext.Context) error {
 	link := fmt.Sprintf("https://t.me/c/%v/%v", strings.TrimLeft(strings.TrimLeft(strconv.Itoa(int(context.EffectiveChat.Id)), "-1"), "0"), context.EffectiveMessage.ReplyToMessage.MessageId)
 	var err error
 	var msg *gotgbot.MessageId
-	if context.EffectiveMessage.ReplyToMessage.MediaGroupId != "" && ChatAlbumCache.groups[context.EffectiveMessage.ReplyToMessage.MediaGroupId] != nil {
+	var msgIds []int64
+	if groupID := context.EffectiveMessage.ReplyToMessage.MediaGroupId; groupID != "" {
 		ChatAlbumCache.mu.Lock()
-		msgIds := ChatAlbumCache.groups[context.EffectiveMessage.ReplyToMessage.MediaGroupId]
+		msgIds = slices.Clone(ChatAlbumCache.groups[groupID])
 		ChatAlbumCache.mu.Unlock()
+	}
+	if len(msgIds) > 0 {
+		// Sort only this request's snapshot. Incoming album messages and other
+		// saves can keep using the cache while Telegram copies the messages.
 		slices.Sort(msgIds)
 		msgs, err := Bot.CopyMessages(context.EffectiveSender.User.Id, context.EffectiveChat.Id, msgIds, nil)
 		if err != nil {
 			return err
+		}
+		if len(msgs) == 0 {
+			return fmt.Errorf("не удалось сохранить альбом: Telegram не скопировал ни одного сообщения")
 		}
 		msg = &msgs[0]
 	} else {

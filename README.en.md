@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 91 commands registered in `main.go` (some of them are aliases of the same function)
-- 94 `.go` source files, 167 tests in 25 files
+- 94 `.go` source files, 171 tests in 26 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -164,7 +164,7 @@ CI (`.github/workflows/`):
 ## Tests
 
 ```bash
-go test -race -count=1 ./...                                   # 167 tests
+go test -race -count=1 ./...                                   # 171 tests
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # check datacenter access
 ```
 
@@ -174,6 +174,10 @@ The test infrastructure is `testutils_test.go`:
 - in-memory SQLite (`github.com/glebarez/sqlite`, pure Go, no CGO) instead of PostgreSQL;
 - helpers `setupTestEnv`, `testMessage`, `testContext`, `testCallbackContext`, `seedUser`,
   `waitForCalls`.
+
+Album saves to PM are tested with incoming messages and 128 concurrent save requests: each save
+sorts its own snapshot, leaves the shared cache unchanged, and releases its lock before calling
+Telegram. Empty-cache fallback and empty copy results are covered separately.
 
 Tests need no network and no Postgres. Note that tests run on SQLite while production runs on
 PostgreSQL, so production database behaviour is not proven by the tests (`TestDataBaseInit` only

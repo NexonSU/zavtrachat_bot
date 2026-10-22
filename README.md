@@ -7,7 +7,7 @@ Telegram-бот для одного конкретного чата на Go. Р�
 команд. Состояние — в PostgreSQL.
 
 - 91 команда, зарегистрированная в `main.go` (часть — алиасы одной функции)
-- 94 исходника `.go`, 167 тестов в 25 файлах
+- 94 исходника `.go`, 171 тест в 26 файлах
 - GitHub Actions: сборка + деплой на self-hosted раннере и публикация образа в `ghcr.io`
 - Лицензия — MIT
 - С 16.10.2026 разработку ведёт ИИ — модели локального стека Strata (`swift-1.5-iq3_xxs`,
@@ -163,7 +163,7 @@ CI (`.github/workflows/`):
 ## Тесты
 
 ```bash
-go test -race -count=1 ./...                                   # 167 тестов
+go test -race -count=1 ./...                                   # 171 тест
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # проверить доступ к датацентрам
 ```
 
@@ -173,6 +173,10 @@ PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # прове�
 - in-memory SQLite (`github.com/glebarez/sqlite`, чистый Go, CGO не нужен) вместо PostgreSQL;
 - хелперы `setupTestEnv`, `testMessage`, `testContext`, `testCallbackContext`, `seedUser`,
   `waitForCalls`.
+
+Сохранение альбомов в личку проверяется при одновременном поступлении сообщений и 128 запросах
+сохранения: каждая отправка сортирует свою копию списка, не меняет общий кэш и не блокирует его
+на время запроса к Telegram. Отдельно проверяются пустой кэш и пустой результат копирования.
 
 Сети и Postgres тесты не требуют. Учитывайте: тесты идут на SQLite, прод — на PostgreSQL, поэтому
 поведение БД в проде тестами не доказывается (`TestDataBaseInit` проверяет только пути отказа).
