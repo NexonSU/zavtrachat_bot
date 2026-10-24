@@ -6,8 +6,8 @@ A Go Telegram bot for one specific chat. It works through the Bot API (long poll
 self-hosted Bot API server supported) and additionally uses an MTProto client for a few commands.
 State is kept in PostgreSQL.
 
-- 92 commands registered in `main.go` (some of them are aliases of the same function)
-- 97 `.go` source files, 184 tests in 29 files
+- 100 commands registered in `main.go` (some of them are aliases of the same function)
+- 104 `.go` source files, 228 tests in 37 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -20,12 +20,29 @@ State is kept in PostgreSQL.
 |---|---|
 | `/ban`, `/unban` | ban / unban, optional duration in seconds (`/ban @user 3600`) |
 | `/mute`, `/unmute` | mute / unmute, optional duration in seconds |
+| `/muted` | current mutes, origin, initiator and time remaining; an ephemeral response to the requesting admin |
 | `/kick` | kick (ban + unban, so the user can come back through an invite link) |
 | `/warn`, `/mywarns` | warn somebody / how many warnings I have |
 | `/remove` | delete the message the command was sent in reply to |
 | `/debug`, `/debuguser`, `/finduserinmessage` | JSON dumps of a message/user for debugging |
 
 Access to moderation commands comes from the `ZAVTRA_ADMINS` / `ZAVTRA_MODERS` / `ZAVTRA_SYSADMIN` lists.
+
+`/muted` runs in the main chat. Telegram administrators/owner and configured
+`ZAVTRA_ADMINS`, `ZAVTRA_MODERS`, `ZAVTRA_SYSADMIN` can use it. The command is advertised
+in the chat administrator menu; configured moderators can invoke it by name.
+Both the menu command and its response are ephemeral. Refresh/pagination edits only
+the requester's ephemeral message and rechecks permissions. End times use Moscow time.
+
+The full live list is fetched over MTProto, including manual and pre-existing restrictions.
+If MTProto is unavailable, Bot API checks the bot's known active restrictions and the report
+explicitly warns that it is partial; failed checks are counted separately.
+Lifted/expired restrictions, departed users and media-only restrictions are excluded.
+The new `mute_events` table records successful restrictions/lifts, initiator and origin:
+self-bless, ricochet, kill, duel, shotgun, admin mute or three warnings. Manual changes
+are observed via `chat_member` (the bot must be an administrator and `chat_member` must
+be in `ZAVTRA_ALLOWED_UPDATES`, as it is by default). Missing/mismatched origins are
+shown as unknown. Existing game counters and restriction rules are unchanged.
 
 ### Games and "social"
 | Command | What it does |

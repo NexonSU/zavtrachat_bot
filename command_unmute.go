@@ -21,7 +21,7 @@ func Unmute(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 	trueVal := true
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
+	_, err = restrictChatMemberTracked(Bot, context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
 		CanSendMessages:       true,
 		CanSendAudios:         true,
 		CanSendDocuments:      true,
@@ -33,7 +33,7 @@ func Unmute(bot *gotgbot.Bot, context *ext.Context) error {
 		CanSendOtherMessages:  true,
 		CanAddWebPagePreviews: true,
 		CanReactToMessages:    &trueVal,
-	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()})
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60)).Unix()}, context.Message.From, "unmute")
 	if err != nil {
 		return err
 	}

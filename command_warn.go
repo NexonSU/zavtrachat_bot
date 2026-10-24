@@ -58,10 +58,10 @@ func WarnUser(bot *gotgbot.Bot, context *ext.Context) error {
 		if _, err := context.EffectiveChat.SendMessage(bot, fmt.Sprintf("%v, ты набрал 3 предупреждения.", UserFullName(&target)), &gotgbot.SendMessageOpts{EphemeralMessageParameters: &gotgbot.EphemeralMessageParameters{ReceiverUserId: target.Id}, ParseMode: gotgbot.ParseModeHTML}); err != nil {
 			log.Printf("warn: failed to notify %v about the mute: %v", target.Id, err)
 		}
-		result, err := Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
+		result, err := restrictChatMemberTracked(Bot, context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
 			CanSendMessages:    false,
 			CanReactToMessages: &trueVal,
-		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Hour * time.Duration(168)).Unix()})
+		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Hour * time.Duration(168)).Unix()}, context.Message.From, "warn")
 		if err != nil {
 			return err
 		}
