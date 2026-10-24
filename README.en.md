@@ -38,6 +38,9 @@ Access to moderation commands comes from the `ZAVTRA_ADMINS` / `ZAVTRA_MODERS` /
 | `/megamlem` | the same permissions and restrictions as `/shotgun`, with a giant black cat picture |
 | `/isekai`, `suicide`, `blessing`, `/isekaitop`, `/blessingtop` | "get hired by Roskomnadzor" and the chat leaderboard |
 | `/addbless`, `/addnope` | add a blessing reason / a text shown when the duel button is declined |
+| `/addsalvation` | add a salvation phrase (up to 200 characters), as command text or a reply |
+| `/salvationlist` | manage the separate salvation phrase pool in PM, with pages and confirmed deletion |
+| `/salvationlistfull` | show every salvation phrase as plain text in PM |
 | `/blesslist` | manage the shared blessing phrases in PM: pages, selection and deletion confirmation |
 | `/pidor`, `/pidoreg`, `/pidorlist`, `/pidorme`, `/pidorstats`, `/pidorall`, `/pidorules`, `/pidordel`, `/pidorremovetoday` | the "Pidor of the Day!" game |
 | `/slap`, `/hug`, `/bonk`, `/marco`, `/shrug`, `/me` | stickers/meme actions and the IRC-style `/me` |
@@ -345,3 +348,5 @@ What it does not cover:
   `github.com/celestix/gotgproto` under **GPL-3.0**: it is linked into the binary, so distributing the
   built bot puts the whole work under GPL-3 (the sources have to be disclosed). Running the bot on your
   own server carries no obligation: GPL triggers on distribution, not on use.
+
+Salvation phrase commands use the configured admin/moderator roles (`ZAVTRA_ADMINS`, `ZAVTRA_MODERS`). This separate pool does not change blessing probability or statistics. The last phrase cannot be deleted.

@@ -114,6 +114,9 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "restart", Description: "перезапуск бота", IsEphemeral: true}, Restart},
 		{gotgbot.BotCommand{Command: "resurrect", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "revive", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
+		{gotgbot.BotCommand{Command: "addsalvation", Description: "добавить фразу спасения", IsEphemeral: true}, AddSalvation},
+		{gotgbot.BotCommand{Command: "salvationlist", Description: "управление фразами спасения в личке"}, SalvationList},
+		{gotgbot.BotCommand{Command: "salvationlistfull", Description: "все фразы спасения текстом в личке"}, SalvationListFull},
 		{gotgbot.BotCommand{Command: "addbless", Description: "добавить причину блесса", IsEphemeral: true}, AddBless},
 		{gotgbot.BotCommand{Command: "perf", Description: "производительность бота в личке"}, Perf},
 		{gotgbot.BotCommand{Command: "blesslistfull", Description: "все фразы блесса текстом в личке"}, BlessListFull},
@@ -172,7 +175,7 @@ func main() {
 	privateCommands := []gotgbot.BotCommand{}
 	for i := range commandList {
 		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, measureHandler("/"+commandList[i].command.Command, commandList[i].response)))
-		if commandList[i].command.Command == "blesslistfull" || commandList[i].command.Command == "blesslist" || commandList[i].command.Command == "perf" {
+		if commandList[i].command.Command == "salvationlist" || commandList[i].command.Command == "salvationlistfull" || commandList[i].command.Command == "blesslistfull" || commandList[i].command.Command == "blesslist" || commandList[i].command.Command == "perf" {
 			privateCommands = append(privateCommands, commandList[i].command)
 		} else {
 			commandArray = append(commandArray, commandList[i].command)
@@ -192,6 +195,7 @@ func main() {
 	//non-command handles
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), measureHandler("callback:roulette_accept", Accept)))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), measureHandler("callback:roulette_deny", Deny)))
+	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(salvationListPrefix), measureHandler("callback:salvationlist", SalvationListCallback)))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(blessListPrefix), measureHandler("callback:blesslist", BlessListCallback)))
 	BotDispatcher.AddHandler(handlers.Message{Response: measureHandler("event:reserve", RemoveJoinMessageAndJoinUser), Filter: message.ChatID(Config.ReserveChat)})
 	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: measureHandler("event:channel", ForwardChannelPost), Filter: message.ChatID(Config.Channel)})

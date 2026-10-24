@@ -66,6 +66,10 @@ type Stats struct {
 	LastUpdate   int64 `gorm:"default:1685221200"`
 }
 
+type Salvation struct {
+	Text string `gorm:"primaryKey"`
+}
+
 type Bless struct {
 	Text string `gorm:"primaryKey"`
 }
@@ -80,7 +84,7 @@ func DataBaseInit(dsn string) (gorm.DB, error) {
 	}
 
 	//Create tables, if they not exists in DB
-	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{})
+	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{})
 	if err != nil {
 		return *database, err
 	}
@@ -97,4 +101,10 @@ func GetBless() string {
 	var bless Bless
 	DB.Model(Bless{}).Order("RANDOM()").First(&bless)
 	return bless.Text
+}
+
+func GetSalvation() string {
+	var salvation Salvation
+	DB.Model(Salvation{}).Order("RANDOM()").First(&salvation)
+	return salvation.Text
 }
