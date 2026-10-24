@@ -116,6 +116,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "revive", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "addbless", Description: "добавить причину блесса", IsEphemeral: true}, AddBless},
 		{gotgbot.BotCommand{Command: "perf", Description: "производительность бота в личке"}, Perf},
+		{gotgbot.BotCommand{Command: "blesslistfull", Description: "все фразы блесса текстом в личке"}, BlessListFull},
 		{gotgbot.BotCommand{Command: "blesslist", Description: "управление фразами блесса в личке"}, BlessList},
 		{gotgbot.BotCommand{Command: "addnope", Description: "добавить сообщение отказа по кнопке", IsEphemeral: true}, AddNope},
 		{gotgbot.BotCommand{Command: "ban", Description: "забанить кого-нибудь", IsEphemeral: true}, Ban},
@@ -171,7 +172,7 @@ func main() {
 	privateCommands := []gotgbot.BotCommand{}
 	for i := range commandList {
 		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, measureHandler("/"+commandList[i].command.Command, commandList[i].response)))
-		if commandList[i].command.Command == "blesslist" || commandList[i].command.Command == "perf" {
+		if commandList[i].command.Command == "blesslistfull" || commandList[i].command.Command == "blesslist" || commandList[i].command.Command == "perf" {
 			privateCommands = append(privateCommands, commandList[i].command)
 		} else {
 			commandArray = append(commandArray, commandList[i].command)
