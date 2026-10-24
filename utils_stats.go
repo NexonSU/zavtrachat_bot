@@ -10,6 +10,9 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// Salvation events are stored per user/day using the same atomic counters.
+const salvationStatType int64 = 9
+
 func statsIncrease(statType int64, dayTimestamp int64, contextID int64) error {
 	return statsAdd(statType, dayTimestamp, contextID, 1)
 }

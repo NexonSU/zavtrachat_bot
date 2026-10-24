@@ -350,3 +350,5 @@ What it does not cover:
   own server carries no obligation: GPL triggers on distribution, not on use.
 
 Salvation phrase commands use the configured admin/moderator roles (`ZAVTRA_ADMINS`, `ZAVTRA_MODERS`). This separate pool does not change blessing probability or statistics. The last phrase cannot be deleted.
+
+`/blessing`, `/suicide` and `/isekai` have a 33% salvation chance: the user name and a random salvation phrase, followed by “Живи. Пока что.”. Salvation adds no death, mute time or blessing burst event. Admin ricochets always bless; an empty salvation pool falls back to blessing. Salvation counts appear in `/duelstats` and `/stats saves [day|week]`.

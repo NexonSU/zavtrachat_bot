@@ -505,8 +505,8 @@ func TestDuelstats(t *testing.T) {
 		t.Fatalf("Duelstats: %v", err)
 	}
 	texts = client.sentTexts()
-	if len(texts) != 1 || texts[0] != "У тебя 2 победы и 1 смерть" {
-		t.Errorf("Duelstats sent %q, want %q", texts, "У тебя 2 победы и 1 смерть")
+	if len(texts) != 1 || texts[0] != "У тебя 2 победы, 1 смерть и 0 спасений" {
+		t.Errorf("Duelstats sent %q, want %q", texts, "У тебя 2 победы, 1 смерть и 0 спасений")
 	}
 }
 

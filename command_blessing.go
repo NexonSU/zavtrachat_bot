@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -16,8 +18,12 @@ var lastSuicide int64
 var burst int
 var lastVideoSent int64
 
-// Kill user on /blessing, /suicide
+// Self-blessing handler shared by /blessing, /suicide and /isekai.
 func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
+	return blessingWithSalvationRoll(bot, context, func() int { return RandInt(0, 99) })
+}
+
+func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func() int) error {
 	// prt will replace fmt package to format text according plurals defined in utils package
 	// If no plural rule matched it will be ignored and processed as usual formatting
 	prt := message.NewPrinter(language.Russian)
@@ -30,7 +36,8 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	if ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" || context.Message.From.Id == Config.SysAdmin {
+	isAdmin := ChatMember.GetStatus() == "administrator" || ChatMember.GetStatus() == "creator" || context.Message.From.Id == Config.SysAdmin
+	if isAdmin {
 		var userID int64
 		rows, err := DB.Model(&Stats{}).Select("context_id").Where("stat_type = 3").Order("last_update desc").Limit(100).Rows()
 		if err != nil {
@@ -51,6 +58,27 @@ func Blessing(bot *gotgbot.Bot, context *ext.Context) error {
 				break
 			}
 		}
+	}
+	// Admin-triggered ricochets never roll for salvation. Resolve salvation
+	// before touching deaths, mute time or the suicide/video burst state.
+	if !isAdmin && roll() < 33 {
+		var phrase Salvation
+		result := DB.Order("RANDOM()").Limit(1).Find(&phrase)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected > 0 && strings.TrimSpace(phrase.Text) != "" {
+			if err := statsAdd(salvationStatType, GetStartOfDay(), victim.Id, 1); err != nil {
+				return err
+			}
+			text := strings.TrimSpace(phrase.Text)
+			if !strings.HasSuffix(text, ".") && !strings.HasSuffix(text, "!") && !strings.HasSuffix(text, "?") && !strings.HasSuffix(text, "…") {
+				text += "."
+			}
+			_, err := bot.SendMessage(context.EffectiveChat.Id, fmt.Sprintf("%s %s\nЖиви. Пока что.", UserFullName(&victim), text), nil)
+			return err
+		}
+		// An empty pool keeps the existing blessing behavior.
 	}
 	// The death belongs to whoever ends up restricted: on a ricochet that is
 	// the random member picked above, not the admin/sysadmin who pressed the

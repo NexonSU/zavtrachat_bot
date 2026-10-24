@@ -17,6 +17,7 @@ var statsTopKinds = map[string]struct {
 	statType int64
 	title    string
 }{
+	"saves":     {salvationStatType, "по спасениям"},
 	"likes":     {6, "по лайкам"},
 	"reactions": {6, "по лайкам"},
 	"mutes":     {8, "по смертям"},
@@ -43,11 +44,11 @@ func StatsTop(bot *gotgbot.Bot, context *ext.Context) error {
 	// args[2] the optional period.
 	args := context.Args()
 	if len(args) < 2 || args[1] == "" {
-		return Reply("Топы: <code>/stats likes</code>, <code>/stats mutes</code>, <code>/stats mutetime</code>, <code>/stats messages</code>, <code>/stats words</code>\nПериод: <code>day</code> (сутки) или <code>week</code> (неделя), без периода — за всё время.", *context)
+		return Reply("Топы: <code>/stats likes</code>, <code>/stats mutes</code>, <code>/stats mutetime</code>, <code>/stats messages</code>, <code>/stats words</code>, <code>/stats saves</code>\nПериод: <code>day</code> (сутки) или <code>week</code> (неделя), без периода — за всё время.", *context)
 	}
 	kind, ok := statsTopKinds[strings.ToLower(args[1])]
 	if !ok {
-		return Reply(fmt.Sprintf("Непонятный топ: <code>%v</code>.\nДоступные топы: likes, reactions, mutes, blessings, mutetime, blesstime, messages, words.", args[1]), *context)
+		return Reply(fmt.Sprintf("Непонятный топ: <code>%v</code>.\nДоступные топы: likes, reactions, mutes, blessings, mutetime, blesstime, messages, words, saves.", args[1]), *context)
 	}
 	where := "stat_type = ?"
 	whereArgs := []any{kind.statType}
@@ -101,6 +102,9 @@ func StatsTop(bot *gotgbot.Bot, context *ext.Context) error {
 			// themselves with a link into the chat.
 			name = fmt.Sprintf("<a href=\"%v\">сообщение</a>", chatMessageLink(context.EffectiveChat.Id, row.ContextID))
 			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "лайк", "лайка", "лайков"))
+		case salvationStatType:
+			name = statsTopUserName(row.ContextID)
+			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "спасение", "спасения", "спасений"))
 		case 8:
 			name = statsTopUserName(row.ContextID)
 			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "смерть", "смерти", "смертей"))
