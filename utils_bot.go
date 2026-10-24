@@ -183,11 +183,14 @@ func ytdlpGetVer() string {
 	return strings.TrimSpace(stdout.String())
 }
 
-// Define your middleware struct
+const antispamCleanupInterval = time.Minute
+const antispamReportCooldown int64 = 10
+
 type GlobalMiddleware struct {
 	mu           sync.Mutex
 	timestamps   map[int64][]time.Time
 	lastReportAt map[int64]int64
+	lastCleanup  time.Time
 }
 
 func NewGlobalMiddleware() *GlobalMiddleware {
@@ -318,11 +321,42 @@ func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error
 		return nil
 	}
 
-	userID := cntx.EffectiveUser.Id
-	now := time.Now()
+	if m.recordAntispamUpdate(cntx.EffectiveUser.Id, time.Now()) {
+		// Sending can wait on Telegram. The shared state and report cooldown
+		// are already updated, so other updates never wait for this request.
+		Logger.Warn("[SPAM] " + logText)
+		SysAdminReply(fmt.Sprintf("Возможно спам.\nType: %s\nSender: %s\nChat: %s\nText: <code>%s</code>", cntx.GetType(), sender, chat, text))
+	}
+	return nil
+}
 
+func (m *GlobalMiddleware) recordAntispamUpdate(userID int64, now time.Time) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	// Prune lazily: no background goroutine is needed, and idle users do not
+	// stay in these maps forever. Keep a recent report even when its message
+	// window expired, since the report cooldown may outlast that window.
+	if m.lastCleanup.IsZero() || now.Sub(m.lastCleanup) >= antispamCleanupInterval {
+		for id, timestamps := range m.timestamps {
+			active := false
+			for _, timestamp := range timestamps {
+				if int(now.Sub(timestamp).Seconds()) <= Config.AntiSpamWindow {
+					active = true
+					break
+				}
+			}
+			if !active {
+				delete(m.timestamps, id)
+			}
+		}
+		for id, reportedAt := range m.lastReportAt {
+			if now.Unix()-reportedAt > antispamReportCooldown {
+				delete(m.lastReportAt, id)
+			}
+		}
+		m.lastCleanup = now
+	}
 
 	var validTimestamps []time.Time
 	for _, t := range m.timestamps[userID] {
@@ -331,14 +365,13 @@ func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error
 		}
 	}
 
-	if len(validTimestamps) >= Config.AntiSpamCount && now.Unix()-m.lastReportAt[userID] > 10 {
+	report := len(validTimestamps) >= Config.AntiSpamCount && now.Unix()-m.lastReportAt[userID] > antispamReportCooldown
+	if report {
 		m.lastReportAt[userID] = now.Unix()
-		Logger.Warn("[SPAM] " + logText)
-		SysAdminReply(fmt.Sprintf("Возможно спам.\nType: %s\nSender: %s\nChat: %s\nText: <code>%s</code>", cntx.GetType(), sender, chat, text))
 	}
 
 	validTimestamps = append(validTimestamps, now)
 	m.timestamps[userID] = validTimestamps
 
-	return nil
+	return report
 }
