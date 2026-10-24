@@ -107,6 +107,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "megabite", Description: "очень сильно укусить кого-нибудь", IsEphemeral: true}, Kill},
 		{gotgbot.BotCommand{Command: "megamlem", Description: "совершить МЕГАМЛЕМ по чату", IsEphemeral: true}, Shotgun},
 		{gotgbot.BotCommand{Command: "kill", Description: "пристрелить кого-нибудь", IsEphemeral: true}, Kill},
+		{gotgbot.BotCommand{Command: "muted", Description: "Кто сейчас замьючен", IsEphemeral: true}, Muted},
 		{gotgbot.BotCommand{Command: "mute", Description: "заглушить кого-нибудь", IsEphemeral: true}, Mute},
 		{gotgbot.BotCommand{Command: "pidordel", Description: "удалить игрока из \"Пидор Дня!\"", IsEphemeral: true}, Pidordel},
 		{gotgbot.BotCommand{Command: "pidorremovetoday", Description: "удалить сегодняшнего \"Пидор Дня!\"", IsEphemeral: true}, PidorRemoveToday},
@@ -134,6 +135,25 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "testrandom", Description: "протестировать рандом бота", IsEphemeral: true}, TestRandom},
 		{gotgbot.BotCommand{Command: "remove", Description: "удалить сообщение", IsEphemeral: true}, RemoveReplyMessage},
 	}
+}
+
+// An administrator scope replaces the group menu, so it must include all the
+// regular group commands as well. /muted is advertised only to chat admins.
+func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
+	for _, entry := range commands {
+		switch entry.command.Command {
+		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf":
+			private = append(private, entry.command)
+		case "muted":
+			admin = append(admin, entry.command)
+		default:
+			group = append(group, entry.command)
+		}
+	}
+	sort.Slice(group, func(i, j int) bool { return group[i].Command < group[j].Command })
+	admin = append(admin, group...)
+	sort.Slice(admin, func(i, j int) bool { return admin[i].Command < admin[j].Command })
+	return group, private, admin
 }
 
 func main() {
@@ -171,19 +191,11 @@ func main() {
 	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllChatAdministrators{}})
 	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeDefault{}})
 
-	commandArray := []gotgbot.BotCommand{}
-	privateCommands := []gotgbot.BotCommand{}
 	for i := range commandList {
 		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, measureHandler("/"+commandList[i].command.Command, commandList[i].response)))
-		if commandList[i].command.Command == "salvationlist" || commandList[i].command.Command == "salvationlistfull" || commandList[i].command.Command == "blesslistfull" || commandList[i].command.Command == "blesslist" || commandList[i].command.Command == "perf" {
-			privateCommands = append(privateCommands, commandList[i].command)
-		} else {
-			commandArray = append(commandArray, commandList[i].command)
-		}
 	}
-	sort.Slice(commandArray, func(i, j int) bool {
-		return commandArray[i].Command < commandArray[j].Command
-	})
+	commandArray, privateCommands, adminCommands := commandMenus(commandList)
+
 	_, err = Bot.SetMyCommands(commandArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllGroupChats{}})
 	if err != nil {
 		slog.Error(err.Error())
@@ -192,7 +204,13 @@ func main() {
 		slog.Error(err.Error())
 	}
 
+	if _, err = Bot.SetMyCommands(adminCommands, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeChatAdministrators{ChatId: Config.Chat}}); err != nil {
+		slog.Error(err.Error())
+	}
+
 	//non-command handles
+	BotDispatcher.AddHandler(handlers.NewChatMember(nil, measureHandler("event:mute_member", OnMuteChatMember)))
+	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(mutedPrefix), measureHandler("callback:muted", MutedCallback)))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), measureHandler("callback:roulette_accept", Accept)))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), measureHandler("callback:roulette_deny", Deny)))
 	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(salvationListPrefix), measureHandler("callback:salvationlist", SalvationListCallback)))

@@ -36,10 +36,10 @@ func Mute(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	untildate := time.Now().Unix() + duration
 	trueVal := true
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
+	_, err = restrictChatMemberTracked(Bot, context.Message.Chat.Id, target.Id, gotgbot.ChatPermissions{
 		CanSendMessages:    false,
 		CanReactToMessages: &trueVal,
-	}, &gotgbot.RestrictChatMemberOpts{UntilDate: untildate})
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: untildate}, context.Message.From, "mute")
 	if err != nil {
 		return err
 	}

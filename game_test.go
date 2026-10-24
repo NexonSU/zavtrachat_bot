@@ -580,6 +580,11 @@ func TestDuelAcceptFull(t *testing.T) {
 	if busy["russianrouletteInProgress"] {
 		t.Error("Accept: duel should not stay in progress")
 	}
+	events, err := latestMuteEvents(Config.Chat)
+	if err != nil || len(events) != 1 || events[0].Source != "duel" || !events[0].Muted ||
+		events[0].UserID != restricts[0].Params["user_id"] || events[0].ActorID == events[0].UserID {
+		t.Errorf("Accept: mute origin = %+v, err %v", events, err)
+	}
 }
 
 // TestDuelAcceptNotParticipant covers the accept pressed by anyone who is not

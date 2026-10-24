@@ -76,11 +76,15 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 			duration = duration * 2
 			prependText += "премиально "
 		}
+		muteSource := "shotgun"
+		if isMegamlem {
+			muteSource = "megamlem"
+		}
 		trueVal := true
-		_, err = Bot.RestrictChatMember(context.Message.Chat.Id, victim.Id, gotgbot.ChatPermissions{
+		_, err = restrictChatMemberTracked(Bot, context.Message.Chat.Id, victim.Id, gotgbot.ChatPermissions{
 			CanSendMessages:    false,
 			CanReactToMessages: &trueVal,
-		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
+		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()}, context.Message.From, muteSource)
 		if err != nil {
 			continue
 		}

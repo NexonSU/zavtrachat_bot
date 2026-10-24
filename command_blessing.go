@@ -123,10 +123,10 @@ func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func
 		duration = 1
 	}
 	trueVal := true
-	_, err = Bot.RestrictChatMember(context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
+	_, err = restrictChatMemberTracked(Bot, context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
 		CanSendMessages:    false,
 		CanReactToMessages: &trueVal,
-	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()})
+	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()}, context.Message.From, "blessing")
 	if err != nil {
 		return err
 	}
