@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -152,4 +153,25 @@ func TestRegisteredChatMemberPersistsOneEvent(t *testing.T) {
 	if strings.Contains(strings.Join(client.sentTexts(), ""), "mute") {
 		t.Fatal("event leaked publicly")
 	}
+}
+
+func TestRegisteredCallbackFailureReportsPrivately(t *testing.T) {
+	bot, client, ctx := duelScenario(t, 777)
+	Config.Token = "secret-token"
+	dispatcher := newBotDispatcher()
+	registerBotHandlers(dispatcher)
+	ctx.CallbackQuery.Data = "russianroulette_deny"
+	client.setError("answerCallbackQuery", fmt.Errorf("<broken> & secret-token"))
+	processTestUpdate(t, dispatcher, bot, ctx.Update)
+	calls := client.callsFor("sendMessage")
+	if len(calls) != 1 {
+		t.Fatalf("callback errors=%d", len(calls))
+	}
+	params := calls[0].Params
+	eph, _ := params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
+	text, _ := params["text"].(string)
+	if eph == nil || eph.ReceiverUserId != 777 || params["chat_id"] != int64(-100) || strings.Contains(text, "secret-token") || !strings.Contains(text, "&lt;broken&gt; &amp; TOKEN") {
+		t.Fatalf("unsafe callback error delivery: %+v", params)
+	}
+	assertDuelReleased(t)
 }

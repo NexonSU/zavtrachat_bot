@@ -19,7 +19,17 @@ func newBotDispatcher() *ext.Dispatcher {
 		// If an error is returned by a handler, log it and continue going.
 		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
 			details := updateContext(context)
-			reportErr := Reply("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN")+"\n\n"+details, *context)
+			safeError := err.Error()
+			if Config.Token != "" {
+				safeError = strings.ReplaceAll(safeError, Config.Token, "TOKEN")
+			}
+			text := "Ошибка: " + html.EscapeString(safeError) + "\n\n" + details
+			var reportErr error
+			if context.Message != nil {
+				reportErr = Reply(text, *context)
+			} else {
+				reportErr = sendZBHelp(bot, context, text)
+			}
 			if reportErr != nil {
 				Logger.Error("error when reporting a... error: " + reportErr.Error())
 			}
