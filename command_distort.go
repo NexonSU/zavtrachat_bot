@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	_ "image/png"
@@ -52,7 +51,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	additionalInputArgs := ""
+	var additionalInputArgs []string
 	options := &gotgbot.ReplyParameters{AllowSendingWithoutReply: true}
 	var resultMessage *gotgbot.Message
 	var recepient int64
@@ -127,6 +126,9 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	framerate := "30/1"
 
 	if media.Type != "audio" && media.Type != "voice" {
+		if data.FirstVideoStream() == nil {
+			return fmt.Errorf("видео-дорожка не найдена")
+		}
 		frames := data.FirstVideoStream().NbFrames
 		framerate = data.FirstVideoStream().AvgFrameRate
 
@@ -152,13 +154,19 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}(workdir)
 
 	if media.Type == "video" && data.FirstAudioStream() != nil {
-		ffmpeg.Input(inputFile).Output(workdir+"/input_audio.aac", ffmpeg.KwArgs{"vn": "", "acodec": "copy"}).OverWriteOutput().ErrorToStdOut().Run()
-		ffmpeg.Input(workdir+"/input_audio.aac").Output(workdir+"/audio.aac", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
-		additionalInputArgs = "-i " + workdir + "/audio.aac -c:a aac"
+		if err = ffmpeg.Input(inputFile).Output(workdir+"/input_audio.aac", ffmpeg.KwArgs{"vn": "", "acodec": "copy"}).OverWriteOutput().ErrorToStdOut().Run(); err != nil {
+			return err
+		}
+		if err = ffmpeg.Input(workdir+"/input_audio.aac").Output(workdir+"/audio.aac", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run(); err != nil {
+			return err
+		}
+		additionalInputArgs = []string{"-i", workdir + "/audio.aac", "-c:a", "aac"}
 	}
 
 	if media.Type == "audio" || media.Type == "voice" {
-		ffmpeg.Input(inputFile).Output(workdir+"/input_audio.mp3", ffmpeg.KwArgs{"vn": ""}).OverWriteOutput().ErrorToStdOut().Run()
+		if err = ffmpeg.Input(inputFile).Output(workdir+"/input_audio.mp3", ffmpeg.KwArgs{"vn": ""}).OverWriteOutput().ErrorToStdOut().Run(); err != nil {
+			return err
+		}
 		err = ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
 		if err != nil {
 			return err
@@ -167,7 +175,14 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		resultMessage, err = Bot.SendAudio(recepient, gotgbot.InputFileByReader(media.FileName+"_distorted.mp3", f), &gotgbot.SendAudioOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
+		if err != nil {
+			return err
+		}
+		if resultMessage.Audio == nil {
+			return fmt.Errorf("Telegram не вернул отправленное аудио")
+		}
 		DistortCache[media.FileID] = resultMessage.Audio.FileId
 		if recepient == context.Message.From.Id {
 			Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
@@ -239,49 +254,59 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 
-	pool := tunny.NewFunc(runtime.NumCPU()-1, func(payload interface{}) interface{} {
-		payloadCommand := strings.Fields(payload.(string))
-		return exec.Command(payloadCommand[0], payloadCommand[1:]...).Run()
+	workCtx, cancelWork := cntx.WithDeadline(cntx.Background(), time.Unix(jobStarted+300, 0))
+	defer cancelWork()
+	pool := tunny.NewFunc(max(1, runtime.NumCPU()-1), func(payload interface{}) interface{} {
+		args := payload.([]string)
+		return exec.CommandContext(workCtx, args[0], args[1:]...).Run()
 	})
 	defer pool.Close()
 
+	results := make(chan error, len(files))
 	for i, file := range files {
-		command := fmt.Sprintf("convert %v -liquid-rescale %v%% -resize %vx%v! %v", file, 90-(i*65/len(files)), width, height, file)
-		go func(command string) {
-			if pool.Process(command) != nil {
-				err = pool.Process(command).(error)
+		args := []string{"convert", file, "-liquid-rescale", fmt.Sprintf("%d%%", 90-i*65/len(files)), "-resize", fmt.Sprintf("%dx%d!", width, height), file}
+		go func(args []string) {
+			if result := pool.Process(args); result != nil {
+				results <- result.(error)
+			} else {
+				results <- nil
 			}
-		}(command)
+		}(args)
 	}
 
-	for {
-		time.Sleep(1 * time.Second)
-		if time.Now().Unix()-jobStarted > 300 {
-			return Reply("Слишком долгое выполнение операции", *context)
+	// QueueLength excludes work already running. Join every frame before
+	// encoding or cleanup, and report worker failures without racing on err.
+	for range files {
+		if frameErr := <-results; frameErr != nil && err == nil {
+			err = frameErr
 		}
-		if pool.QueueLength() == 0 {
-			break
-		}
+	}
+	if workCtx.Err() != nil {
+		return Reply("Слишком долгое выполнение операции", *context)
 	}
 	if err != nil {
 		return err
 	}
 
-	ffmpegCommand := fmt.Sprintf("ffmpeg -y -framerate %v -i %v/%%09d.jpg %v -c:v: libx264 -preset fast -crf 26 -pix_fmt yuv420p -movflags +faststart -hide_banner -loglevel fatal %v", framerate, workdir, additionalInputArgs, outputFile)
-	ffmpegCommandExec := strings.Fields(ffmpegCommand)
-	err = exec.Command(ffmpegCommandExec[0], ffmpegCommandExec[1:]...).Run()
+	args := []string{"-y", "-framerate", framerate, "-i", workdir + "/%09d.jpg"}
+	args = append(args, additionalInputArgs...)
+	args = append(args, "-c:v", "libx264", "-preset", "fast", "-crf", "26", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-hide_banner", "-loglevel", "fatal", outputFile)
+	err = exec.CommandContext(workCtx, "ffmpeg", args...).Run()
 	if err != nil {
 		return err
 	}
 
-	DistortBusy = false
 	f, err := os.Open(outputFile)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	resultMessage, err = Bot.SendDocument(recepient, gotgbot.InputFileByReader(media.FileName+"_distorted.mp4", f), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: options})
 	if err != nil {
 		return err
+	}
+	if resultMessage.Document == nil {
+		return fmt.Errorf("Telegram не вернул отправленный документ")
 	}
 	DistortCache[media.FileID] = resultMessage.Document.FileId
 	if recepient == context.Message.From.Id {

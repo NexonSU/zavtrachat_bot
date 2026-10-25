@@ -14,7 +14,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-var memeChannel *tg.Channel
+var memeChannel = &protoMediaChannelCache{}
 
 // Reply with meme from thedankestmemes
 // The parameter is named ctx (not context) so the MTProto helpers below can
@@ -25,28 +25,13 @@ func Meme(bot *gotgbot.Bot, ctx *ext.Context) error {
 		return Reply("MTProto-клиент ещё не подключился, попробуй чуть позже.", *ctx)
 	}
 
-	//get channel object
-	if memeChannel == nil {
-		var chats []tg.ChatClass
-		err := protoRetry(protoCtx, 2, func(callCtx context.Context) error {
-			channelResolve, err := api.ContactsResolveUsername(callCtx, &tg.ContactsResolveUsernameRequest{Username: "thedankestmemes"})
-			if err != nil {
-				return err
-			}
-			chats = channelResolve.GetChats()
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		if len(chats) == 0 {
-			return fmt.Errorf("resolve @thedankestmemes: channel not found")
-		}
-		channel, ok := chats[0].(*tg.Channel)
-		if !ok {
-			return fmt.Errorf("resolve @thedankestmemes: not a channel")
-		}
-		memeChannel = channel
+	return memeWithAPI(bot, ctx, api, protoCtx)
+}
+
+func memeWithAPI(bot *gotgbot.Bot, ctx *ext.Context, api *tg.Client, protoCtx context.Context) error {
+	channel, err := resolveMediaChannel(api, protoCtx, "thedankestmemes", memeChannel)
+	if err != nil {
+		return err
 	}
 	//prepare message query
 	messagesQuery := []tg.InputMessageClass{}
@@ -57,10 +42,10 @@ func Meme(bot *gotgbot.Bot, ctx *ext.Context) error {
 	}
 	//query messages
 	var messagesResult tg.MessagesMessagesClass
-	err := protoRetry(protoCtx, 2, func(callCtx context.Context) error {
+	err = protoRetry(protoCtx, 2, func(callCtx context.Context) error {
 		var err error
 		messagesResult, err = api.ChannelsGetMessages(callCtx, &tg.ChannelsGetMessagesRequest{
-			Channel: memeChannel.AsInput(),
+			Channel: channel.AsInput(),
 			ID:      messagesQuery,
 		})
 		return err
@@ -90,11 +75,7 @@ func Meme(bot *gotgbot.Bot, ctx *ext.Context) error {
 			if !check {
 				continue
 			}
-			fileNameObj, check := docFile.MapAttributes().AsDocumentAttributeFilename().First()
-			filename := fileNameObj.FileName
-			if !check {
-				filename = strings.ReplaceAll(docFile.MimeType, "/", ".")
-			}
+			filename := protoDocumentFilename(docFile)
 			if docFile.MimeType == "video/quicktime" {
 				continue
 			}
@@ -125,7 +106,7 @@ func Meme(bot *gotgbot.Bot, ctx *ext.Context) error {
 			if !check {
 				continue
 			}
-			if len(photoFile.Sizes) == 0 {
+			if len(photoFile.Sizes) == 0 || len([]rune(photoFile.Sizes[len(photoFile.Sizes)-1].GetType())) == 0 {
 				continue
 			}
 			fileid := fileid.FromPhoto(photoFile, []rune(photoFile.Sizes[len(photoFile.Sizes)-1].GetType())[0])

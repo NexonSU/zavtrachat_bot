@@ -13,7 +13,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-var woofChannel *tg.Channel
+var woofChannel = &protoMediaChannelCache{}
 
 // Reply with GIF from Pan Kotek's channel
 // The parameter is named ctx (not context) so the MTProto helpers below can
@@ -24,28 +24,13 @@ func Woof(bot *gotgbot.Bot, ctx *ext.Context) error {
 		return Reply("MTProto-клиент ещё не подключился, попробуй чуть позже.", *ctx)
 	}
 
-	//get channel object
-	if woofChannel == nil {
-		var chats []tg.ChatClass
-		err := protoRetry(protoCtx, 2, func(callCtx context.Context) error {
-			channelResolve, err := api.ContactsResolveUsername(callCtx, &tg.ContactsResolveUsernameRequest{Username: "imnotacat"})
-			if err != nil {
-				return err
-			}
-			chats = channelResolve.GetChats()
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		if len(chats) == 0 {
-			return fmt.Errorf("resolve @imnotacat: channel not found")
-		}
-		channel, ok := chats[0].(*tg.Channel)
-		if !ok {
-			return fmt.Errorf("resolve @imnotacat: not a channel")
-		}
-		woofChannel = channel
+	return woofWithAPI(bot, ctx, api, protoCtx)
+}
+
+func woofWithAPI(bot *gotgbot.Bot, ctx *ext.Context, api *tg.Client, protoCtx context.Context) error {
+	channel, err := resolveMediaChannel(api, protoCtx, "imnotacat", woofChannel)
+	if err != nil {
+		return err
 	}
 	//prepare message query
 	messagesQuery := []tg.InputMessageClass{}
@@ -56,10 +41,10 @@ func Woof(bot *gotgbot.Bot, ctx *ext.Context) error {
 	}
 	//query messages
 	var messagesResult tg.MessagesMessagesClass
-	err := protoRetry(protoCtx, 2, func(callCtx context.Context) error {
+	err = protoRetry(protoCtx, 2, func(callCtx context.Context) error {
 		var err error
 		messagesResult, err = api.ChannelsGetMessages(callCtx, &tg.ChannelsGetMessagesRequest{
-			Channel: woofChannel.AsInput(),
+			Channel: channel.AsInput(),
 			ID:      messagesQuery,
 		})
 		return err
@@ -86,11 +71,7 @@ func Woof(bot *gotgbot.Bot, ctx *ext.Context) error {
 			if !check {
 				continue
 			}
-			fileNameObj, check := docFile.MapAttributes().AsDocumentAttributeFilename().First()
-			filename := fileNameObj.FileName
-			if !check {
-				filename = strings.ReplaceAll(docFile.MimeType, "/", ".")
-			}
+			filename := protoDocumentFilename(docFile)
 			buf := bytes.Buffer{}
 			if err := protoDownload(protoCtx, func(callCtx context.Context) error {
 				_, err := downloader.NewDownloader().Download(api, docFile.AsInputDocumentFileLocation("")).Stream(callCtx, &buf)

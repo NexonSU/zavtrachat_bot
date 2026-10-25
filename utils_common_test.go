@@ -324,15 +324,20 @@ func TestDownloadFile(t *testing.T) {
 }
 
 // ffmpegMedia writes a tiny media file with the system ffmpeg and returns its path.
+func requireMediaTool(t *testing.T, name string) {
+	t.Helper()
+	if _, err := exec.LookPath(name); err != nil {
+		if os.Getenv("ZAVTRA_REQUIRE_MEDIA_TESTS") == "1" {
+			t.Fatalf("required media tool %s is not installed: %v", name, err)
+		}
+		t.Skipf("%s is not installed", name)
+	}
+}
+
 func ffmpegMedia(t *testing.T, kind string) string {
 	t.Helper()
-
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		t.Skip("ffmpeg is not installed")
-	}
-	if _, err := exec.LookPath("ffprobe"); err != nil {
-		t.Skip("ffprobe is not installed")
-	}
+	requireMediaTool(t, "ffmpeg")
+	requireMediaTool(t, "ffprobe")
 
 	ext, inputs := "mp3", []string{"-f", "lavfi", "-i", "sine=frequency=440:duration=1"}
 	switch kind {
@@ -365,12 +370,8 @@ func ffmpegMedia(t *testing.T, kind string) string {
 func ytdlpFixtureServer(t *testing.T, kind string) string {
 	t.Helper()
 
-	if _, err := exec.LookPath("yt-dlp"); err != nil {
-		t.Skip("yt-dlp is not installed")
-	}
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		t.Skip("ffmpeg is not installed")
-	}
+	requireMediaTool(t, "yt-dlp")
+	requireMediaTool(t, "ffmpeg")
 
 	fixtures := map[string]struct {
 		out  string
@@ -394,6 +395,9 @@ func ytdlpFixtureServer(t *testing.T, kind string) string {
 		append(fixture.args, "-y", fixture.out)...)...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
+		if os.Getenv("ZAVTRA_REQUIRE_MEDIA_TESTS") == "1" {
+			t.Fatalf("required %v fixture failed: %v\n%s", kind, err, out)
+		}
 		t.Skipf("ffmpeg cannot build the %v fixture: %v\n%s", kind, err, out)
 	}
 
@@ -407,9 +411,7 @@ func ytdlpFixtureServer(t *testing.T, kind string) string {
 func ffprobeStreamValues(t *testing.T, path string, entry string) []string {
 	t.Helper()
 
-	if _, err := exec.LookPath("ffprobe"); err != nil {
-		t.Skip("ffprobe is not installed")
-	}
+	requireMediaTool(t, "ffprobe")
 	out, err := exec.Command("ffprobe", "-v", "error", "-show_entries", "stream="+entry,
 		"-of", "csv=p=0", path).CombinedOutput()
 	if err != nil {
