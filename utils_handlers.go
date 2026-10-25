@@ -65,6 +65,9 @@ func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
 }
 
 func OnText(bot *gotgbot.Bot, context *ext.Context) error {
+	if context.Message == nil || context.Message.From == nil {
+		return nil
+	}
 	if context.EffectiveChat.Id == Config.ReserveChat {
 		context.EffectiveMessage.Delete(bot, nil)
 		if !IsAdminOrModer(context.EffectiveUser.Id) && bot.Id != context.EffectiveUser.Id {

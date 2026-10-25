@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"golang.org/x/text/language"
 	plurals "golang.org/x/text/message"
-	"gorm.io/gorm/clause"
 )
 
 func Accept(bot *gotgbot.Bot, context *ext.Context) error {
@@ -127,33 +127,25 @@ func acceptDuelWith(bot *gotgbot.Bot, context *ext.Context, random func(int, int
 			return err
 		}
 		pause(time.Second * 3)
-		var duelist Duelist
-		result := DB.Model(Duelist{}).Where(player.Id).First(&duelist)
-		if result.RowsAffected == 0 {
-			duelist.UserID = player.Id
-			duelist.Kills = 0
-			duelist.Deaths = 0
+		duelist, err := recordGameDeath(player.Id)
+		if err != nil {
+			return err
 		}
-		duelist.Deaths++
-		result = DB.Clauses(clause.OnConflict{
-			UpdateAll: true,
-		}).Create(&duelist)
-		if result.Error != nil {
-			return result.Error
-		}
-		// Deaths are duplicated into the stats (stat type 8) so /stats tops
-		// can rank them per day.
-		statsAdd(8, GetStartOfDay(), player.Id, 1)
 		trueVal := true
-		_, err = restrictChatMemberTracked(Bot, context.EffectiveChat.Id, PlayerChatMember.GetUser().Id, gotgbot.ChatPermissions{
+		restricted, err := restrictChatMemberTracked(Bot, context.EffectiveChat.Id, PlayerChatMember.GetUser().Id, gotgbot.ChatPermissions{
 			CanSendMessages:    false,
 			CanReactToMessages: &trueVal,
 		}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duelist.Deaths)).Unix()}, victim, "duel")
 		if err != nil {
 			return err
 		}
+		if !restricted {
+			return fmt.Errorf("Telegram rejected duel restriction")
+		}
 		// Mute time (stat type 7) accumulates the restriction in seconds.
-		statsAdd(7, GetStartOfDay(), player.Id, int64(duelist.Deaths)*60)
+		if err := statsAdd(7, GetStartOfDay(), player.Id, int64(duelist.Deaths)*60); err != nil {
+			return err
+		}
 		_, _, err = Bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: prt.Sprintf("%v😈 Наводит револьвер на %v и стреляет.\nЯ хз как это объяснить, но %v победитель!\n%v отправился на респавн на %d %v.", prefix, MentionUser(player), MentionUser(victim), MentionUser(player), duelist.Deaths, ruPlural(duelist.Deaths, "минуту", "минуты", "минут")), ParseMode: gotgbot.ParseModeHTML, ChatId: context.EffectiveChat.Id, MessageId: message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
 		if err != nil {
 			return err
@@ -179,53 +171,35 @@ func acceptDuelWith(bot *gotgbot.Bot, context *ext.Context, random func(int, int
 		return err
 	}
 	pause(time.Second * 2)
-	var VictimDuelist Duelist
-	result := DB.Model(Duelist{}).Where(victim.Id).First(&VictimDuelist)
-	if result.RowsAffected == 0 {
-		VictimDuelist.UserID = victim.Id
-		VictimDuelist.Kills = 0
-		VictimDuelist.Deaths = 0
+	VictimDuelist, err := recordGameDeath(victim.Id)
+	if err != nil {
+		return err
 	}
-	VictimDuelist.Deaths++
-	result = DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&VictimDuelist)
-	if result.Error != nil {
-		return result.Error
-	}
-	// Deaths are duplicated into the stats (stat type 8) so /stats tops can
-	// rank them per day.
-	statsAdd(8, GetStartOfDay(), victim.Id, 1)
 	if player.IsBot {
 		VictimDuelist.Deaths = 1
 	}
 	trueVal := true
-	_, err = restrictChatMemberTracked(Bot, context.EffectiveChat.Id, VictimChatMember.GetUser().Id, gotgbot.ChatPermissions{
+	restricted, err := restrictChatMemberTracked(Bot, context.EffectiveChat.Id, VictimChatMember.GetUser().Id, gotgbot.ChatPermissions{
 		CanSendMessages:    false,
 		CanReactToMessages: &trueVal,
 	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*VictimDuelist.Deaths)).Unix()}, player, "duel")
 	if err != nil {
 		return err
 	}
+	if !restricted {
+		return fmt.Errorf("Telegram rejected duel restriction")
+	}
 	// Mute time (stat type 7) accumulates the restriction in seconds.
-	statsAdd(7, GetStartOfDay(), victim.Id, int64(VictimDuelist.Deaths)*60)
-	_, _, err = Bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: prt.Sprintf("%v\nПобедитель дуэли: %v.\n%v отправился на респавн на %d %v.", prefix, MentionUser(player), MentionUser(victim), VictimDuelist.Deaths, ruPlural(VictimDuelist.Deaths, "минуту", "минуты", "минут")), ParseMode: gotgbot.ParseModeHTML, ChatId: context.EffectiveChat.Id, MessageId: message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+	if err := statsAdd(7, GetStartOfDay(), victim.Id, int64(VictimDuelist.Deaths)*60); err != nil {
+		return err
+	}
+	_, err = addDuelistCounter(player.Id, "kills")
 	if err != nil {
 		return err
 	}
-	var PlayerDuelist Duelist
-	result = DB.Model(Duelist{}).Where(player.Id).First(&PlayerDuelist)
-	if result.RowsAffected == 0 {
-		PlayerDuelist.UserID = player.Id
-		PlayerDuelist.Kills = 0
-		PlayerDuelist.Deaths = 0
-	}
-	PlayerDuelist.Kills++
-	result = DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&PlayerDuelist)
-	if result.Error != nil {
-		return result.Error
+	_, _, err = Bot.EditMessageText(&gotgbot.EditMessageTextOpts{Text: prt.Sprintf("%v\nПобедитель дуэли: %v.\n%v отправился на респавн на %d %v.", prefix, MentionUser(player), MentionUser(victim), VictimDuelist.Deaths, ruPlural(VictimDuelist.Deaths, "минуту", "минуты", "минут")), ParseMode: gotgbot.ParseModeHTML, ChatId: context.EffectiveChat.Id, MessageId: message.MessageId, ReplyMarkup: gotgbot.InlineKeyboardMarkup{}})
+	if err != nil {
+		return err
 	}
 	return err
 }

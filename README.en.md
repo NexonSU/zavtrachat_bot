@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 99 commands registered in `main.go` (some of them are aliases of the same function)
-- 107 `.go` source files, 255 tests in 41 files
+- 108 `.go` source files, 279 tests in 46 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -238,6 +238,23 @@ decoding and file downloading. They assert sent media bytes/types, empty/error
 responses, missing filenames and concurrent channel-cache access without credentials
 or live Telegram channels.
 
+Command scenarios cover concurrent warnings/game deaths, database write failures,
+Telegram rejection and failed final delivery. Deaths retain their game-attempt meaning:
+lifetime and daily counters advance in one transaction before the Telegram call;
+mute time advances only after a confirmed restriction. Counter errors are propagated.
+A delivery failure does not undo a successful mute. A rejected third warning is rolled
+back so a new command can retry; an already reached threshold does not repeat the mute.
+New `/kill` and `/blessing` commands remain new game actions. There is no general
+exactly-once guarantee across Bot API calls and database commits.
+
+`routing_scenarios_test.go` uses production middleware/handler registration for normal
+and ephemeral commands, bot addressing, permissions, callbacks and `chat_member`.
+`remaining_postgres_test.go` covers fresh/repeated migration, an older schema, reconnect
+reads and concurrent game commands in isolated schemas. Further tests cover all six get
+media types, complete formatted captions, ownership, malformed input, weekly warning
+boundaries and daily draw midnight/DST. `FuzzSedPattern` includes a seed corpus; run
+`go test -run '^$' -fuzz '^FuzzSedPattern$' -fuzztime 20s .` for generated input.
+
 The test infrastructure is `testutils_test.go`:
 - a fake Bot API client that records every call the bot makes (the sent text/actions are asserted);
   the `Observe` hook lets a test look inside a file the handler closes and removes right after sending;
@@ -253,8 +270,8 @@ Most tests use local stand-ins and SQLite. `TestStatsPostgresConcurrent` additio
 concurrent dictionary creation and message, word and mute-time counters against real PostgreSQL:
 32 concurrent workers, each updating every counter 20 times. CI provides a separate service
 container; locally this test runs when `ZAVTRA_TEST_POSTGRES_DSN` points to a test database.
-It creates a random isolated schema and drops it afterwards. Other database operations continue
-to be tested on SQLite.
+It creates a random isolated schema and drops it afterwards. Migrations, mute history and concurrent
+game commands also run on PostgreSQL; other scenarios use SQLite.
 
 `TestMessageStatsQueryCount` counts SQL statements in the message handler. With a warm dictionary,
 10 distinct words require 15 statements instead of 25, and 10 repetitions of one word require

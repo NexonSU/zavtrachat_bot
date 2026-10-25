@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ func UserName(user *gotgbot.User) string {
 }
 
 func MentionUser(user *gotgbot.User) string {
-	return fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", user.Id, UserFullName(user))
+	return fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", user.Id, html.EscapeString(UserFullName(user)))
 }
 
 func IsAdmin(userid int64) bool {
@@ -66,11 +67,11 @@ func FindUserInMessage(message gotgbot.Message) (gotgbot.User, error) {
 	var user gotgbot.User
 	var err error
 	for _, entity := range message.Entities {
-		if entity.Type == "text_mention" {
+		if entity.Type == "text_mention" && entity.User != nil {
 			return *entity.User, err
 		}
 	}
-	if message.ReplyToMessage != nil {
+	if message.ReplyToMessage != nil && message.ReplyToMessage.From != nil {
 		return *message.ReplyToMessage.From, nil
 	} else {
 		for _, arg := range strings.Split(message.Text, " ") {

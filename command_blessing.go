@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -9,8 +10,6 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
-
-	"gorm.io/gorm/clause"
 )
 
 var firstSuicide int64
@@ -83,31 +82,21 @@ func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func
 	// The death belongs to whoever ends up restricted: on a ricochet that is
 	// the random member picked above, not the admin/sysadmin who pressed the
 	// command (same as Kill, which reassigns target to the ricochet victim).
-	var duelist Duelist
-	result := DB.Model(Duelist{}).Where(victim.Id).First(&duelist)
-	if result.RowsAffected == 0 {
-		duelist.UserID = victim.Id
-		duelist.Kills = 0
-		duelist.Deaths = 0
+	// Deaths count game attempts; mute time is recorded only for confirmed restrictions.
+	duelist, err := recordGameDeath(victim.Id)
+	if err != nil {
+		return err
 	}
-	duelist.Deaths++
-	result = DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&duelist)
-	if result.Error != nil {
-		return result.Error
-	}
-	// Deaths are duplicated into the stats (stat type 8) so /stats tops can
-	// rank them per day.
-	statsAdd(8, GetStartOfDay(), victim.Id, 1)
 	duration := RandInt(1, duelist.Deaths+1)
 	duration += 10
 	prependText := ""
+	blessingStateMu.Lock()
 	additionalChance := int(time.Now().Unix() - lastSuicide)
 	if additionalChance > 3600 {
 		additionalChance = 3600
 	}
 	additionalChance = (3600 - additionalChance) / 360
+	blessingStateMu.Unlock()
 	if context.Message.From.IsPremium {
 		duration = duration * 2
 		prependText += "премиально "
@@ -123,26 +112,36 @@ func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func
 		duration = 1
 	}
 	trueVal := true
-	_, err = restrictChatMemberTracked(Bot, context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
+	restricted, err := restrictChatMemberTracked(Bot, context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
 		CanSendMessages:    false,
 		CanReactToMessages: &trueVal,
 	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()}, context.Message.From, "blessing")
 	if err != nil {
 		return err
 	}
+	if !restricted {
+		return fmt.Errorf("Telegram rejected game restriction")
+	}
 	// Mute time (stat type 7) accumulates the restriction in seconds.
-	statsAdd(7, GetStartOfDay(), ChatMember.GetUser().Id, int64(duration)*60)
+	if err := statsAdd(7, GetStartOfDay(), ChatMember.GetUser().Id, int64(duration)*60); err != nil {
+		return err
+	}
+	blessingStateMu.Lock()
 	burst++
 	if time.Now().Unix() > firstSuicide+120 {
 		firstSuicide = time.Now().Unix()
 		burst = 1
 	}
 	lastSuicide = time.Now().Unix()
-	if burst > 3 && time.Now().Unix() > lastVideoSent+3600 {
+	sendVideo := burst > 3 && time.Now().Unix() > lastVideoSent+3600
+	if sendVideo {
 		lastVideoSent = time.Now().Unix()
-		_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, UserFullName(&victim), prependText, GetBless(), duration, ruPlural(duration, "минуту", "минуты", "минут"))})
+	}
+	blessingStateMu.Unlock()
+	if sendVideo {
+		_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, html.EscapeString(UserFullName(&victim)), prependText, GetBless(), duration, ruPlural(duration, "минуту", "минуты", "минут"))})
 	} else {
-		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, UserFullName(&victim), prependText, GetBless(), duration, ruPlural(duration, "минуту", "минуты", "минут")), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, html.EscapeString(UserFullName(&victim)), prependText, GetBless(), duration, ruPlural(duration, "минуту", "минуты", "минут")), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	}
 	return err
 }

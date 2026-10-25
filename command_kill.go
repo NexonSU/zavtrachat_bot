@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -8,7 +10,6 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
-	"gorm.io/gorm/clause"
 )
 
 // Kill user on /kill
@@ -61,23 +62,11 @@ func Kill(bot *gotgbot.Bot, context *ext.Context) error {
 			Bot.DeleteMessage(context.Message.Chat.Id, context.Message.ReplyToMessage.MessageId, nil)
 		}
 	}
-	var duelist Duelist
-	result := DB.Model(Duelist{}).Where(target.Id).First(&duelist)
-	if result.RowsAffected == 0 {
-		duelist.UserID = target.Id
-		duelist.Kills = 0
-		duelist.Deaths = 0
+	// Deaths count game attempts; mute time is recorded only for confirmed restrictions.
+	duelist, err := recordGameDeath(target.Id)
+	if err != nil {
+		return err
 	}
-	duelist.Deaths++
-	result = DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&duelist)
-	if result.Error != nil {
-		return result.Error
-	}
-	// Deaths are duplicated into the stats (stat type 8) so /stats tops can
-	// rank them per day.
-	statsAdd(8, GetStartOfDay(), target.Id, 1)
 	duration := RandInt(1, duelist.Deaths+1)
 	duration += 10
 	prependText := ""
@@ -102,24 +91,29 @@ func Kill(bot *gotgbot.Bot, context *ext.Context) error {
 		muteSource = "ricochet"
 	}
 	trueVal := true
-	_, err = restrictChatMemberTracked(Bot, context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
+	restricted, err := restrictChatMemberTracked(Bot, context.Message.Chat.Id, ChatMember.GetUser().Id, gotgbot.ChatPermissions{
 		CanSendMessages:    false,
 		CanReactToMessages: &trueVal,
 	}, &gotgbot.RestrictChatMemberOpts{UntilDate: time.Now().Add(time.Second * time.Duration(60*duration)).Unix()}, context.Message.From, muteSource)
 	if err != nil {
 		return err
 	}
+	if !restricted {
+		return fmt.Errorf("Telegram rejected game restriction")
+	}
 	// Mute time (stat type 7) accumulates the restriction in seconds.
-	statsAdd(7, GetStartOfDay(), ChatMember.GetUser().Id, int64(duration)*60)
-	text := prt.Sprintf("💥 %v %vпристрелил %v.\n%v отправился на респавн на %d %v.", UserFullName(context.Message.From), prependText, UserFullName(&target), UserFullName(&target), duration, ruPlural(duration, "минуту", "минуты", "минут"))
+	if err := statsAdd(7, GetStartOfDay(), ChatMember.GetUser().Id, int64(duration)*60); err != nil {
+		return err
+	}
+	text := prt.Sprintf("💥 %v %vпристрелил %v.\n%v отправился на респавн на %d %v.", html.EscapeString(UserFullName(context.Message.From)), prependText, html.EscapeString(UserFullName(&target)), html.EscapeString(UserFullName(&target)), duration, ruPlural(duration, "минуту", "минуты", "минут"))
 	if command == "/bless" {
-		text = prt.Sprintf("🤫 %v %vпопросил %v помолчать %d %v.", UserFullName(context.Message.From), prependText, UserFullName(&target), duration, ruPlural(duration, "минуту", "минуты", "минут"))
+		text = prt.Sprintf("🤫 %v %vпопросил %v помолчать %d %v.", html.EscapeString(UserFullName(context.Message.From)), prependText, html.EscapeString(UserFullName(&target)), duration, ruPlural(duration, "минуту", "минуты", "минут"))
 	}
 	if strings.Contains(command, "bite") || strings.Contains(command, "mlem") {
-		text = prt.Sprintf("😼 %v %vсделал кусь %v.\n%v отправился на респавн на %d %v.", UserFullName(context.Message.From), prependText, UserFullName(&target), UserFullName(&target), duration, ruPlural(duration, "минуту", "минуты", "минут"))
+		text = prt.Sprintf("😼 %v %vсделал кусь %v.\n%v отправился на респавн на %d %v.", html.EscapeString(UserFullName(context.Message.From)), prependText, html.EscapeString(UserFullName(&target)), html.EscapeString(UserFullName(&target)), duration, ruPlural(duration, "минуту", "минуты", "минут"))
 	}
 	if victimText != "" {
-		text = prt.Sprintf("💥 %v\n%v отправился на респавн на %d %v.", victimText, UserFullName(&target), duration, ruPlural(duration, "минуту", "минуты", "минут"))
+		text = prt.Sprintf("💥 %v\n%v отправился на респавн на %d %v.", victimText, html.EscapeString(UserFullName(&target)), duration, ruPlural(duration, "минуту", "минуты", "минут"))
 	}
 	_, err = context.EffectiveChat.SendMessage(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	return err
