@@ -2,29 +2,49 @@ package main
 
 import (
 	"fmt"
+	"gorm.io/gorm"
+	"sync"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
+var pidorMu sync.Mutex
+
 var busyPidor = make(map[string]bool)
 
 // Pidor game
 func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
+	return pidorAt(bot, context, time.Now())
+}
+
+func pidorAt(bot *gotgbot.Bot, context *ext.Context, now time.Time) error {
 	if context.Message.Chat.Type == "private" {
 		return nil
 	}
+	pidorMu.Lock()
 	if busyPidor["pidor"] {
+		pidorMu.Unlock()
 		return Reply("Команда занята. Попробуйте позже.", *context)
 	}
 	busyPidor["pidor"] = true
-	defer func() { busyPidor["pidor"] = false }()
+	pidorMu.Unlock()
+	defer func() { pidorMu.Lock(); busyPidor["pidor"] = false; pidorMu.Unlock() }()
 	var pidor PidorStats
 	var pidorToday PidorList
-	result := DB.Model(PidorStats{}).Where("date BETWEEN ? AND ?", time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local), time.Now()).First(&pidor)
+	start, end := dayBounds(now)
+	result := DB.Model(PidorStats{}).Where("date >= ? AND date < ?", start, end).First(&pidor)
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return result.Error
+	}
 	if result.RowsAffected == 0 {
-		DB.Model(PidorList{}).Order("RANDOM()").First(&pidorToday)
+		if err := DB.Model(PidorList{}).Order("RANDOM()").First(&pidorToday).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return Reply("В игре пока нет участников. Зарегистрируйтесь: /pidoreg", *context)
+			}
+			return err
+		}
 		TargetChatMember, err := Bot.GetChatMember(context.Message.Chat.Id, pidorToday.Id, nil)
 		if err != nil {
 			DB.Delete(&pidorToday)
@@ -39,8 +59,10 @@ func Pidor(bot *gotgbot.Bot, context *ext.Context) error {
 			return Reply(fmt.Sprintf("Я нашел пидора дня, но похоже, что <a href=\"tg://user?id=%v\">%v</a> был забанен в этом чате (получил пидор!), так что попробуйте еще раз, пока я удаляю его из игры!", pidorToday.Id, pidorToday.Username), *context)
 		}
 		pidor.UserID = pidorToday.Id
-		pidor.Date = time.Now()
-		DB.Create(&pidor)
+		pidor.Date = now
+		if err := DB.Create(&pidor).Error; err != nil {
+			return err
+		}
 		messages := [][]string{
 			{"Инициирую поиск пидора дня...", "Опять в эти ваши игрульки играете? Ну ладно...", "Woop-woop! That's the sound of da pidor-police!", "Система взломана. Нанесён урон. Запущено планирование контрмер.", "Сейчас поколдуем...", "Инициирую поиск пидора дня...", "Зачем вы меня разбудили...", "Кто сегодня счастливчик?"},
 			{"Хм...", "Сканирую...", "Ведётся поиск в базе данных", "Сонно смотрит на бумаги", "(Ворчит) А могли бы на работе делом заниматься", "Военный спутник запущен, коды доступа внутри...", "Ну давай, посмотрим кто тут классный..."},

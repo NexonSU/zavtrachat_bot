@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -33,7 +34,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 			return err
 		}
 		if get.Creator != context.Message.From.Id && !IsAdminOrModer(context.Message.From.Id) {
-			return Reply(fmt.Sprintf("Данный гет могут изменять либо администраторы, либо %v.", UserFullName(&creator)), *context)
+			return Reply(fmt.Sprintf("Данный гет могут изменять либо администраторы, либо %v.", html.EscapeString(UserFullName(&creator))), *context)
 		}
 	}
 	//filling Get from message
@@ -52,8 +53,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 	} else {
 		get.Name = strings.ToLower(inputGet)
 		get.Title = inputGet
-		_, html, _ := strings.Cut(context.Message.ReplyToMessage.OriginalCaptionHTML(), " ")
-		get.Caption = html
+		get.Caption = context.Message.ReplyToMessage.OriginalCaptionHTML()
 		switch {
 		case context.Message.ReplyToMessage.Animation != nil:
 			get.Type = "Animation"
@@ -61,7 +61,7 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 		case context.Message.ReplyToMessage.Audio != nil:
 			get.Type = "Audio"
 			get.Data = context.Message.ReplyToMessage.Audio.FileId
-		case context.Message.ReplyToMessage.Photo != nil:
+		case len(context.Message.ReplyToMessage.Photo) > 0:
 			get.Type = "Photo"
 			get.Data = context.Message.ReplyToMessage.Photo[0].FileId
 		case context.Message.ReplyToMessage.Video != nil:
@@ -88,5 +88,5 @@ func Set(bot *gotgbot.Bot, context *ext.Context) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	return Reply(fmt.Sprintf("Гет <code>%v</code> сохранён как <code>%v</code>.", get.Name, get.Type), *context)
+	return Reply(fmt.Sprintf("Гет <code>%v</code> сохранён как <code>%v</code>.", html.EscapeString(get.Name), html.EscapeString(get.Type)), *context)
 }

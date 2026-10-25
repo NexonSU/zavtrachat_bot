@@ -173,6 +173,10 @@ func (c *fakeBotClient) setError(method string, err error) {
 	if c.Errors == nil {
 		c.Errors = make(map[string]error)
 	}
+	if err == nil {
+		delete(c.Errors, method)
+		return
+	}
 	c.Errors[method] = err
 }
 

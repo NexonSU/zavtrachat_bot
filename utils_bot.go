@@ -14,6 +14,35 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
+func newBotDispatcher() *ext.Dispatcher {
+	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
+		// If an error is returned by a handler, log it and continue going.
+		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
+			details := updateContext(context)
+			safeError := err.Error()
+			if Config.Token != "" {
+				safeError = strings.ReplaceAll(safeError, Config.Token, "TOKEN")
+			}
+			text := "Ошибка: " + html.EscapeString(safeError) + "\n\n" + details
+			var reportErr error
+			if context.Message != nil {
+				reportErr = Reply(text, *context)
+			} else {
+				reportErr = sendZBHelp(bot, context, text)
+			}
+			if reportErr != nil {
+				Logger.Error("error when reporting a... error: " + reportErr.Error())
+			}
+			Logger.Error("an error occurred while handling update: " + err.Error() + " | " + strings.ReplaceAll(details, "\n", " "))
+			return ext.DispatcherActionNoop
+		},
+		Logger:      Logger,
+		MaxRoutines: -1,
+	})
+	dispatcher.AddHandlerToGroup(NewGlobalMiddleware(), -1)
+	return dispatcher
+}
+
 func BotInit() error {
 	// In gotgbot rc.36 BotOpts.RequestOpts only applies to the initial GetMe.
 	// To make ALL API calls use the custom API URL, it must be set as the
@@ -33,21 +62,7 @@ func BotInit() error {
 		return err
 	}
 	// Create updater and dispatcher.
-	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
-		// If an error is returned by a handler, log it and continue going.
-		Error: func(bot *gotgbot.Bot, context *ext.Context, err error) ext.DispatcherAction {
-			details := updateContext(context)
-			reportErr := Reply("Ошибка: "+strings.ReplaceAll(err.Error(), Config.Token, "TOKEN")+"\n\n"+details, *context)
-			if reportErr != nil {
-				Logger.Error("error when reporting a... error: " + reportErr.Error())
-			}
-			Logger.Error("an error occurred while handling update: " + err.Error() + " | " + strings.ReplaceAll(details, "\n", " "))
-			return ext.DispatcherActionNoop
-		},
-		Logger:      Logger,
-		MaxRoutines: -1,
-	})
-	dispatcher.AddHandlerToGroup(NewGlobalMiddleware(), -1)
+	dispatcher := newBotDispatcher()
 	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{
 		UnhandledErrFunc: ErrorReporting,
 	})
@@ -317,6 +332,10 @@ func (m *GlobalMiddleware) HandleUpdate(b *gotgbot.Bot, cntx *ext.Context) error
 
 	Logger.Debug(logText)
 
+	// Anonymous/channel messages must not reach user-only command handlers.
+	if cntx.Message != nil && cntx.Message.From == nil {
+		return ext.EndGroups
+	}
 	if cntx.EffectiveUser == nil {
 		return nil
 	}

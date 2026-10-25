@@ -20,12 +20,16 @@ func statsIncrease(statType int64, dayTimestamp int64, contextID int64) error {
 // statsAdd increases a stat counter by an arbitrary amount: mute time (stat
 // type 7) counts seconds, not events, so a single kill can add minutes.
 func statsAdd(statType int64, dayTimestamp int64, contextID int64, amount int64) error {
+	return statsAddDB(&DB, statType, dayTimestamp, contextID, amount)
+}
+
+func statsAddDB(db *gorm.DB, statType int64, dayTimestamp int64, contextID int64, amount int64) error {
 	row := Stats{StatType: statType, DayTimestamp: dayTimestamp, ContextID: contextID, Count: amount, LastUpdate: time.Now().Unix()}
 	// One atomic statement also handles simultaneous first messages of a day.
 	// An UPDATE followed by an INSERT can lose one writer at the primary key.
 	// Avoid GORM's extra BEGIN/COMMIT round trips: this single-statement upsert
 	// is already atomic and Stats has no associations or multi-query hooks.
-	err := DB.Session(&gorm.Session{SkipDefaultTransaction: true}).Clauses(clause.OnConflict{
+	err := db.Session(&gorm.Session{SkipDefaultTransaction: true}).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "context_id"}, {Name: "stat_type"}, {Name: "day_timestamp"}},
 		DoUpdates: clause.Assignments(map[string]any{
 			"count":       gorm.Expr("stats.count + ?", amount),

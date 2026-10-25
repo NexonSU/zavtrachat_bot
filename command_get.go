@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"gorm.io/gorm"
 )
 
 // Send Get to user on /get
@@ -19,6 +21,9 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	_, text, _ := strings.Cut(strings.ToLower(context.EffectiveMessage.Text), " ")
 	result := DB.Where(&Get{Name: text}).First(&get)
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return result.Error
+	}
 	if result.RowsAffected != 0 {
 		options := &gotgbot.ReplyParameters{MessageId: context.Message.MessageId}
 		switch {
@@ -44,10 +49,10 @@ func GetGet(bot *gotgbot.Bot, context *ext.Context) error {
 			_, err := context.Message.Reply(bot, get.Data, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML, LinkPreviewOptions: &gotgbot.LinkPreviewOptions{IsDisabled: false}})
 			return err
 		default:
-			return Reply(fmt.Sprintf("Ошибка при определении типа гета, я не знаю тип <code>%v</code>.", get.Type), *context)
+			return Reply(fmt.Sprintf("Ошибка при определении типа гета, я не знаю тип <code>%v</code>.", html.EscapeString(get.Type)), *context)
 		}
 	} else {
-		return Reply(fmt.Sprintf("Гет <code>%v</code> не найден.\nИспользуйте inline-режим бота, чтобы найти гет.", text), *context)
+		return Reply(fmt.Sprintf("Гет <code>%v</code> не найден.\nИспользуйте inline-режим бота, чтобы найти гет.", html.EscapeString(text)), *context)
 	}
 }
 

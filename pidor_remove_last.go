@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -13,11 +14,17 @@ func PidorRemoveToday(bot *gotgbot.Bot, context *ext.Context) error {
 		return Denied(bot, context)
 	}
 	var pidor PidorStats
-	result := DB.Model(PidorStats{}).Where("date BETWEEN ? AND ?", time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local), time.Now()).First(&pidor)
+	start, end := dayBounds(time.Now())
+	result := DB.Model(PidorStats{}).Where("date >= ? AND date < ?", start, end).First(&pidor)
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return result.Error
+	}
 	if result.RowsAffected == 0 {
 		return Reply("Сегодня пидора дня ещё не было.", *context)
 	} else {
-		DB.Delete(&pidor)
+		if err := DB.Delete(&pidor).Error; err != nil {
+			return err
+		}
 		return Reply("Текущий пидор дня больше не пидор!", *context)
 	}
 }

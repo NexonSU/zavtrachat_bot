@@ -162,6 +162,26 @@ func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCo
 	return group, private, admin
 }
 
+// Shared by startup and dispatcher integration tests.
+func registerBotHandlers(dispatcher *ext.Dispatcher) {
+	for _, entry := range commandListConfig() {
+		dispatcher.AddHandler(handlers.NewCommand(entry.command.Command, measureHandler("/"+entry.command.Command, entry.response)))
+	}
+	//non-command handles
+	dispatcher.AddHandler(handlers.NewChatMember(nil, measureHandler("event:mute_member", OnMuteChatMember)))
+	dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(mutedPrefix), measureHandler("callback:muted", MutedCallback)))
+	dispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), measureHandler("callback:roulette_accept", Accept)))
+	dispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), measureHandler("callback:roulette_deny", Deny)))
+	dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(salvationListPrefix), measureHandler("callback:salvationlist", SalvationListCallback)))
+	dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(blessListPrefix), measureHandler("callback:blesslist", BlessListCallback)))
+	dispatcher.AddHandler(handlers.Message{Response: measureHandler("event:reserve", RemoveJoinMessageAndJoinUser), Filter: message.ChatID(Config.ReserveChat)})
+	dispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: measureHandler("event:channel", ForwardChannelPost), Filter: message.ChatID(Config.Channel)})
+	dispatcher.AddHandler(handlers.NewMessage(nil, measureHandler("event:message", OnText)))
+	dispatcher.AddHandler(handlers.NewInlineQuery(nil, measureHandler("event:inline", GetInline)))
+	dispatcher.AddHandler(handlers.NewReaction(reaction.ChatID(Config.Chat), measureHandler("event:reaction", OnReaction)))
+
+}
+
 func main() {
 	Logger = slog.Default()
 	slog.SetDefault(Logger)
@@ -197,9 +217,7 @@ func main() {
 	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllChatAdministrators{}})
 	Bot.DeleteMyCommands(&gotgbot.DeleteMyCommandsOpts{Scope: gotgbot.BotCommandScopeDefault{}})
 
-	for i := range commandList {
-		BotDispatcher.AddHandler(handlers.NewCommand(commandList[i].command.Command, measureHandler("/"+commandList[i].command.Command, commandList[i].response)))
-	}
+	registerBotHandlers(BotDispatcher)
 	commandArray, privateCommands, adminCommands := commandMenus(commandList)
 
 	_, err = Bot.SetMyCommands(commandArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllGroupChats{}})
@@ -213,19 +231,6 @@ func main() {
 	if _, err = Bot.SetMyCommands(adminCommands, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeChatAdministrators{ChatId: Config.Chat}}); err != nil {
 		slog.Error(err.Error())
 	}
-
-	//non-command handles
-	BotDispatcher.AddHandler(handlers.NewChatMember(nil, measureHandler("event:mute_member", OnMuteChatMember)))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(mutedPrefix), measureHandler("callback:muted", MutedCallback)))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_accept"), measureHandler("callback:roulette_accept", Accept)))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("russianroulette_deny"), measureHandler("callback:roulette_deny", Deny)))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(salvationListPrefix), measureHandler("callback:salvationlist", SalvationListCallback)))
-	BotDispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix(blessListPrefix), measureHandler("callback:blesslist", BlessListCallback)))
-	BotDispatcher.AddHandler(handlers.Message{Response: measureHandler("event:reserve", RemoveJoinMessageAndJoinUser), Filter: message.ChatID(Config.ReserveChat)})
-	BotDispatcher.AddHandler(handlers.Message{AllowChannel: true, Response: measureHandler("event:channel", ForwardChannelPost), Filter: message.ChatID(Config.Channel)})
-	BotDispatcher.AddHandler(handlers.NewMessage(nil, measureHandler("event:message", OnText)))
-	BotDispatcher.AddHandler(handlers.NewInlineQuery(nil, measureHandler("event:inline", GetInline)))
-	BotDispatcher.AddHandler(handlers.NewReaction(reaction.ChatID(Config.Chat), measureHandler("event:reaction", OnReaction)))
 
 	// Keeps retrying on its own, and logs every failure: MTProto needs a
 	// direct connection to the Telegram datacenters, so it stays down when
