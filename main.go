@@ -34,6 +34,8 @@ var Logger *slog.Logger
 // main, so the menu can be checked without starting the bot.
 func commandListConfig() []commandList {
 	return []commandList{
+		{gotgbot.BotCommand{Command: "zbhelp", Description: "справка по командам участников", IsEphemeral: true}, ZBHelp},
+		{gotgbot.BotCommand{Command: "zbadminhelp", Description: "справка по командам администраторов", IsEphemeral: true}, ZBAdminHelp},
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов", IsEphemeral: true}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь", IsEphemeral: true}, Request},
 		{gotgbot.BotCommand{Command: "savetopm", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
@@ -138,14 +140,18 @@ func commandListConfig() []commandList {
 }
 
 // An administrator scope replaces the group menu, so it must include all the
-// regular group commands as well. /muted is advertised only to chat admins.
+// regular group commands as well. /muted and /zbadminhelp are advertised only
+// to chat admins; /zbhelp is also available in the private-chat menu.
 func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
 	for _, entry := range commands {
 		switch entry.command.Command {
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf":
 			private = append(private, entry.command)
-		case "muted":
+		case "muted", "zbadminhelp":
 			admin = append(admin, entry.command)
+		case "zbhelp":
+			group = append(group, entry.command)
+			private = append(private, entry.command)
 		default:
 			group = append(group, entry.command)
 		}

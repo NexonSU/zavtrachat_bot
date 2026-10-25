@@ -6,14 +6,25 @@ A Go Telegram bot for one specific chat. It works through the Bot API (long poll
 self-hosted Bot API server supported) and additionally uses an MTProto client for a few commands.
 State is kept in PostgreSQL.
 
-- 100 commands registered in `main.go` (some of them are aliases of the same function)
-- 104 `.go` source files, 228 tests in 37 files
+- 99 commands registered in `main.go` (some of them are aliases of the same function)
+- 105 `.go` source files, 236 tests in 38 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
   `qwen3.8-flash-next-iq3_xxs`, etc., details in the [Development](#development) section)
 
 ## Commands
+
+### Help
+
+- `/zbhelp` — participant commands with descriptions, examples and aliases (in Russian).
+- `/zbadminhelp` — administrative commands; available to main-chat Telegram administrators/owner and configured admins, moderators and sysadmin.
+
+Both group commands and their responses are ephemeral and visible only to the caller,
+including access denials. Private chats receive ordinary private replies. Failed ephemeral
+delivery never falls back to a public response. `/zbhelp` appears in group and private menus;
+`/zbadminhelp` appears in the main-chat administrator menu and can also be typed manually
+in private chats. Existing command permissions are unchanged.
 
 ### Moderation
 | Command | What it does |
