@@ -21,6 +21,16 @@ func resetDuelState(t *testing.T) {
 	busy = make(map[string]bool)
 }
 
+// seedDuelInvitation models the state created by Request for callback tests.
+func seedDuelInvitation(msg *gotgbot.Message) {
+	duelMu.Lock()
+	defer duelMu.Unlock()
+	copy := *msg
+	copy.Date = time.Now().Unix()
+	Message = &copy
+	busy["russianroulettePending"] = true
+}
+
 // ---------- Пидор Дня ----------
 
 func TestPidoreg(t *testing.T) {
@@ -452,6 +462,7 @@ func TestDuelDeny(t *testing.T) {
 	player := gotgbot.User{Id: 42, FirstName: "Тест", LastName: "Пупкин", Username: "testpupkin"}
 	msg := testMessage("вызов", &player)
 	msg.Entities = []gotgbot.MessageEntity{{Type: "text_mention", User: &targetUser}, {Type: "text_mention", User: &player}}
+	seedDuelInvitation(msg)
 	busy["russianroulettePending"] = true
 
 	// Someone else presses deny -> answered with a Nope, duel stays pending.
@@ -510,9 +521,8 @@ func TestDuelstats(t *testing.T) {
 	}
 }
 
-// TestDuelAcceptFull runs the whole duel sequence (it sleeps ~10-26s between
-// edits, like the real game). Both duelists are regular members, so the
-// outcome is deterministic: the user who ends up with the loaded round dies.
+// TestDuelAcceptFull runs the whole sequence with controlled randomness and
+// no animation delay. Both duelists are regular members.
 func TestDuelAcceptFull(t *testing.T) {
 	bot, client := setupTestEnv(t)
 	resetDuelState(t)
@@ -520,10 +530,11 @@ func TestDuelAcceptFull(t *testing.T) {
 	player := gotgbot.User{Id: 42, FirstName: "Тест", LastName: "Пупкин", Username: "testpupkin"}
 	msg := testMessage("вызов", &player)
 	msg.Entities = []gotgbot.MessageEntity{{Type: "text_mention", User: &targetUser}, {Type: "text_mention", User: &player}}
+	seedDuelInvitation(msg)
 
 	// The challenged user (victim) accepts.
 	ctx := testCallbackContext(bot, msg, &targetUser)
-	if err := Accept(bot, ctx); err != nil {
+	if err := acceptDuelWith(bot, ctx, func(min, max int) int { return min }, func(time.Duration) {}); err != nil {
 		t.Fatalf("Accept: %v", err)
 	}
 
@@ -597,6 +608,7 @@ func TestDuelAcceptNotParticipant(t *testing.T) {
 	player := gotgbot.User{Id: 42, FirstName: "Тест", LastName: "Пупкин", Username: "testpupkin"}
 	msg := testMessage("вызов", &player)
 	msg.Entities = []gotgbot.MessageEntity{{Type: "text_mention", User: &targetUser}, {Type: "text_mention", User: &player}}
+	seedDuelInvitation(msg)
 	busy["russianroulettePending"] = true
 
 	if err := Accept(bot, testCallbackContext(bot, msg, testUser(100))); err != nil {

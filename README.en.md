@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 99 commands registered in `main.go` (some of them are aliases of the same function)
-- 105 `.go` source files, 236 tests in 38 files
+- 107 `.go` source files, 255 tests in 41 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -218,9 +218,25 @@ CI (`.github/workflows/`):
 ## Tests
 
 ```bash
-go test -race -count=1 ./...                                   # 184 tests, PostgreSQL test optional locally
+go test -race -count=1 ./...                                   # PostgreSQL tests optional locally
 PROTO_PROBE=1 go test -count=1 -run TestMtprotoConnectProbe -v .   # check datacenter access
 ```
+
+CI installs ffmpeg, ffprobe, ImageMagick (`convert`) and yt-dlp `2026.07.04`.
+With `ZAVTRA_REQUIRE_MEDIA_TESTS=1`, missing tools or unusable media fixtures fail
+instead of skipping. The summary reports skipped tests and permits only the opt-in
+live MTProto probe. The `coverage` artifact includes both the coverage profile and
+`test-results.jsonl`. Media checks remain optional locally without these tools.
+
+Duel tests control randomness and pauses while preserving production probabilities
+and animation delays. They cover concurrent/repeated buttons, stale invitations,
+ricochets, draws and Telegram errors. Invitations bind to their message and players;
+completed buttons cannot restart a game, and pending invitations expire on restart.
+
+Cat/meme tests replace the MTProto wire transport while exercising real response
+decoding and file downloading. They assert sent media bytes/types, empty/error
+responses, missing filenames and concurrent channel-cache access without credentials
+or live Telegram channels.
 
 The test infrastructure is `testutils_test.go`:
 - a fake Bot API client that records every call the bot makes (the sent text/actions are asserted);

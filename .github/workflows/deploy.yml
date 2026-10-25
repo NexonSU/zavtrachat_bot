@@ -42,19 +42,58 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
+    - name: Install required media tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg imagemagick
+        python3 -m venv "$RUNNER_TEMP/zavtra-media-tools"
+        "$RUNNER_TEMP/zavtra-media-tools/bin/pip" install yt-dlp==2026.07.04
+        echo "$RUNNER_TEMP/zavtra-media-tools/bin" >> "$GITHUB_PATH"
+    - name: Verify media tools
+      run: |
+        ffmpeg -version
+        ffprobe -version
+        convert -version
+        yt-dlp --version
     - name: Vet
       run: go vet ./...
     - name: Test
       env:
         ZAVTRA_TEST_POSTGRES_DSN: host=127.0.0.1 port=5432 user=postgres password=test-only-password dbname=testbot sslmode=disable
-      run: go test -race -count=1 -timeout 300s -coverprofile=coverage.out ./...
+        ZAVTRA_REQUIRE_MEDIA_TESTS: '1'
+      run: |
+        set -o pipefail
+        go test -race -count=1 -timeout 300s -coverprofile=coverage.out -json ./... | tee test-results.jsonl
+    - name: Test summary and skipped tests
+      if: always()
+      run: |
+        python3 - <<'PY'
+        import json
+        from pathlib import Path
+        path = Path('test-results.jsonl')
+        if not path.exists():
+            raise SystemExit('Test results were not produced')
+        events = [json.loads(line) for line in path.read_text().splitlines() if line.startswith('{')]
+        for action in ('pass', 'skip', 'fail'):
+            tests = [e['Test'] for e in events if e.get('Action') == action and 'Test' in e and '/' not in e['Test']]
+            print(f'{action}: {len(tests)}')
+            if action != 'pass':
+                for test in tests:
+                    print(f'  {test}')
+        unexpected = [e['Test'] for e in events if e.get('Action') == 'skip' and e.get('Test') != 'TestMtprotoConnectProbe']
+        if unexpected:
+            raise SystemExit(f'Unexpected skipped tests: {unexpected}')
+        PY
     - name: Coverage
       run: go tool cover -func=coverage.out | tail -1
     - name: Upload coverage
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: coverage
-        path: coverage.out
+        path: |
+          coverage.out
+          test-results.jsonl
   Deploy:
     # Only a merged change on master reaches the server: a pull request runs the
     # tests on GitHub's runner, never the sudo build/restart of the self-hosted one.
