@@ -11,7 +11,6 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
-	"gorm.io/gorm/clause"
 )
 
 type AlbumCache struct {
@@ -55,11 +54,8 @@ func OnChatMember(bot *gotgbot.Bot, context *ext.Context) error {
 	// it into a local variable first (passing the value directly panics in
 	// the create callback: "reflect.Value.SetInt using unaddressable value").
 	chatUser := context.ChatMember.NewChatMember.GetUser()
-	UserResult := DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&chatUser)
-	if UserResult.Error != nil {
-		ErrorReporting(UserResult.Error)
+	if err := saveUser(&DB, chatUser); err != nil {
+		ErrorReporting(err)
 	}
 	return nil
 }
@@ -82,11 +78,8 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	go CheckUserBan(bot, context)
 
 	//User update
-	UserResult := DB.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&context.Message.From)
-	if UserResult.Error != nil {
-		ErrorReporting(UserResult.Error)
+	if err := saveUser(&DB, *context.Message.From); err != nil {
+		ErrorReporting(err)
 	}
 
 	//update StatsDays(1), StatsHours(2), StatsUsers(3), StatsWords(4), StatsWeekday(5)

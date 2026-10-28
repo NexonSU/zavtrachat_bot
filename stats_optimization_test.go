@@ -295,8 +295,8 @@ func TestMessageStatsQueryCount(t *testing.T) {
 		text string
 		want int64
 	}{
-		{"ten different words", "кот собака дом лес море солнце ветер река город книга", 2},
-		{"ten repeated words", strings.TrimSpace(strings.Repeat("кот ", 10)), 2},
+		{"ten different words", "кот собака дом лес море солнце ветер река город книга", 1},
+		{"ten repeated words", strings.TrimSpace(strings.Repeat("кот ", 10)), 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			bot, _ := setupTestEnv(t)
