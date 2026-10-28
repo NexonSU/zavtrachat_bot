@@ -28,6 +28,29 @@ func fakeMediaFile(t *testing.T, client *fakeBotClient, path string) {
 	client.setResult("getFile", json.RawMessage(fmt.Sprintf(`{"file_path":%q,"file_size":%d}`, path, info.Size())))
 }
 
+func TestFFmpegConvertSharedSource(t *testing.T) {
+	bot, client := setupTestEnv(t)
+	source := ffmpegMedia(t, "video")
+	media := Media{FilePath: source, FileName: filepath.Base(source)}
+	errs := make(chan error, 2)
+	for range 2 {
+		go func() {
+			errs <- FFmpegConvert(testContext(bot, "/convert gif", testUser(42)), media, "gif")
+		}()
+	}
+	for range 2 {
+		if err := <-errs; err != nil {
+			t.Error(err)
+		}
+	}
+	if len(client.callsFor("sendAnimation")) != 2 {
+		t.Fatal("concurrent conversions did not both send a result")
+	}
+	if _, err := os.Stat(source); err != nil {
+		t.Fatalf("conversion deleted the shared Telegram source: %v", err)
+	}
+}
+
 // TestConvert covers /convert: the usage notes and the real conversions of the
 // replied-to file. Without an argument the target is the media type itself, a
 // video sticker is offered as an animation.

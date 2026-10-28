@@ -14,10 +14,6 @@ import (
 
 // Convert given  file
 func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
-	// Message ids restart in every chat, so the chat id belongs in the name:
-	// two chats with the same message number must not share one file.
-	filePath := fmt.Sprintf("%v/%v_%v.mp3", os.TempDir(), context.Message.Chat.Id, context.Message.MessageId)
-
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
 		return Reply("Пример использования: <code>/mp3 {ссылка на ютуб/ресурс}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/mp3</code>", *context)
 	}
@@ -67,6 +63,17 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 	if link == "" {
 		return fmt.Errorf("каких-либо ссылок не найдено")
 	}
+	jobCtx, release, err := mediaTasks.acquire(cntx.Background())
+	if err != nil {
+		return err
+	}
+	defer release()
+	workdir, err := os.MkdirTemp(os.TempDir(), "zavtra-mp3-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(workdir)
+	filePath := workdir + "/audio.mp3"
 
 	ytdlpDownload := ytdlp.
 		New().
@@ -82,12 +89,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 		Output(filePath).
 		MaxFileSize("64M")
 
-	result, err := ytdlpDownload.Run(cntx.TODO(), link)
-	if err != nil {
-		return err
-	}
-
-	extInfos, err := result.GetExtractedInfo()
+	extInfos, err := runMediaDownload(jobCtx, ytdlpDownload, link)
 	if err != nil {
 		return err
 	}
@@ -119,6 +121,7 @@ func Mp3(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	soundOpts := &gotgbot.SendAudioOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		ReplyParameters: &gotgbot.ReplyParameters{

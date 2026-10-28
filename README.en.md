@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 99 commands registered in `main.go` (some of them are aliases of the same function)
-- 108 `.go` source files, 280 tests in 46 files
+- 112 `.go` source files, 291 tests in 49 files
 - GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
 - License — MIT
 - Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
@@ -274,13 +274,28 @@ It creates a random isolated schema and drops it afterwards. Migrations, mute hi
 game commands also run on PostgreSQL; other scenarios use SQLite.
 
 `TestMessageStatsQueryCount` counts SQL statements in the message handler. With a warm dictionary,
-10 distinct words require 15 statements instead of 25, and 10 repetitions of one word require
-6 instead of 25. BEGIN/COMMIT are excluded from this measurement; atomic counter upserts run as
-single statements without GORM's extra transaction. Repetitions and inflected forms are combined
+10 distinct words require 1 statement instead of 15, and 10 repetitions of one word require
+1 instead of 6, when the sender's data is also cached. BEGIN/COMMIT are excluded. All counters for one message commit in one atomic
+batch without GORM's extra transaction; failure leaves no partially applied counters.
+Keys are sorted for concurrent batches. Repetitions and inflected forms are combined
 by existing dictionary ID, preserving first spellings, periods and historical rows. A FIFO cache
 holds at most 4096 stems of up to 128 bytes, is scoped to its database, and coalesces concurrent
 loads of one stem within the process. Errors and zero IDs are not cached. No database migration
 or historical dictionary deduplication is needed.
+
+Heavy media commands share a queue: 2 running jobs and up to 8 waiting for at most 30 seconds.
+Each admitted job has a 5-minute processing deadline; a full queue fails immediately.
+On Unix a timeout kills the process group, including yt-dlp's child FFmpeg processes.
+`/distort` also retains its one-job limit. Ordinary commands do not wait on this queue.
+Temporary outputs are removed on failure; conversions preserve shared Telegram source files.
+The limit applies to jobs, not to FFmpeg's internal thread count.
+
+User records are saved when any field changes. A database-pool-scoped FIFO cache holds at most
+4096 users and serializes concurrent writes for the same user. It skips identical snapshots
+for 5 minutes after a successful persistence; expiry revalidates with an upsert that only
+physically updates changed PostgreSQL rows. Errors are retried and missing rows are repaired
+after expiry. Empty strings and false flags are also saved. Messages and `chat_member` events
+share this path.
 
 Fourteen tests run the real `ffmpeg`/`ffprobe` over generated one-second
 files and skip when the binaries are missing (`TestFFmpegConvert`,

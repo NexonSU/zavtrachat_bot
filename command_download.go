@@ -15,10 +15,6 @@ import (
 
 // Convert given  file
 func Download(bot *gotgbot.Bot, context *ext.Context) error {
-	// Message ids restart in every chat, so the chat id belongs in the name:
-	// two chats with the same message number must not share one file.
-	filePath := fmt.Sprintf("%v/%v_%v.mp4", os.TempDir(), context.Message.Chat.Id, context.Message.MessageId)
-
 	if context.Message.ReplyToMessage == nil && len(context.Args()) < 2 {
 		return Reply("Пример использования: <code>/download {ссылка на ютуб/твиттер}</code>\nИли отправь в ответ на какое-либо сообщение с ссылкой <code>/download</code>", *context)
 	}
@@ -68,6 +64,17 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if link == "" {
 		return fmt.Errorf("каких-либо ссылок не найдено")
 	}
+	jobCtx, release, err := mediaTasks.acquire(cntx.Background())
+	if err != nil {
+		return err
+	}
+	defer release()
+	workdir, err := os.MkdirTemp(os.TempDir(), "zavtra-download-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(workdir)
+	filePath := workdir + "/video.mp4"
 
 	ytdlpDownload := ytdlp.
 		New().
@@ -86,12 +93,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		ytdlpDownload.Proxy(Config.Proxy)
 	}
 
-	result, err := ytdlpDownload.Run(cntx.TODO(), link)
-	if err != nil {
-		return err
-	}
-
-	extInfos, err := result.GetExtractedInfo()
+	extInfos, err := runMediaDownload(jobCtx, ytdlpDownload, link)
 	if err != nil {
 		return err
 	}
@@ -123,6 +125,7 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	videoOpts := &gotgbot.SendVideoOpts{
 		ParseMode:         gotgbot.ParseModeHTML,
 		SupportsStreaming: true,

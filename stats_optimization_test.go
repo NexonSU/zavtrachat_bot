@@ -245,6 +245,48 @@ func (c *statsQueryCounter) Trace(_ context.Context, _ time.Time, _ func() (stri
 	c.count.Add(1)
 }
 
+func TestStatsBatchAtomicAndDuplicateKeys(t *testing.T) {
+	bot, _ := setupTestEnv(t)
+	// A failed word counter must not leave the four message counters committed.
+	if err := DB.Exec(`CREATE TRIGGER reject_word BEFORE INSERT ON stats
+		WHEN NEW.stat_type = 4 BEGIN SELECT RAISE(ABORT, 'word rejected'); END`).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := OnText(bot, testContext(bot, "кот", testUser(42))); err == nil {
+		t.Fatal("failed batch was accepted")
+	}
+	var count int64
+	DB.Model(&Stats{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("failed message left %d partial counters", count)
+	}
+	if err := DB.Exec(`DROP TRIGGER reject_word`).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := OnText(bot, testContext(bot, "кот", testUser(42))); err != nil {
+		t.Fatal(err)
+	}
+	// Duplicate primary keys in one PostgreSQL INSERT must be merged first;
+	// zero-valued keys and negative/zero increments keep their old meaning.
+	rows := []Stats{
+		{ContextID: 0, StatType: 2, DayTimestamp: 123, Count: 7},
+		{ContextID: 0, StatType: 2, DayTimestamp: 123, Count: -2},
+		{ContextID: 0, StatType: 2, DayTimestamp: 123, Count: 0},
+	}
+	for range 2 {
+		if err := statsAddBatchDB(&DB, rows); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var row Stats
+	if err := DB.Where("context_id = 0 AND stat_type = 2 AND day_timestamp = 123").First(&row).Error; err != nil || row.Count != 10 {
+		t.Fatalf("duplicate increments changed: %+v %v", row, err)
+	}
+	if rows[0].Count != 7 {
+		t.Fatal("batch mutated its caller's updates")
+	}
+}
+
 // Count actual SQL statements in OnText after the dictionary and daily
 // counters have been populated. The original handler issues 25 in both cases.
 func TestMessageStatsQueryCount(t *testing.T) {
@@ -253,8 +295,8 @@ func TestMessageStatsQueryCount(t *testing.T) {
 		text string
 		want int64
 	}{
-		{"ten different words", "кот собака дом лес море солнце ветер река город книга", 15},
-		{"ten repeated words", strings.TrimSpace(strings.Repeat("кот ", 10)), 6},
+		{"ten different words", "кот собака дом лес море солнце ветер река город книга", 1},
+		{"ten repeated words", strings.TrimSpace(strings.Repeat("кот ", 10)), 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			bot, _ := setupTestEnv(t)
