@@ -274,9 +274,10 @@ It creates a random isolated schema and drops it afterwards. Migrations, mute hi
 game commands also run on PostgreSQL; other scenarios use SQLite.
 
 `TestMessageStatsQueryCount` counts SQL statements in the message handler. With a warm dictionary,
-10 distinct words require 15 statements instead of 25, and 10 repetitions of one word require
-6 instead of 25. BEGIN/COMMIT are excluded from this measurement; atomic counter upserts run as
-single statements without GORM's extra transaction. Repetitions and inflected forms are combined
+10 distinct words require 2 statements instead of 15, and 10 repetitions of one word require
+2 instead of 6. BEGIN/COMMIT are excluded. All counters for one message commit in one atomic
+batch without GORM's extra transaction; failure leaves no partially applied counters.
+Keys are sorted for concurrent batches. Repetitions and inflected forms are combined
 by existing dictionary ID, preserving first spellings, periods and historical rows. A FIFO cache
 holds at most 4096 stems of up to 128 bytes, is scoped to its database, and coalesces concurrent
 loads of one stem within the process. Errors and zero IDs are not cached. No database migration

@@ -73,13 +73,18 @@ func TestStatsPostgresConcurrent(t *testing.T) {
 			}
 			ids <- id
 			for j := 0; j < 20; j++ {
-				for _, update := range []struct{ kind, context, amount int64 }{
-					{3, 42, 1}, {7, 42, 17}, {4, id, 2},
-				} {
-					if err := statsAdd(update.kind, day, update.context, update.amount); err != nil {
-						errs <- err
-						return
-					}
+				batch := []Stats{
+					{StatType: 3, ContextID: 42, DayTimestamp: day, Count: 1},
+					{StatType: 7, ContextID: 42, DayTimestamp: day, Count: 17},
+					{StatType: 4, ContextID: id, DayTimestamp: day, Count: 2},
+				}
+				// Overlapping requests intentionally supply opposite row orders.
+				if i%2 == 0 {
+					batch[0], batch[2] = batch[2], batch[0]
+				}
+				if err := statsAddBatchDB(db, batch); err != nil {
+					errs <- err
+					return
 				}
 			}
 		}(i)

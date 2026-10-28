@@ -142,6 +142,7 @@ func TestGameCommandFailures(t *testing.T) {
 						client.setResult("restrictChatMember", []byte(`false`))
 					case "notification":
 						client.setError("sendMessage", failure)
+						client.setError("sendVideo", failure)
 					case "mute statistic":
 						if err := DB.Callback().Create().Before("gorm:create").Register("test:fail_mute_stats", func(tx *gorm.DB) {
 							if row, ok := tx.Statement.Dest.(*Stats); ok && row.StatType == 7 {
