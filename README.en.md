@@ -283,6 +283,13 @@ holds at most 4096 stems of up to 128 bytes, is scoped to its database, and coal
 loads of one stem within the process. Errors and zero IDs are not cached. No database migration
 or historical dictionary deduplication is needed.
 
+Heavy media commands share a queue: 2 running jobs and up to 8 waiting for at most 30 seconds.
+Each admitted job has a 5-minute processing deadline; a full queue fails immediately.
+On Unix a timeout kills the process group, including yt-dlp's child FFmpeg processes.
+`/distort` also retains its one-job limit. Ordinary commands do not wait on this queue.
+Temporary outputs are removed on failure; conversions preserve shared Telegram source files.
+The limit applies to jobs, not to FFmpeg's internal thread count.
+
 Fourteen tests run the real `ffmpeg`/`ffprobe` over generated one-second
 files and skip when the binaries are missing (`TestFFmpegConvert`,
 `TestFFmpegConvertConcurrentSameName`, `TestConvert`, `TestInvert`, `TestDistort`,

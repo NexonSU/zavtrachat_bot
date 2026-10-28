@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	_ "image/png"
@@ -24,6 +25,8 @@ var DistortBusy bool
 
 var DistortCache map[string]string
 
+var distortMu sync.Mutex
+
 // DistortTempDir is the parent of the distort work directories. It is a
 // package variable so tests can point the work directories at their own temp
 // dir instead of sharing the system one with every other process.
@@ -32,13 +35,11 @@ var DistortTempDir = os.TempDir()
 // Distort given file
 func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	dir := fmt.Sprintf("%v/telegram-go-chatbot-distort", DistortTempDir)
-	if err := os.Mkdir(dir, os.ModePerm); err != nil {
-		os.RemoveAll(dir)
-		os.Mkdir(dir, os.ModePerm)
-	}
+	distortMu.Lock()
 	if DistortCache == nil {
 		DistortCache = make(map[string]string)
 	}
+	distortMu.Unlock()
 
 	if context.Message.ReplyToMessage == nil {
 		return Reply("Пример использования: <code>/distort</code> в ответ на какое-либо сообщение с видео.", *context)
@@ -67,7 +68,10 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		recepient = context.Message.From.Id
 	}
 
-	if fileId, ok := DistortCache[media.FileID]; ok {
+	distortMu.Lock()
+	fileId, cached := DistortCache[media.FileID]
+	distortMu.Unlock()
+	if cached {
 		_, err = Bot.SendDocument(recepient, gotgbot.InputFileByID(fileId), &gotgbot.SendDocumentOpts{ParseMode: gotgbot.ParseModeHTML, ReplyParameters: &gotgbot.ReplyParameters{}})
 		if recepient == context.Message.From.Id {
 			Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
@@ -82,8 +86,25 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		return Reply("Неподдерживаемая операция", *context)
 	}
 
+	distortMu.Lock()
 	if DistortBusy {
+		distortMu.Unlock()
 		return Reply("Команда занята", *context)
+	}
+	DistortBusy = true
+	distortMu.Unlock()
+	defer func() {
+		distortMu.Lock()
+		DistortBusy = false
+		distortMu.Unlock()
+	}()
+	jobCtx, release, err := mediaTasks.acquire(cntx.Background())
+	if err != nil {
+		return err
+	}
+	defer release()
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
 	}
 
 	var done = make(chan bool, 1)
@@ -99,12 +120,8 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		}
 	}()
 	defer func() {
-		DistortBusy = false
 		done <- true
 	}()
-	DistortBusy = true
-
-	jobStarted := time.Now().Unix()
 
 	workdir := fmt.Sprintf("%v/telegram-go-chatbot-distort/%v", DistortTempDir, media.FileID)
 	inputFile := media.FilePath
@@ -115,7 +132,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		inputFile = media.FileURL
 	}
 
-	ctx, cancelFn := cntx.WithTimeout(cntx.Background(), 5*time.Second)
+	ctx, cancelFn := cntx.WithTimeout(jobCtx, 5*time.Second)
 	defer cancelFn()
 
 	data, err := ffprobe.ProbeURL(ctx, inputFile)
@@ -154,20 +171,20 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}(workdir)
 
 	if media.Type == "video" && data.FirstAudioStream() != nil {
-		if err = ffmpeg.Input(inputFile).Output(workdir+"/input_audio.aac", ffmpeg.KwArgs{"vn": "", "acodec": "copy"}).OverWriteOutput().ErrorToStdOut().Run(); err != nil {
+		if err = runMediaFFmpeg(jobCtx, ffmpeg.Input(inputFile).Output(workdir+"/input_audio.aac", ffmpeg.KwArgs{"vn": "", "acodec": "copy"}).OverWriteOutput()); err != nil {
 			return err
 		}
-		if err = ffmpeg.Input(workdir+"/input_audio.aac").Output(workdir+"/audio.aac", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run(); err != nil {
+		if err = runMediaFFmpeg(jobCtx, ffmpeg.Input(workdir+"/input_audio.aac").Output(workdir+"/audio.aac", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput()); err != nil {
 			return err
 		}
 		additionalInputArgs = []string{"-i", workdir + "/audio.aac", "-c:a", "aac"}
 	}
 
 	if media.Type == "audio" || media.Type == "voice" {
-		if err = ffmpeg.Input(inputFile).Output(workdir+"/input_audio.mp3", ffmpeg.KwArgs{"vn": ""}).OverWriteOutput().ErrorToStdOut().Run(); err != nil {
+		if err = runMediaFFmpeg(jobCtx, ffmpeg.Input(inputFile).Output(workdir+"/input_audio.mp3", ffmpeg.KwArgs{"vn": ""}).OverWriteOutput()); err != nil {
 			return err
 		}
-		err = ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput().ErrorToStdOut().Run()
+		err = runMediaFFmpeg(jobCtx, ffmpeg.Input(workdir+"/input_audio.mp3").Output(workdir+"/audio.mp3", ffmpeg.KwArgs{"filter_complex": "vibrato=f=10:d=0.7"}).OverWriteOutput())
 		if err != nil {
 			return err
 		}
@@ -183,7 +200,9 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		if resultMessage.Audio == nil {
 			return fmt.Errorf("Telegram не вернул отправленное аудио")
 		}
+		distortMu.Lock()
 		DistortCache[media.FileID] = resultMessage.Audio.FileId
+		distortMu.Unlock()
 		if recepient == context.Message.From.Id {
 			Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 		}
@@ -211,7 +230,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		height++
 	}
 
-	err = ffmpeg.Input(inputFile).Output(workdir+"/%09d.jpg", ffmpeg.KwArgs{"vf": fmt.Sprintf("scale=%d:%d", width, height)}).OverWriteOutput().ErrorToStdOut().Run()
+	err = runMediaFFmpeg(jobCtx, ffmpeg.Input(inputFile).Output(workdir+"/%09d.jpg", ffmpeg.KwArgs{"vf": fmt.Sprintf("scale=%d:%d", width, height)}).OverWriteOutput())
 	if err != nil {
 		return err
 	}
@@ -254,11 +273,10 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 
-	workCtx, cancelWork := cntx.WithDeadline(cntx.Background(), time.Unix(jobStarted+300, 0))
-	defer cancelWork()
+	workCtx := jobCtx
 	pool := tunny.NewFunc(max(1, runtime.NumCPU()-1), func(payload interface{}) interface{} {
 		args := payload.([]string)
-		return exec.CommandContext(workCtx, args[0], args[1:]...).Run()
+		return runMediaCommand(workCtx, exec.CommandContext(workCtx, args[0], args[1:]...))
 	})
 	defer pool.Close()
 
@@ -291,7 +309,7 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	args := []string{"-y", "-framerate", framerate, "-i", workdir + "/%09d.jpg"}
 	args = append(args, additionalInputArgs...)
 	args = append(args, "-c:v", "libx264", "-preset", "fast", "-crf", "26", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-hide_banner", "-loglevel", "fatal", outputFile)
-	err = exec.CommandContext(workCtx, "ffmpeg", args...).Run()
+	err = runMediaCommand(workCtx, exec.CommandContext(workCtx, "ffmpeg", args...))
 	if err != nil {
 		return err
 	}
@@ -308,7 +326,9 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	if resultMessage.Document == nil {
 		return fmt.Errorf("Telegram не вернул отправленный документ")
 	}
+	distortMu.Lock()
 	DistortCache[media.FileID] = resultMessage.Document.FileId
+	distortMu.Unlock()
 	if recepient == context.Message.From.Id {
 		Reply("Результат отправлен в личку. Если не пришло, то нужно написать что-нибудь в личку @zavtrachat_bot.", *context)
 	}

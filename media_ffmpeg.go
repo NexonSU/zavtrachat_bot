@@ -20,42 +20,42 @@ import (
 )
 
 func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
+	jobCtx, release, err := mediaTasks.acquire(cntx.Background())
+	if err != nil {
+		return err
+	}
+	defer release()
 	var KwArgs ffmpeg.KwArgs
 	var extension string
 	var height int
 	var width int
 	var duration float64
-	var err error
 
 	videoKwArgs := ffmpeg.KwArgs{}
 	defaultKwArgs := ffmpeg.KwArgs{"loglevel": "fatal", "hide_banner": ""}
 	name := media.FileName
 
-	ctx, cancelFn := cntx.WithTimeout(cntx.Background(), 5*time.Second)
-	defer cancelFn()
-
 	if _, err := os.Stat(media.FilePath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			if err := os.MkdirAll(filepath.Dir(media.FilePath), os.ModePerm); err != nil {
-				return err
-			}
-			err = DownloadFile(media.FilePath, fmt.Sprintf("https://api.telegram.org/file/bot%v/%v", Config.Token, media.FilePath))
+			workdir, err := os.MkdirTemp(os.TempDir(), "zavtra-convert-*")
 			if err != nil {
 				return err
 			}
-			media.FilePath, err = filepath.Abs(media.FilePath)
+			defer os.RemoveAll(workdir)
+			remotePath := media.FilePath
+			media.FilePath = filepath.Join(workdir, "input")
+			err = DownloadFile(media.FilePath, fmt.Sprintf("https://api.telegram.org/file/bot%v/%v", Config.Token, remotePath))
 			if err != nil {
 				return err
 			}
-			defer func(filePath string) {
-				os.Remove(filePath)
-			}(media.FilePath)
 		} else {
 			return err
 		}
 	}
 
-	data, err := ffprobe.ProbeURL(ctx, media.FilePath)
+	probeCtx, cancelProbe := cntx.WithTimeout(jobCtx, 5*time.Second)
+	defer cancelProbe()
+	data, err := ffprobe.ProbeURL(probeCtx, media.FilePath)
 	if err != nil {
 		return err
 	}
@@ -174,24 +174,18 @@ func FFmpegConvert(context *ext.Context, media Media, targetType string) error {
 	}
 	resultFilePath := tmpFile.Name()
 	tmpFile.Close()
+	defer os.Remove(resultFilePath)
 
-	err = ffmpeg.Input(media.FilePath).Output(resultFilePath, ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{defaultKwArgs, KwArgs})).OverWriteOutput().ErrorToStdOut().Run()
+	err = runMediaFFmpeg(jobCtx, ffmpeg.Input(media.FilePath).Output(resultFilePath, ffmpeg.MergeKwArgs([]ffmpeg.KwArgs{defaultKwArgs, KwArgs})).OverWriteOutput())
 	if err != nil {
 		return err
 	}
-
-	defer func(filePath string) {
-		os.Remove(filePath)
-	}(resultFilePath)
-
-	defer func(filePath string) {
-		os.Remove(filePath)
-	}(media.FilePath)
 
 	resultFile, err := os.Open(resultFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
+	defer resultFile.Close()
 
 	inputFile := gotgbot.InputFileByReader(media.FileName, resultFile)
 
