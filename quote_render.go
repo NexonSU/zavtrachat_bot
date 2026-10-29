@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"hash/fnv"
 	"image"
 	"image/color"
 	"math"
@@ -169,12 +168,20 @@ func quoteInitials(name string) string {
 	return string(letters)
 }
 
-func quoteRGB(v uint32) color.Color {
-	return color.NRGBA{R: uint8(v >> 16), G: uint8(v >> 8), B: uint8(v), A: 255}
+func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
+	return renderQuoteWithWallpaper(q, avatar, randomQuoteWallpaper())
 }
 
-func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
-	const width = 1200
+func renderQuoteWithWallpaper(q quoteContent, avatar image.Image, index int) ([]byte, error) {
+	if index < 0 || index >= quoteWallpaperCount {
+		return nil, fmt.Errorf("неизвестный фон цитаты")
+	}
+	backgrounds, err := loadQuoteWallpapers()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка фона цитаты: %w", err)
+	}
+	wallpaper := backgrounds[index]
+	const width = quoteWallpaperWidth
 	const padding = 96.
 	fs, err := loadQuoteFonts()
 	if err != nil {
@@ -211,39 +218,23 @@ func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
 	dc.SetFontFace(nameFace)
 	names := quoteWrap(dc, q.Author, width-2*padding-136)
 	footerHeight := math.Max(112, float64(len(names))*40+44)
-	height := int(math.Ceil(math.Max(660, 160+float64(len(lines))*lineHeight+76+footerHeight+padding)))
+	height := int(math.Ceil(math.Max(quoteWallpaperHeight, 160+float64(len(lines))*lineHeight+76+footerHeight+padding)))
 	if height > 6000 {
 		return nil, fmt.Errorf("слишком много строк для одной карточки — выбери сообщение покороче")
 	}
 	dc = gg.NewContext(width, height)
-	hash := fnv.New32a()
-	hash.Write([]byte(q.Author))
-	palettes := [][2]uint32{{0x201D4D, 0x703856}, {0x142F49, 0x235B68}, {0x31264E, 0x4E4D91}, {0x382442, 0x854950}}
-	palette := palettes[int(hash.Sum32())%len(palettes)]
-	gradient := gg.NewLinearGradient(0, 0, width, float64(height))
-	gradient.AddColorStop(0, quoteRGB(palette[0]))
-	gradient.AddColorStop(1, quoteRGB(palette[1]))
-	dc.SetFillStyle(gradient)
-	dc.DrawRectangle(0, 0, width, float64(height))
-	dc.Fill()
-	// A soft corner glow adds depth while keeping the text area quiet.
-	glow := gg.NewRadialGradient(width-40, 30, 0, width-40, 30, 950)
-	glow.AddColorStop(0, color.NRGBA{R: 143, G: 151, B: 255, A: 48})
-	glow.AddColorStop(1, color.NRGBA{R: 143, G: 151, B: 255, A: 0})
-	dc.SetFillStyle(glow)
-	dc.DrawRectangle(0, 0, width, float64(height))
-	dc.Fill()
+	drawQuoteWallpaper(dc, wallpaper, width, height)
 	dc.SetFontFace(textFace)
-	dc.SetRGBA(1, 1, 1, .20)
+	setQuoteInk(dc, wallpaper, .20)
 	dc.DrawString("“", padding-4, 112)
-	dc.SetRGB(1, 1, 1)
+	setQuoteInk(dc, wallpaper, 1)
 	y := 160 + textFace.Metrics().Ascent.Ceil()
 	for _, line := range lines {
 		dc.DrawString(line, padding, float64(y))
 		y += int(math.Ceil(lineHeight))
 	}
 	footerY := float64(height) - padding - footerHeight
-	dc.SetRGBA(1, 1, 1, .18)
+	setQuoteInk(dc, wallpaper, .18)
 	dc.SetLineWidth(1)
 	dc.DrawLine(padding, footerY-30, width-padding, footerY-30)
 	dc.Stroke()
@@ -259,22 +250,22 @@ func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
 		dc.Scale(scale, scale)
 		dc.DrawImage(avatar, -bounds.Min.X-bounds.Dx()/2, -bounds.Min.Y-bounds.Dy()/2)
 	} else {
-		dc.SetRGBA(1, 1, 1, .14)
+		setQuoteInk(dc, wallpaper, .14)
 		dc.DrawRectangle(padding, footerY, diameter, diameter)
 		dc.Fill()
 		dc.SetFontFace(nameFace)
-		dc.SetRGB(1, 1, 1)
+		setQuoteInk(dc, wallpaper, 1)
 		dc.DrawStringAnchored(quoteInitials(q.Author), cx, cy, .5, .5)
 	}
 	dc.Pop()
 	dc.ResetClip() // gg.Pop restores transforms but intentionally retains the clip mask.
 	dc.SetFontFace(nameFace)
-	dc.SetRGB(1, 1, 1)
+	setQuoteInk(dc, wallpaper, 1)
 	for i, line := range names {
 		dc.DrawString(line, padding+136, footerY+34+float64(i)*40)
 	}
 	dc.SetFontFace(dateFace)
-	dc.SetRGBA(1, 1, 1, .65)
+	setQuoteInk(dc, wallpaper, .65)
 	dc.DrawString(quoteDate(q.Date), padding+136, footerY+float64(len(names))*40+28)
 	buf := new(bytes.Buffer)
 	if err := dc.EncodePNG(buf); err != nil {

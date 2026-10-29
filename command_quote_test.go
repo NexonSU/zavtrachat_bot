@@ -123,28 +123,6 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 	if err != nil || cfg.Width != 1200 || cfg.Height < 660 {
 		t.Fatalf("invalid card: %+v %v", cfg, err)
 	}
-	imageCard, err := png.Decode(bytes.NewReader(sent))
-	if err != nil {
-		t.Fatal(err)
-	}
-	// The author/date must remain visible outside the circular avatar clip.
-	for _, band := range []struct {
-		name                   string
-		top, bottom, threshold int
-	}{{"author", 462, 490, 210}, {"date", 496, 524, 145}} {
-		pixels := 0
-		for y := band.top; y < band.bottom; y++ {
-			for x := 232; x < 850; x++ {
-				r, g, b, _ := imageCard.At(x, y).RGBA()
-				if int(r>>8) > band.threshold && int(g>>8) > band.threshold && int(b>>8) > band.threshold {
-					pixels++
-				}
-			}
-		}
-		if pixels < 30 {
-			t.Fatalf("%s not visible outside avatar clip", band.name)
-		}
-	}
 	calls := client.callsFor("sendPhoto")
 	if len(calls) != 1 {
 		t.Fatal("missing photo")

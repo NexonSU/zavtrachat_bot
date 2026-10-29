@@ -97,7 +97,7 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 a circular avatar, original text, author, and original timestamp in Moscow time.
 Forwarded messages retain their original attribution, including Telegram's hidden-author
 name. Missing avatars fall back to initials. Fonts are embedded; ordinary emoji are
-monochrome. The palette depends on the author name. Command arguments cannot replace
+monochrome. Each new card independently selects one of four embedded Telegram-inspired wallpapers: light, night, lilac or mint. Every wallpaper is 1200×660 px. Night uses white ink and light themes use dark ink. Selection is independent of the author; repeats are allowed. Normal cards are 1200×660 px; long text expands the height, with the background covering the canvas without changing its aspect ratio. Command arguments cannot replace
 the quotation. Text wraps without truncation; messages exceeding a 6000 px card height
 receive a usage hint instead. Hints and the card are visible only to the invoking administrator. Group photos use recipient-specific ephemeral parameters; PM responses stay private. Delivery errors never trigger a public fallback. Rendering uses the bounded media queue. No new configuration,
 external generation services or database migration are required.
