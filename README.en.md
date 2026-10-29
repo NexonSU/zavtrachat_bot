@@ -107,6 +107,16 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 ### Performance measurement
 
 `/perf` reports performance in PM to users in `ZAVTRA_ADMINS` and `ZAVTRA_MODERS`.
+The default report includes lifetime totals and compact 15/60-minute summaries.
+`/perf 15` and `/perf 60` select detailed recent reports. Windows include the current
+partial minute and the previous 14/59 complete minutes, attributed at completion.
+Only 60 minute aggregates are retained; no event history is stored.
+
+Reports also show Go allocated/system memory, goroutine count, and live active/waiting
+media jobs with capacity limits. Go memory is not process RSS and excludes separate
+FFmpeg/yt-dlp processes. Queue counts are current, regardless of the selected window.
+Group usage hints are visible only to the requesting user.
+
 Group invocations point to PM; other users cannot access the report. Since startup,
 metrics track completed handler calls, returned errors, calls taking at least 5 seconds,
 and mean/max duration. The report lists up to 10 handlers by cumulative time; command
