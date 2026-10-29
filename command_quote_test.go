@@ -123,6 +123,16 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 	if err != nil || cfg.Width != 1200 || cfg.Height < 660 {
 		t.Fatalf("invalid card: %+v %v", cfg, err)
 	}
+	cardImage, err := png.Decode(bytes.NewReader(sent))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This pixel is inside the uploaded avatar, above its drawn head. Initials
+	// or an accidentally discarded avatar cannot reproduce its orange background.
+	red, green, blue, _ := cardImage.At(148, 466).RGBA()
+	if red>>8 != 255 || green>>8 != 191 || blue>>8 != 132 {
+		t.Fatalf("uploaded avatar absent from actual PNG: %d,%d,%d", red>>8, green>>8, blue>>8)
+	}
 	calls := client.callsFor("sendPhoto")
 	if len(calls) != 1 {
 		t.Fatal("missing photo")
@@ -194,6 +204,7 @@ func TestQuoteAvatarHTTPAndBounds(t *testing.T) {
 		t.Fatal("channel avatar missing")
 	}
 	client.setResult("getUserProfilePhotos", json.RawMessage(`{"total_count":0,"photos":[]}`))
+	client.setResult("getChat", json.RawMessage(`{}`))
 	if quoteAvatar(context.Background(), bot, quoteContent{UserID: 77}) != nil {
 		t.Fatal("missing profile photo")
 	}
