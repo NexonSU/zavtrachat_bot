@@ -46,9 +46,19 @@ func (s operationTiming) average() time.Duration {
 
 // Keys come exclusively from registered handlers, never from incoming text.
 // Retain aggregates only: no per-update records, SQL, user IDs or arguments.
+// Keep at most 60 minute buckets. Windows include the current partial minute
+// and the previous 14/59 complete minutes; no individual events are retained.
+type performanceBucket struct {
+	minute   int64
+	handlers map[string]operationTiming
+	database operationTiming
+}
+
 type performanceMetrics struct {
 	mu       sync.Mutex
 	started  time.Time
+	now      func() time.Time
+	recent   [60]performanceBucket
 	handlers map[string]operationTiming
 	database operationTiming
 }
@@ -56,7 +66,7 @@ type performanceMetrics struct {
 var botPerformance = newPerformanceMetrics()
 
 func newPerformanceMetrics() *performanceMetrics {
-	return &performanceMetrics{started: time.Now(), handlers: make(map[string]operationTiming)}
+	return &performanceMetrics{started: time.Now(), now: time.Now, handlers: make(map[string]operationTiming)}
 }
 
 func (m *performanceMetrics) observeHandler(name string, elapsed time.Duration, failed bool) {
@@ -64,13 +74,72 @@ func (m *performanceMetrics) observeHandler(name string, elapsed time.Duration, 
 	s := m.handlers[name]
 	s.add(elapsed, failed, slowHandlerThreshold)
 	m.handlers[name] = s
+	b := m.bucket(m.now())
+	r := b.handlers[name]
+	r.add(elapsed, failed, slowHandlerThreshold)
+	b.handlers[name] = r
 	m.mu.Unlock()
 }
 
 func (m *performanceMetrics) observeQuery(elapsed time.Duration, failed bool) {
 	m.mu.Lock()
 	m.database.add(elapsed, failed, slowQueryThreshold)
+	m.bucket(m.now()).database.add(elapsed, failed, slowQueryThreshold)
 	m.mu.Unlock()
+}
+
+// Caller holds m.mu.
+func (m *performanceMetrics) bucket(now time.Time) *performanceBucket {
+	minute := now.Unix() / 60
+	b := &m.recent[minute%int64(len(m.recent))]
+	if b.handlers == nil || b.minute != minute {
+		*b = performanceBucket{minute: minute, handlers: make(map[string]operationTiming)}
+	}
+	return b
+}
+
+func (s *operationTiming) merge(other operationTiming) {
+	s.Count += other.Count
+	s.Errors += other.Errors
+	s.Slow += other.Slow
+	s.Total += other.Total
+	if other.Max > s.Max {
+		s.Max = other.Max
+	}
+}
+
+// snapshotPeriod returns a consistent lifetime or minute-window snapshot.
+func (m *performanceMetrics) snapshotPeriod(minutes int) (time.Time, operationTiming, []namedTiming) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if minutes == 0 {
+		return m.snapshotLocked()
+	}
+	now := m.now()
+	minute := now.Unix() / 60
+	first := minute - int64(minutes) + 1
+	started := time.Unix(first*60, 0).In(m.started.Location())
+	if started.Before(m.started) {
+		started = m.started
+	}
+	var db operationTiming
+	handlers := make(map[string]operationTiming)
+	for _, b := range m.recent {
+		if b.handlers == nil || b.minute < first || b.minute > minute {
+			continue
+		}
+		db.merge(b.database)
+		for name, timing := range b.handlers {
+			total := handlers[name]
+			total.merge(timing)
+			handlers[name] = total
+		}
+	}
+	rows := make([]namedTiming, 0, len(handlers))
+	for name, timing := range handlers {
+		rows = append(rows, namedTiming{name, timing})
+	}
+	return started, db, rows
 }
 
 type namedTiming struct {
@@ -81,6 +150,10 @@ type namedTiming struct {
 func (m *performanceMetrics) snapshot() (time.Time, operationTiming, []namedTiming) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	return m.snapshotLocked()
+}
+
+func (m *performanceMetrics) snapshotLocked() (time.Time, operationTiming, []namedTiming) {
 	rows := make([]namedTiming, 0, len(m.handlers))
 	for name, timing := range m.handlers {
 		rows = append(rows, namedTiming{name, timing})

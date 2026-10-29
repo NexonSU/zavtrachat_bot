@@ -20,6 +20,9 @@ import (
 var mediaTasks = newMediaTaskQueue(2, 8, 30*time.Second, 5*time.Minute)
 
 type mediaTaskQueue struct {
+	mu                      sync.Mutex
+	active, waiting         int
+	workers, waitingLimit   int
 	slots                   *semaphore.Weighted
 	admitted                chan struct{}
 	waitTimeout, jobTimeout time.Duration
@@ -27,7 +30,7 @@ type mediaTaskQueue struct {
 
 func newMediaTaskQueue(workers, waiting int, waitTimeout, jobTimeout time.Duration) *mediaTaskQueue {
 	return &mediaTaskQueue{
-		slots: semaphore.NewWeighted(int64(workers)), admitted: make(chan struct{}, workers+waiting),
+		workers: workers, waitingLimit: waiting, slots: semaphore.NewWeighted(int64(workers)), admitted: make(chan struct{}, workers+waiting),
 		waitTimeout: waitTimeout, jobTimeout: jobTimeout,
 	}
 }
@@ -41,9 +44,18 @@ func (q *mediaTaskQueue) acquire(parent context.Context) (context.Context, func(
 	default:
 		return nil, nil, fmt.Errorf("очередь обработки файлов заполнена, попробуй позже")
 	}
+	q.mu.Lock()
+	q.waiting++
+	q.mu.Unlock()
 	waitCtx, cancelWait := context.WithTimeout(parent, q.waitTimeout)
 	err := q.slots.Acquire(waitCtx, 1)
 	cancelWait()
+	q.mu.Lock()
+	q.waiting--
+	if err == nil {
+		q.active++
+	}
+	q.mu.Unlock()
 	if err != nil {
 		<-q.admitted
 		return nil, nil, fmt.Errorf("не удалось дождаться обработки файла: %w", err)
@@ -53,11 +65,20 @@ func (q *mediaTaskQueue) acquire(parent context.Context) (context.Context, func(
 	release := func() {
 		once.Do(func() {
 			cancel()
+			q.mu.Lock()
+			q.active--
+			q.mu.Unlock()
 			q.slots.Release(1)
 			<-q.admitted
 		})
 	}
 	return ctx, release, nil
+}
+
+func (q *mediaTaskQueue) snapshot() (active, waiting, workers, waitingLimit int) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.active, q.waiting, q.workers, q.waitingLimit
 }
 
 func runMediaCommand(ctx context.Context, cmd *exec.Cmd) error {

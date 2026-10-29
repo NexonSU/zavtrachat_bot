@@ -79,7 +79,7 @@ func TestDownload(t *testing.T) {
 
 	// A plain-text URL is not an entity, so no link is found and the message
 	// gets the "watching" reaction.
-	client.Calls = nil
+	client.clearCalls()
 	err := Download(bot, testContext(bot, "/download https://www.youtube.com/watch?v=123", testUser(42)))
 	if err == nil || !strings.Contains(err.Error(), "ссылок не найдено") {
 		t.Errorf("Download (no entities): err = %v, want the missing link error", err)
@@ -92,7 +92,7 @@ func TestDownload(t *testing.T) {
 	}
 
 	// The " remove" variant deletes the command instead of reacting.
-	client.Calls = nil
+	client.clearCalls()
 	err = Download(bot, testContext(bot, "/download remove", testUser(42)))
 	if err == nil {
 		t.Error("Download (remove): expected the missing link error, got nil")
