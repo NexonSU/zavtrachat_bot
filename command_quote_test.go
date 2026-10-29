@@ -129,7 +129,9 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 	}
 	// This pixel is inside the uploaded avatar, above its drawn head. Initials
 	// or an accidentally discarded avatar cannot reproduce its orange background.
-	red, green, blue, _ := cardImage.At(148, 466).RGBA()
+	avatarX := int(quoteCardPadding + quoteAvatarDiameter/2)
+	avatarY := cfg.Height - int(quoteCardPadding+quoteAvatarDiameter) + 14
+	red, green, blue, _ := cardImage.At(avatarX, avatarY).RGBA()
 	if red>>8 != 255 || green>>8 != 191 || blue>>8 != 132 {
 		t.Fatalf("uploaded avatar absent from actual PNG: %d,%d,%d", red>>8, green>>8, blue>>8)
 	}

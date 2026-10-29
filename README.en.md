@@ -93,14 +93,25 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 | `/download`, `/wget` | download video from a link | yt-dlp |
 | `/savetopm`, `/giveme`, `/topm` | save a post to PM (copies it into the private chat, the bot must be unblocked) | — |
 
-`/quote` is restricted to configured bot administrators, the system administrator, and Telegram administrators/owner of the main chat. Moderators without administrator rights and regular members are denied. It appears only in administrator menus/help. Reply with `/quote` to text or a media caption. The bot creates a gradient PNG card with
+`/quote` is restricted to configured bot administrators, the system administrator, and Telegram administrators/owner of the main chat. Moderators without administrator rights and regular members are denied. It appears only in administrator menus/help. Reply with `/quote` to text or a media caption. To quote only a fragment, select it with Telegram’s native Quote Reply and send `/quote`. Manual TextQuote text is validated against the original; attribution and date remain those of the source. Automatic server previews do not truncate the full quote. The bot creates a gradient PNG card with
 a circular avatar, original text, author, and original timestamp in Moscow time.
 Forwarded messages retain their original attribution, including Telegram's hidden-author
 name. Avatar loading tries available photo sizes and then the current user/chat photo. File downloads reuse the Bot API HTTP client, including its proxy/TLS settings, and support shared-volume paths from local Bot API servers. All attempts share an 8-second deadline. If unavailable, initials are used with a caller-only caption explaining the failure category without tokens, URLs or IDs. Hidden forward authors are never guessed by name. Fonts are embedded; ordinary emoji are
-monochrome. Each new card independently selects one of four embedded Telegram-inspired wallpapers: light, night, lilac or mint. Every wallpaper is 1200×660 px. Night uses white ink and light themes use dark ink. Selection is independent of the author; repeats are allowed. Normal cards are 1200×660 px; long text expands the height, with the background covering the canvas without changing its aspect ratio. Command arguments cannot replace
+monochrome. Each new card independently selects one of four embedded Telegram-inspired wallpapers: light, night, lilac or mint. Every wallpaper is 1200×660 px. Night uses white ink and light themes use dark ink. Selection is independent of the author; repeats are allowed. Cards remain 1200 px wide with adaptive height starting at 660 px, with the background covering the canvas without changing its aspect ratio. Command arguments cannot replace
 the quotation. Text wraps without truncation; messages exceeding a 6000 px card height
 receive a usage hint instead. Hints and the card are visible only to the invoking administrator. Group photos use recipient-specific ephemeral parameters; PM responses stay private. Delivery errors never trigger a public fallback. Rendering uses the bounded media queue. No new configuration,
 external generation services or database migration are required.
+
+Cards use large quotation marks, bold body text and a thick underline; the avatar
+is 160 px, author name 40 px and date 28 px. Short quotes use up to 100 px body type;
+longer quotes gradually reduce it to 36 px without truncation.
+
+Single words of up to four letters and common Russian variants of the specified
+obscene dismissal are rejected, normalizing case, ё/е, spacing, punctuation,
+common spellings and repeated letters. Validation applies to the selected fragment
+rather than unrelated source text. The requester-only rejection is exactly:
+`Хехе, попа, а не цитата, выбери другое.`
+
 
 ### Utilities
 | Command | What it does |

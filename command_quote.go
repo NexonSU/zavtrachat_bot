@@ -91,11 +91,17 @@ func Quote(bot *gotgbot.Bot, ctx *ext.Context) (err error) {
 		return sendZBHelp(bot, ctx, "Команда /quote доступна только администраторам.")
 	}
 	if ctx.Message.ReplyToMessage == nil {
-		return sendZBHelp(bot, ctx, "Отправь <code>/quote</code> в ответ на сообщение — сделаю карточку с цитатой, аватаркой, именем и датой.")
+		return sendZBHelp(bot, ctx, "Отправь <code>/quote</code> в ответ на сообщение. Можно выделить часть текста через «Цитировать» в Telegram — в карточку попадёт только этот фрагмент.")
 	}
-	q := quoteFromMessage(ctx.Message.ReplyToMessage)
+	q, validSelection := quoteSelectedContent(ctx.Message)
+	if !validSelection {
+		return sendZBHelp(bot, ctx, "Не удалось сопоставить выделенный фрагмент с исходным сообщением. Выбери цитату заново.")
+	}
 	if strings.TrimSpace(q.Text) == "" {
 		return sendZBHelp(bot, ctx, "В сообщении нет текста или подписи, которые можно процитировать.")
+	}
+	if quoteForbidden(q.Text) {
+		return sendZBHelp(bot, ctx, quoteRejectedText)
 	}
 	if utf8.RuneCountInString(q.Text) > 4096 {
 		return sendZBHelp(bot, ctx, "Цитата слишком длинная для одной карточки. Выбери сообщение покороче.")
