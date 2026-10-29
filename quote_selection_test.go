@@ -35,8 +35,8 @@ func TestQuoteNativeSelection(t *testing.T) {
 		t.Fatal("approximate offset rejected valid selection")
 	}
 	msg.Quote.IsManual = false
-	if q, ok := quoteSelectedContent(msg); !ok || q.Text != source.Text {
-		t.Fatal("automatic preview truncated the original")
+	if q, ok := quoteSelectedContent(msg); !ok || q.Text != selected {
+		t.Fatal("quote text ignored when is_manual is false")
 	}
 	msg.Quote.IsManual = true
 	msg.Quote.Text = "Подменённая цитата"

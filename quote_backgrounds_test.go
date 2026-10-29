@@ -123,7 +123,14 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 	source.From.LastName = "сообщения"
 	source.Date = q.Date
 	ctx := testReplyContext(bot, "/quote лишние аргументы", testUser(100), source)
-	ctx.Message.Quote = &gotgbot.TextQuote{Text: q.Text, IsManual: true, Position: int64(len(utf16.Encode([]rune(prefix))))}
+	// Decode the incoming Telegram payload with the optional is_manual flag absent.
+	quoteJSON, err := json.Marshal(map[string]any{"text": q.Text, "position": len(utf16.Encode([]rune(prefix)))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(quoteJSON, &ctx.Message.Quote); err != nil {
+		t.Fatal(err)
+	}
 	if err := Quote(bot, ctx); err != nil {
 		t.Fatal(err)
 	}
