@@ -168,6 +168,35 @@ func quoteInitials(name string) string {
 	return string(letters)
 }
 
+const quoteCardPadding = 88.
+const quoteAvatarDiameter = 160.
+const quoteAuthorGap = 32.
+
+func quoteTextSize(text string) float64 {
+	n := utf8.RuneCountInString(text)
+	words := len(quoteWords(text))
+	switch {
+	case n <= 60 && words <= 4:
+		return 100
+	case n <= 140 && words <= 10:
+		return 84
+	case n <= 300:
+		return 64
+	case n <= 700:
+		return 50
+	case n <= 1400:
+		return 42
+	default:
+		return 36
+	}
+}
+
+func drawQuoteMark(dc *gg.Context, face font.Face, mark rune, x, y float64) {
+	bounds, _, _ := face.GlyphBounds(mark)
+	dc.SetFontFace(face)
+	dc.DrawString(string(mark), x-float64(bounds.Min.X)/64, y-float64(bounds.Min.Y)/64)
+}
+
 func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
 	return renderQuoteWithWallpaper(q, avatar, randomQuoteWallpaper())
 }
@@ -182,63 +211,69 @@ func renderQuoteWithWallpaper(q quoteContent, avatar image.Image, index int) ([]
 	}
 	wallpaper := backgrounds[index]
 	const width = quoteWallpaperWidth
-	const padding = 96.
+	const padding = quoteCardPadding
 	fs, err := loadQuoteFonts()
 	if err != nil {
 		return nil, fmt.Errorf("ошибка шрифта")
 	}
-	size := 60.
-	switch n := utf8.RuneCountInString(q.Text); {
-	case n > 1000:
-		size = 36
-	case n > 400:
-		size = 42
-	case n > 180:
-		size = 50
-	}
-	textFace, err := fs.newFace(size, false)
+	size := quoteTextSize(q.Text)
+	textFace, err := fs.newFace(size, true)
 	if err != nil {
 		return nil, err
 	}
 	defer textFace.Close()
-	nameFace, err := fs.newFace(30, true)
+	nameFace, err := fs.newFace(40, true)
 	if err != nil {
 		return nil, err
 	}
 	defer nameFace.Close()
-	dateFace, err := fs.newFace(24, false)
+	dateFace, err := fs.newFace(28, false)
 	if err != nil {
 		return nil, err
 	}
 	defer dateFace.Close()
+	markFace, err := fs.newFace(220, true)
+	if err != nil {
+		return nil, err
+	}
+	defer markFace.Close()
 	dc := gg.NewContext(1, 1)
 	dc.SetFontFace(textFace)
 	lines := quoteWrap(dc, q.Text, width-2*padding)
-	lineHeight := math.Ceil(size * 1.36)
+	lineHeight := math.Ceil(size * 1.25)
 	dc.SetFontFace(nameFace)
-	names := quoteWrap(dc, q.Author, width-2*padding-136)
-	footerHeight := math.Max(112, float64(len(names))*40+44)
-	height := int(math.Ceil(math.Max(quoteWallpaperHeight, 160+float64(len(lines))*lineHeight+76+footerHeight+padding)))
+	names := quoteWrap(dc, q.Author, width-2*padding-quoteAvatarDiameter-quoteAuthorGap)
+	footerHeight := math.Max(quoteAvatarDiameter, float64(len(names))*54+40)
+	bodyTop := 168.
+	bodyBottom := bodyTop + float64(len(lines))*lineHeight
+	height := int(math.Ceil(math.Max(quoteWallpaperHeight, bodyBottom+120+footerHeight+padding)))
 	if height > 6000 {
 		return nil, fmt.Errorf("слишком много строк для одной карточки — выбери сообщение покороче")
 	}
 	dc = gg.NewContext(width, height)
 	drawQuoteWallpaper(dc, wallpaper, width, height)
+	setQuoteInk(dc, wallpaper, .75)
+	drawQuoteMark(dc, markFace, '“', padding-8, 48)
+	closingBounds, _, _ := markFace.GlyphBounds('”')
+	closingWidth := float64(closingBounds.Max.X-closingBounds.Min.X) / 64
+	drawQuoteMark(dc, markFace, '”', width-padding-closingWidth, bodyBottom+12)
 	dc.SetFontFace(textFace)
-	setQuoteInk(dc, wallpaper, .20)
-	dc.DrawString("“", padding-4, 112)
 	setQuoteInk(dc, wallpaper, 1)
-	y := 160 + textFace.Metrics().Ascent.Ceil()
+	y := bodyTop + float64(textFace.Metrics().Ascent.Ceil())
+	maxLineWidth := 0.
 	for _, line := range lines {
-		dc.DrawString(line, padding, float64(y))
-		y += int(math.Ceil(lineHeight))
+		dc.DrawString(line, padding, y)
+		w, _ := dc.MeasureString(line)
+		maxLineWidth = math.Max(maxLineWidth, w)
+		y += lineHeight
 	}
-	footerY := float64(height) - padding - footerHeight
-	setQuoteInk(dc, wallpaper, .18)
-	dc.SetLineWidth(1)
-	dc.DrawLine(padding, footerY-30, width-padding, footerY-30)
+	underlineWidth := math.Min(width-2*padding-closingWidth-48, math.Max(280, maxLineWidth))
+	dc.SetLineWidth(9)
+	dc.SetLineCap(gg.LineCapRound)
+	dc.DrawLine(padding, bodyBottom+38, padding+underlineWidth, bodyBottom+38)
 	dc.Stroke()
-	const diameter = 104.
+	footerY := float64(height) - padding - footerHeight
+	const diameter = quoteAvatarDiameter
 	cx, cy := padding+diameter/2, footerY+diameter/2
 	dc.Push()
 	dc.DrawCircle(cx, cy, diameter/2)
@@ -261,12 +296,14 @@ func renderQuoteWithWallpaper(q quoteContent, avatar image.Image, index int) ([]
 	dc.ResetClip() // gg.Pop restores transforms but intentionally retains the clip mask.
 	dc.SetFontFace(nameFace)
 	setQuoteInk(dc, wallpaper, 1)
+	nameTop := footerY + (footerHeight-(float64(len(names))*54+40))/2
+	nameX := padding + quoteAvatarDiameter + quoteAuthorGap
 	for i, line := range names {
-		dc.DrawString(line, padding+136, footerY+34+float64(i)*40)
+		dc.DrawString(line, nameX, nameTop+40+float64(i)*54)
 	}
 	dc.SetFontFace(dateFace)
 	setQuoteInk(dc, wallpaper, .65)
-	dc.DrawString(quoteDate(q.Date), padding+136, footerY+float64(len(names))*40+28)
+	dc.DrawString(quoteDate(q.Date), nameX, nameTop+float64(len(names))*54+28)
 	buf := new(bytes.Buffer)
 	if err := dc.EncodePNG(buf); err != nil {
 		return nil, err
