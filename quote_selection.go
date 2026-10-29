@@ -55,11 +55,11 @@ func quoteForbidden(text string) bool {
 	return false
 }
 
-// Only explicit manual Telegram quote selection replaces the source text.
+// Telegram quote text replaces the source text regardless of the optional is_manual flag.
 // Position is approximate UTF-16; substring validation avoids splitting emoji.
 func quoteSelectedContent(message *gotgbot.Message) (quoteContent, bool) {
 	q := quoteFromMessage(message.ReplyToMessage)
-	if message.Quote != nil && message.Quote.IsManual {
+	if message.Quote != nil {
 		selected := message.Quote.Text
 		if selected == "" || !strings.Contains(q.Text, selected) {
 			return q, false
