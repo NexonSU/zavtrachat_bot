@@ -105,14 +105,13 @@ func Quote(bot *gotgbot.Bot, ctx *ext.Context) (err error) {
 		return sendZBHelp(bot, ctx, err.Error())
 	}
 	defer release()
-	avatarCtx, cancel := context.WithTimeout(jobCtx, 8*time.Second)
-	avatar := quoteAvatar(avatarCtx, bot, q)
-	cancel()
+	avatar, avatarStatus := quoteAvatarWithStatus(jobCtx, bot, q)
 	card, err := renderQuote(q, avatar)
 	if err != nil {
 		return sendZBHelp(bot, ctx, fmt.Sprintf("Не удалось создать цитату: %s", err))
 	}
 	opts := &gotgbot.SendPhotoOpts{
+		Caption:         quoteAvatarNotice(avatarStatus),
 		ReplyParameters: &gotgbot.ReplyParameters{MessageId: ctx.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true},
 	}
 	switch ctx.EffectiveChat.Type {
