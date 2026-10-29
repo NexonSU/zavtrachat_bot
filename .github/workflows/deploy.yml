@@ -3,12 +3,14 @@ on:
   push:
     paths:
       - '**.go'
+      - 'assets/quote-backgrounds/*.png'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/deploy.yml'
   pull_request:
     paths:
       - '**.go'
+      - 'assets/quote-backgrounds/*.png'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/deploy.yml'
