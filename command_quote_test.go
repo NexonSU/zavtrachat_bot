@@ -57,7 +57,7 @@ func TestQuoteUsageAndValidation(t *testing.T) {
 	}
 	for _, reply := range []*gotgbot.Message{nil, {}, {Text: strings.Repeat("а", 4097)}} {
 		client.clearCalls()
-		ctx := testContext(bot, "/quote", testUser(42))
+		ctx := testContext(bot, "/quote", testUser(100))
 		ctx.Message.ReplyToMessage = reply
 		if err := Quote(bot, ctx); err != nil {
 			t.Fatal(err)
@@ -70,7 +70,7 @@ func TestQuoteUsageAndValidation(t *testing.T) {
 			t.Fatal("missing usage")
 		}
 		eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
-		if eph == nil || eph.ReceiverUserId != 42 {
+		if eph == nil || eph.ReceiverUserId != 100 {
 			t.Fatal("usage is public")
 		}
 	}
@@ -115,7 +115,7 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 		}
 	}
 	reply := &gotgbot.Message{MessageId: 321, Text: "Сначала сделаем красиво.\nА потом ещё красивее. 😎", Date: time.Date(2026, 10, 29, 11, 37, 0, 0, time.UTC).Unix(), From: &gotgbot.User{Id: 77, FirstName: "Автор", LastName: "сообщения"}}
-	ctx := testReplyContext(bot, "/quote ПОДМЕНА", testUser(42), reply)
+	ctx := testReplyContext(bot, "/quote ПОДМЕНА", testUser(100), reply)
 	if err := Quote(bot, ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -148,6 +148,10 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 	calls := client.callsFor("sendPhoto")
 	if len(calls) != 1 {
 		t.Fatal("missing photo")
+	}
+	eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
+	if eph == nil || eph.ReceiverUserId != 100 {
+		t.Fatalf("quote must reach only invoking admin: %+v", calls[0].Params)
 	}
 	params, _ := calls[0].Params["reply_parameters"].(*gotgbot.ReplyParameters)
 	if params == nil || params.MessageId != 321 {
@@ -287,7 +291,7 @@ func TestQuoteQueueAndRegistration(t *testing.T) {
 			found = true
 		}
 	}
-	if !found || !strings.Contains(zbHelpText, "/quote") {
+	if !found || !strings.Contains(zbAdminHelpText, "/quote") {
 		t.Fatal("quote not registered or documented")
 	}
 	old := mediaTasks
@@ -299,7 +303,7 @@ func TestQuoteQueueAndRegistration(t *testing.T) {
 	}
 	defer release()
 	reply := &gotgbot.Message{Text: "Текст", From: &gotgbot.User{Id: 77, FirstName: "Иван"}}
-	if err := Quote(bot, testReplyContext(bot, "/quote", testUser(42), reply)); err != nil {
+	if err := Quote(bot, testReplyContext(bot, "/quote", testUser(100), reply)); err != nil {
 		t.Fatal(err)
 	}
 	if len(client.callsFor("sendPhoto")) != 0 || len(client.callsFor("getUserProfilePhotos")) != 0 {

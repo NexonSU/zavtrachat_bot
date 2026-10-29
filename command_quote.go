@@ -57,11 +57,38 @@ func quoteFromMessage(msg *gotgbot.Message) quoteContent {
 	return q
 }
 
+// Mark quote errors so the dispatcher never publishes a failed private response.
+type quotePrivateError struct{ err error }
+
+func (e *quotePrivateError) Error() string { return e.err.Error() }
+func (e *quotePrivateError) Unwrap() error { return e.err }
+
+func canUseQuote(bot *gotgbot.Bot, userID int64) bool {
+	if Config == nil || userID <= 0 {
+		return false
+	}
+	if IsAdmin(userID) || userID == Config.SysAdmin {
+		return true
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	member, err := bot.GetChatMemberWithContext(ctx, Config.Chat, userID, nil)
+	return err == nil && member != nil && (member.GetStatus() == "administrator" || member.GetStatus() == "creator")
+}
+
 // Quote uses only the replied-to text/caption, author and original timestamp.
 // Command arguments cannot replace somebody else's words or attribution.
-func Quote(bot *gotgbot.Bot, ctx *ext.Context) error {
-	if ctx == nil || ctx.Update == nil || ctx.Message == nil {
+func Quote(bot *gotgbot.Bot, ctx *ext.Context) (err error) {
+	defer func() {
+		if err != nil {
+			err = &quotePrivateError{err}
+		}
+	}()
+	if ctx == nil || ctx.Update == nil || ctx.Message == nil || ctx.EffectiveUser == nil || ctx.EffectiveChat == nil {
 		return nil
+	}
+	if !canUseQuote(bot, ctx.EffectiveUser.Id) {
+		return sendZBHelp(bot, ctx, "Команда /quote доступна только администраторам.")
 	}
 	if ctx.Message.ReplyToMessage == nil {
 		return sendZBHelp(bot, ctx, "Отправь <code>/quote</code> в ответ на сообщение — сделаю карточку с цитатой, аватаркой, именем и датой.")
@@ -85,8 +112,16 @@ func Quote(bot *gotgbot.Bot, ctx *ext.Context) error {
 	if err != nil {
 		return sendZBHelp(bot, ctx, fmt.Sprintf("Не удалось создать цитату: %s", err))
 	}
-	_, err = bot.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("quote.png", bytes.NewReader(card)), &gotgbot.SendPhotoOpts{
+	opts := &gotgbot.SendPhotoOpts{
 		ReplyParameters: &gotgbot.ReplyParameters{MessageId: ctx.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true},
-	})
+	}
+	switch ctx.EffectiveChat.Type {
+	case "private":
+	case "group", "supergroup":
+		opts.EphemeralMessageParameters = &gotgbot.EphemeralMessageParameters{ReceiverUserId: ctx.EffectiveUser.Id}
+	default:
+		return nil
+	}
+	_, err = bot.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("quote.png", bytes.NewReader(card)), opts)
 	return err
 }

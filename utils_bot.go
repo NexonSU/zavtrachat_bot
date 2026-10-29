@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html"
 	"math/rand"
@@ -25,7 +26,10 @@ func newBotDispatcher() *ext.Dispatcher {
 			}
 			text := "Ошибка: " + html.EscapeString(safeError) + "\n\n" + details
 			var reportErr error
-			if context.Message != nil {
+			var privateQuote *quotePrivateError
+			if errors.As(err, &privateQuote) {
+				reportErr = sendZBHelp(bot, context, text)
+			} else if context.Message != nil {
 				reportErr = Reply(text, *context)
 			} else {
 				reportErr = sendZBHelp(bot, context, text)
