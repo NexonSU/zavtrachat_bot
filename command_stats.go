@@ -93,9 +93,29 @@ func StatsTop(bot *gotgbot.Bot, context *ext.Context) error {
 		return err
 	}
 
+	// Resolve all ranked users in one query; words and message links need no users.
+	names := make(map[int64]string)
+	if len(rows) > 0 && kind.statType != 4 && kind.statType != 6 {
+		ids := make([]int64, 0, len(rows))
+		for _, row := range rows {
+			ids = append(ids, row.ContextID)
+		}
+		var users []gotgbot.User
+		if err := DB.Where("id IN ?", ids).Find(&users).Error; err != nil {
+			return err
+		}
+		for _, user := range users {
+			names[user.Id] = UserFullName(&user)
+		}
+	}
+
 	text := fmt.Sprintf("Топ-10 %v %v:\n\n", kind.title, period)
 	for i, row := range rows {
-		var name, value string
+		name := strconv.FormatInt(row.ContextID, 10)
+		if fullName, ok := names[row.ContextID]; ok {
+			name = fullName
+		}
+		var value string
 		switch kind.statType {
 		case 6:
 			// Reactions are counted per message: rank the messages
@@ -103,16 +123,12 @@ func StatsTop(bot *gotgbot.Bot, context *ext.Context) error {
 			name = fmt.Sprintf("<a href=\"%v\">сообщение</a>", chatMessageLink(context.EffectiveChat.Id, row.ContextID))
 			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "лайк", "лайка", "лайков"))
 		case salvationStatType:
-			name = statsTopUserName(row.ContextID)
 			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "спасение", "спасения", "спасений"))
 		case 8:
-			name = statsTopUserName(row.ContextID)
 			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "смерть", "смерти", "смертей"))
 		case 7:
-			name = statsTopUserName(row.ContextID)
 			value = formatDuration(row.Total)
 		case 3:
-			name = statsTopUserName(row.ContextID)
 			value = fmt.Sprintf("%d %v", row.Total, ruPlural(row.Total, "сообщение", "сообщения", "сообщений"))
 		case 4:
 			name = row.Word
@@ -121,14 +137,4 @@ func StatsTop(bot *gotgbot.Bot, context *ext.Context) error {
 		text += fmt.Sprintf("%v. %v - %v\n", i+1, name, value)
 	}
 	return Reply(text, *context)
-}
-
-// statsTopUserName resolves a user id for the top list, falling back to the
-// bare id when the users table does not know them.
-func statsTopUserName(userID int64) string {
-	name := strconv.FormatInt(userID, 10)
-	if user, err := GetUserFromDB(name); err == nil {
-		name = UserFullName(&user)
-	}
-	return name
 }
