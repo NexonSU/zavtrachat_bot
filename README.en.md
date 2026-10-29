@@ -86,11 +86,22 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 |---|---|---|
 | `/meow`, `/mlem`, `/woof` | a gif of a cat / a not-cat | MTProto |
 | `/meme` | a meme from a channel | MTProto |
+| `/quote` | a quote card from the replied-to message | — |
 | `/convert` | media conversion: `mp3`, `ogg`, `gif`, `audio`, `voice`, `animation` | ffmpeg, `ZAVTRA_BOT_API_DATADIR` |
 | `/distort`, `/invert`, `/reverse`, `/loop` | mangle / invert / loop media | ffmpeg, `ZAVTRA_BOT_API_DATADIR` |
 | `/mp3` | download audio from a link (YouTube etc.) | yt-dlp, ffmpeg |
 | `/download`, `/wget` | download video from a link | yt-dlp |
 | `/savetopm`, `/giveme`, `/topm` | save a post to PM (copies it into the private chat, the bot must be unblocked) | — |
+
+Reply with `/quote` to text or a media caption. The bot posts a gradient PNG card with
+a circular avatar, original text, author, and original timestamp in Moscow time.
+Forwarded messages retain their original attribution, including Telegram's hidden-author
+name. Missing avatars fall back to initials. Fonts are embedded; ordinary emoji are
+monochrome. The palette depends on the author name. Command arguments cannot replace
+the quotation. Text wraps without truncation; messages exceeding a 6000 px card height
+receive a usage hint instead. Hints are requester-only; the card is posted publicly as
+a reply to the source. Rendering uses the bounded media queue. No new configuration,
+external generation services or database migration are required.
 
 ### Utilities
 | Command | What it does |

@@ -20,3 +20,10 @@ MIT из корня репозитория: MIT покрывает исходн�
 При публичной публикации проекта их стоит удалить или заменить своими: `go:embed` в
 `utils_files.go` требует, чтобы оба файла лежали на месте, поэтому удаление само по себе ломает
 сборку `/bonk` и `/hug`.
+
+## Шрифт карточек /quote
+
+`NotoEmoji.ttf` — Noto Emoji, Copyright 2013 Google LLC, SIL Open Font License 1.1.
+Исходник: https://github.com/google/fonts/tree/main/ofl/notoemoji
+Полный текст лицензии: `NotoEmoji-OFL.txt`. Шрифт встраивается в бинарник для
+монохромных эмодзи. Основной текст использует встроенные Go fonts из `golang.org/x/image`.

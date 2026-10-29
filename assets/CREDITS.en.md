@@ -20,3 +20,10 @@ the username over them and send the result as a sticker.
 When publishing the project publicly, remove them or replace them with your own. Note that `go:embed` in
 `utils_files.go` requires both files to be in place, so simply deleting them breaks the build of `/bonk`
 and `/hug`.
+
+## /quote card font
+
+`NotoEmoji.ttf` is Noto Emoji, Copyright 2013 Google LLC, under SIL Open Font License 1.1.
+Source: https://github.com/google/fonts/tree/main/ofl/notoemoji
+Full license: `NotoEmoji-OFL.txt`. The font is embedded for monochrome emoji.
+Body text uses the Go fonts bundled with `golang.org/x/image`.

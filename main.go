@@ -48,6 +48,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "getall", Description: "получить список гетов", IsEphemeral: true}, Getall},
 		{gotgbot.BotCommand{Command: "giveme", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
 		{gotgbot.BotCommand{Command: "google", Description: "загуглить что-нибудь", IsEphemeral: true}, Google},
+		{gotgbot.BotCommand{Command: "quote", Description: "карточка с цитатой из сообщения", IsEphemeral: true}, Quote},
 		{gotgbot.BotCommand{Command: "hug", Description: "обнять кого-нибудь", IsEphemeral: true}, Hug},
 		{gotgbot.BotCommand{Command: "isekai", Description: "попасть в исекай", IsEphemeral: true}, Blessing},
 		{gotgbot.BotCommand{Command: "isekaitop", Description: "топ исекая чата", IsEphemeral: true}, BlessingTop},
