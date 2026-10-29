@@ -148,7 +148,7 @@ func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCo
 		switch entry.command.Command {
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf":
 			private = append(private, entry.command)
-		case "muted", "zbadminhelp":
+		case "muted", "zbadminhelp", "quote":
 			admin = append(admin, entry.command)
 		case "zbhelp":
 			group = append(group, entry.command)
