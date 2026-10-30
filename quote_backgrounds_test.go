@@ -137,6 +137,14 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 	if !seen[sha256.Sum256(sent)] {
 		t.Fatal("actual card did not contain exactly the selected text and original attribution")
 	}
+	// Bot API omitted the quote: the same PNG must result from native recovery.
+	ctx.Message.Quote = nil
+	if err := quoteWithLookup(bot, ctx, func(*gotgbot.Message) (string, error) { return q.Text, nil }); err != nil {
+		t.Fatal(err)
+	}
+	if !seen[sha256.Sum256(sent)] {
+		t.Fatal("recovered fragment did not reach the actual PNG")
+	}
 	if dir := os.Getenv("ZAVTRA_QUOTE_PREVIEW_DIR"); dir != "" {
 		if err := os.WriteFile(filepath.Join(dir, "quote-selected-fragment.png"), sent, 0644); err != nil {
 			t.Fatal(err)

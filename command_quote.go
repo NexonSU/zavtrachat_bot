@@ -78,7 +78,11 @@ func canUseQuote(bot *gotgbot.Bot, userID int64) bool {
 
 // Quote uses only the replied-to text/caption, author and original timestamp.
 // Command arguments cannot replace somebody else's words or attribution.
-func Quote(bot *gotgbot.Bot, ctx *ext.Context) (err error) {
+func Quote(bot *gotgbot.Bot, ctx *ext.Context) error {
+	return quoteWithLookup(bot, ctx, recoverQuoteSelection)
+}
+
+func quoteWithLookup(bot *gotgbot.Bot, ctx *ext.Context, lookup quoteLookup) (err error) {
 	defer func() {
 		if err != nil {
 			err = &quotePrivateError{err}
@@ -93,7 +97,10 @@ func Quote(bot *gotgbot.Bot, ctx *ext.Context) (err error) {
 	if ctx.Message.ReplyToMessage == nil {
 		return sendZBHelp(bot, ctx, "Отправь <code>/quote</code> в ответ на сообщение. Можно выделить часть текста через «Цитировать» в Telegram — в карточку попадёт только этот фрагмент.")
 	}
-	q, validSelection := quoteSelectedContent(ctx.Message)
+	q, validSelection, selectionStatus := quoteResolvedContent(ctx.Message, lookup)
+	if args := ctx.Args(); len(args) == 2 && args[1] == "debug" {
+		return sendZBHelp(bot, ctx, quoteSelectionDiagnostic(ctx.Message, q, validSelection, selectionStatus))
+	}
 	if !validSelection {
 		return sendZBHelp(bot, ctx, "Не удалось сопоставить выделенный фрагмент с исходным сообщением. Выбери цитату заново.")
 	}
@@ -117,7 +124,7 @@ func Quote(bot *gotgbot.Bot, ctx *ext.Context) (err error) {
 		return sendZBHelp(bot, ctx, fmt.Sprintf("Не удалось создать цитату: %s", err))
 	}
 	opts := &gotgbot.SendPhotoOpts{
-		Caption:         quoteAvatarNotice(avatarStatus),
+		Caption:         strings.TrimSpace(quoteAvatarNotice(avatarStatus) + "\n" + quoteSelectionNotice(selectionStatus)),
 		ReplyParameters: &gotgbot.ReplyParameters{MessageId: ctx.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true},
 	}
 	switch ctx.EffectiveChat.Type {
