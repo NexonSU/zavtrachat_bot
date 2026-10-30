@@ -98,15 +98,15 @@ func TestQuoteEllipses(t *testing.T) {
 	source := "Боже как я люблю величие поп в никее!"
 	for _, tc := range []struct{ selection, want string }{
 		{source, source},
-		{"я люблю величие поп", "... я люблю величие поп ..."},
-		{"Боже как", "Боже как ..."},
-		{"в никее!", "... в никее!"},
+		{"я люблю величие поп", "...я люблю величие поп..."},
+		{"Боже как", "Боже как..."},
+		{"в никее!", "...в никее!"},
 	} {
 		if got := quoteDisplayText(source, tc.selection, nil); got != tc.want {
 			t.Fatalf("%q: %q != %q", tc.selection, got, tc.want)
 		}
 	}
-	if got := quoteDisplayText("слово слово", "слово", &gotgbot.TextQuote{Position: 6}); got != "... слово" {
+	if got := quoteDisplayText("слово слово", "слово", &gotgbot.TextQuote{Position: 6}); got != "...слово" {
 		t.Fatal(got)
 	}
 }

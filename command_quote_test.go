@@ -143,6 +143,13 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 	if eph != nil {
 		t.Fatalf("quote must reach only invoking admin: %+v", calls[0].Params)
 	}
+	if caption, _ := calls[0].Params["caption"].(string); caption != "" {
+		t.Fatal("unexpected caption", caption)
+	}
+	deletes := client.callsFor("deleteMessage")
+	if len(deletes) != 1 || deletes[0].Params["message_id"] != ctx.Message.MessageId || deletes[0].Params["chat_id"] != ctx.EffectiveChat.Id {
+		t.Fatalf("wrong command cleanup: %+v", deletes)
+	}
 	params, _ := calls[0].Params["reply_parameters"].(*gotgbot.ReplyParameters)
 	if params == nil || params.MessageId != 321 {
 		t.Fatal("not replying to source")

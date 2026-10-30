@@ -90,10 +90,10 @@ func quoteDisplayText(source, selected string, quote *gotgbot.TextQuote) string 
 	}
 	text := strings.TrimSpace(selected)
 	if strings.TrimSpace(source[:start]) != "" {
-		text = "... " + text
+		text = "..." + text
 	}
 	if strings.TrimSpace(source[start+len(selected):]) != "" {
-		text += " ..."
+		text += "..."
 	}
 	return text
 }
