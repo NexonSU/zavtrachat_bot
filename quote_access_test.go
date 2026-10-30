@@ -65,6 +65,9 @@ func TestQuoteHiddenFromPublicMenus(t *testing.T) {
 	for _, c := range admin {
 		if c.Command == "quote" {
 			found = true
+			if c.IsEphemeral {
+				t.Fatal("quote command must preserve native Quote Reply as an ordinary message")
+			}
 		}
 	}
 	if !found || strings.Contains(zbHelpText, "/quote") || !strings.Contains(zbAdminHelpText, "/quote") {
