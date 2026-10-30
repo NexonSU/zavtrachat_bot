@@ -282,7 +282,7 @@ func TestQuoteQueueAndRegistration(t *testing.T) {
 			found = true
 		}
 	}
-	if !found || !strings.Contains(zbAdminHelpText, "/quote") {
+	if !found || !strings.Contains(zbHelpText, "/quote") {
 		t.Fatal("quote not registered or documented")
 	}
 	old := mediaTasks
