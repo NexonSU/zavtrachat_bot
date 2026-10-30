@@ -255,7 +255,7 @@ func setupTestEnv(t *testing.T) (*gotgbot.Bot, *fakeBotClient) {
 	}
 	sqlDB.SetMaxOpenConns(8)
 
-	if err := db.AutoMigrate(&gotgbot.User{}, &Get{}, &AntiSpam{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}); err != nil {
+	if err := db.AutoMigrate(&gotgbot.User{}, &Get{}, &AntiSpam{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}, &QuoteProtectedIdentity{}); err != nil {
 		t.Fatalf("migrate test db: %v", err)
 	}
 	DB = *db

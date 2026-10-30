@@ -97,6 +97,15 @@ func quoteWithLookup(bot *gotgbot.Bot, ctx *ext.Context, lookup quoteLookup) (er
 	if ctx.Message.ReplyToMessage == nil {
 		return sendZBHelp(bot, ctx, "Отправь <code>/quote</code> в ответ на сообщение. Можно выделить часть текста через «Цитировать» в Telegram — в карточку попадёт только этот фрагмент.")
 	}
+	if !admin {
+		restricted, checkErr := quoteAuthorRestricted(ctx.Message.ReplyToMessage)
+		if checkErr != nil {
+			return sendZBHelp(bot, ctx, "Не удалось проверить возможность цитирования. Попробуй позже.")
+		}
+		if restricted {
+			return sendZBHelp(bot, ctx, "Эту цитату может создать только администратор.")
+		}
+	}
 	q, validSelection, selectionStatus := quoteResolvedContent(ctx.Message, lookup)
 	if args := ctx.Args(); len(args) == 2 && args[1] == "debug" {
 		if !admin {
