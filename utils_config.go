@@ -35,35 +35,36 @@ const DefaultEnvFile = ".env"
 // environment variable of the same name in upper snake case: Token is
 // ZAVTRA_TOKEN, BotApiDataDir is ZAVTRA_BOT_API_DATADIR, and so on.
 type Configuration struct {
-	Token             string
-	DSN               string
-	AppID             int
-	AppHash           string
-	BotApiUrl         string
-	BotApiDataDir     string
-	AllowedUpdates    []string
-	Listen            string
-	EndpointPublicURL string
-	MaxConnections    int64
-	Chat              int64
-	ReserveChat       int64
-	CommentChat       int64
-	StreamChannel     int64
-	Channel           int64
-	Admins            []int64
-	Moders            []int64
-	SysAdmin          int64
-	CurrencyKey       string
-	ReleasesUrl       string
-	FontPath          string
-	Proxy             string
-	AIURL             string
-	AIToken           string
-	AIModel           string
-	AISystem          string
-	AIAdminOnlyTools  []string
-	AntiSpamWindow    int
-	AntiSpamCount     int
+	Token                   string
+	DSN                     string
+	AppID                   int
+	AppHash                 string
+	BotApiUrl               string
+	BotApiDataDir           string
+	AllowedUpdates          []string
+	Listen                  string
+	EndpointPublicURL       string
+	MaxConnections          int64
+	Chat                    int64
+	ReserveChat             int64
+	CommentChat             int64
+	StreamChannel           int64
+	Channel                 int64
+	Admins                  []int64
+	Moders                  []int64
+	SysAdmin                int64
+	CurrencyKey             string
+	ReleasesUrl             string
+	FontPath                string
+	Proxy                   string
+	AIURL                   string
+	AIToken                 string
+	AIModel                 string
+	AISystem                string
+	AIAdminOnlyTools        []string
+	AntiSpamWindow          int
+	AntiSpamCount           int
+	QuoteProtectedUsernames []string
 }
 
 // ConfigInit builds the configuration from the environment: it loads the .env
@@ -88,6 +89,12 @@ func ConfigInit() error {
 		ReleasesUrl:    envValue("ZAVTRA_RELEASES_URL", DefaultReleasesUrl),
 	}
 
+	cfg.QuoteProtectedUsernames = envList("ZAVTRA_QUOTE_PROTECTED_USERNAMES", strings.Split(quoteProtectedDefaults, ","))
+	for i := len(cfg.QuoteProtectedUsernames) - 1; i >= 0; i-- {
+		if strings.TrimSpace(cfg.QuoteProtectedUsernames[i]) == "" {
+			cfg.QuoteProtectedUsernames = append(cfg.QuoteProtectedUsernames[:i], cfg.QuoteProtectedUsernames[i+1:]...)
+		}
+	}
 	cfg.Token = os.Getenv("ZAVTRA_TOKEN")
 	cfg.DSN = os.Getenv("ZAVTRA_DSN")
 	cfg.AppHash = os.Getenv("ZAVTRA_APP_HASH")

@@ -106,8 +106,11 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
     - name: Build and install bot
+      env:
+        QUOTE_PROTECTED_AUTHORS: ${{ secrets.ZAVTRA_QUOTE_PROTECTED_USERNAMES }}
       run: |
-        go build -o telegram-go-chatbot
+        test -n "$QUOTE_PROTECTED_AUTHORS"
+        go build -ldflags "-X main.quoteProtectedDefaults=$QUOTE_PROTECTED_AUTHORS" -o telegram-go-chatbot
         sudo cp -fu telegram-go-chatbot /home/telegram/bot/
     - name: Restarting telegram-go-chatbot service
       run: sudo systemctl restart telegram-go-chatbot
