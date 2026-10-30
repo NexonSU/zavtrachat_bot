@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -78,6 +81,113 @@ func TestDistortVisualMedia(t *testing.T) {
 			assertDistortCleanup(t, "visual")
 		})
 	}
+}
+
+// Local-mode Bot API paths can belong to another container. Download the
+// photo through the API's configured transport before handing it to FFmpeg.
+func TestDistortRemotePhoto(t *testing.T) {
+	requireMediaTool(t, "convert")
+	for _, absolute := range []bool{false, true} {
+		t.Run(fmt.Sprint(absolute), func(t *testing.T) {
+			_, _ = setupDistortScenario(t)
+			photo, err := os.ReadFile(ffmpegMedia(t, "photo"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := "distort-remote/photos/input.jpg"
+			if absolute {
+				path = "/api/container/1/" + path
+			}
+			var sent []byte
+			var downloads int
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Header.Get("X-Media-Transport") != "configured" {
+					http.Error(w, "missing API transport", http.StatusForbidden)
+					return
+				}
+				switch r.URL.Path {
+				case "/botTESTTOKEN/getFile":
+					fmt.Fprintf(w, `{"ok":true,"result":{"file_path":%q,"file_size":%d}}`, path, len(photo))
+				case "/botTESTTOKEN/getChatMember":
+					fmt.Fprint(w, `{"ok":true,"result":{"status":"creator","user":{"id":42,"is_bot":false,"first_name":"member"}}}`)
+				case "/file/botTESTTOKEN/distort-remote/photos/input.jpg":
+					downloads++
+					w.Write(photo)
+				case "/botTESTTOKEN/sendDocument":
+					file, _, err := r.FormFile("document")
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					}
+					defer file.Close()
+					sent, _ = io.ReadAll(file)
+					fmt.Fprint(w, `{"ok":true,"result":{"message_id":1,"document":{"file_id":"distorted"}}}`)
+				case "/botTESTTOKEN/sendChatAction":
+					fmt.Fprint(w, `{"ok":true,"result":true}`)
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer server.Close()
+			client := *server.Client()
+			transport := client.Transport
+			client.Transport = quoteAvatarRoundTrip(func(r *http.Request) (*http.Response, error) {
+				r.Header.Set("X-Media-Transport", "configured")
+				return transport.RoundTrip(r)
+			})
+			bot := &gotgbot.Bot{User: gotgbot.User{Id: 1}, Token: "TESTTOKEN", BotClient: &gotgbot.BaseBotClient{
+				Client: client, DefaultRequestOpts: &gotgbot.RequestOpts{APIURL: server.URL},
+			}}
+			Bot = bot
+			t.Setenv("TMPDIR", t.TempDir())
+			reply := &gotgbot.Message{Photo: []gotgbot.PhotoSize{{FileId: "remote"}}}
+			if err := Distort(bot, testReplyContext(bot, "/distort", testUser(42), reply)); err != nil {
+				t.Fatal(err)
+			}
+			if downloads != 1 || len(sent) == 0 || DistortCache["remote"] != "distorted" {
+				t.Fatal("remote photo was not downloaded, distorted, sent and cached")
+			}
+			output := filepath.Join(t.TempDir(), "result.mp4")
+			if err := os.WriteFile(output, sent, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Contains(ffprobeStreamValues(t, output, "codec_name"), "h264") {
+				t.Fatal("remote photo did not produce a playable H.264 video")
+			}
+			assertDistortCleanup(t, "remote")
+			entries, err := os.ReadDir(os.TempDir())
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("downloaded input was not cleaned up: %v, %v", entries, err)
+			}
+		})
+	}
+}
+
+func TestDistortPhotoFromSharedBotAPIVolume(t *testing.T) {
+	requireMediaTool(t, "convert")
+	bot, client := setupDistortScenario(t)
+	Config.Token = "1:unitsecret"
+	Config.BotApiDataDir = t.TempDir()
+	dir := filepath.Join(Config.BotApiDataDir, Config.Token, "photos")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	photo, err := os.ReadFile(ffmpegMedia(t, "photo"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "photo.jpg"), photo, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	client.setResult("getFile", json.RawMessage(`{"file_path":"/api/container/1/photos/photo.jpg"}`))
+	reply := &gotgbot.Message{Photo: []gotgbot.PhotoSize{{FileId: "shared"}}}
+	if err := Distort(bot, testReplyContext(bot, "/distort", testUser(42), reply)); err != nil {
+		t.Fatal(err)
+	}
+	if len(client.callsFor("sendDocument")) != 1 || DistortCache["shared"] != "distorted" {
+		t.Fatal("photo from shared Bot API volume was not distorted")
+	}
+	assertDistortCleanup(t, "shared")
 }
 
 func TestDistortUploadFailureAndMissingResult(t *testing.T) {
