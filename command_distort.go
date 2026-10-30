@@ -124,18 +124,18 @@ func Distort(bot *gotgbot.Bot, context *ext.Context) error {
 	}()
 
 	workdir := fmt.Sprintf("%v/telegram-go-chatbot-distort/%v", DistortTempDir, media.FileID)
-	inputFile := media.FilePath
 	outputFile := fmt.Sprintf("%v/output.mp4", workdir)
 
-	_, err = os.Stat(inputFile)
+	inputFile, cleanupInput, err := mediaInputFile(jobCtx, bot, media)
 	if err != nil {
-		inputFile = media.FileURL
+		return err
 	}
+	defer cleanupInput()
 
 	ctx, cancelFn := cntx.WithTimeout(jobCtx, 5*time.Second)
 	defer cancelFn()
 
-	data, err := ffprobe.ProbeURL(ctx, inputFile)
+	data, err := ffprobe.ProbeURL(ctx, inputFile, "-loglevel", "error")
 	if err != nil {
 		return err
 	}

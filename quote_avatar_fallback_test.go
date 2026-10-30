@@ -96,11 +96,11 @@ func TestQuoteAvatarMapsLocalBotAPIVolume(t *testing.T) {
 	if img, status := quoteAvatarWithStatus(context.Background(), bot, quoteContent{UserID: 77}); img == nil || status != "" {
 		t.Fatalf("shared volume mapping failed: %s", status)
 	}
-	if paths := quoteAvatarLocalPaths("../../private", 123); len(paths) != 0 {
+	if paths := mediaLocalPaths("../../private", 123); len(paths) != 0 {
 		t.Fatal("relative traversal accepted")
 	}
 	other := "/api/container/456:other/photos/avatar.jpg"
-	if paths := quoteAvatarLocalPaths(other, 123); len(paths) != 1 || paths[0] != other {
+	if paths := mediaLocalPaths(other, 123); len(paths) != 1 || paths[0] != other {
 		t.Fatalf("mapped a different bot directory: %+v", paths)
 	}
 }

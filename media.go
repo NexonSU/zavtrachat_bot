@@ -121,10 +121,10 @@ func GetMedia(message *gotgbot.Message) (Media, error) {
 	result.FileName = filepath.Base(file.FilePath)
 	result.FileURL = file.URL(Bot, nil)
 
-	if _, err := os.Stat(result.FilePath); err != nil {
-		localPath := Config.BotApiDataDir + "/" + Config.Token + "/" + result.FilePath
-		if _, err := os.Stat(localPath); err == nil {
+	for _, localPath := range mediaLocalPaths(result.FilePath, Bot.Id) {
+		if info, err := os.Stat(localPath); err == nil && info.Mode().IsRegular() {
 			result.FilePath = localPath
+			break
 		}
 	}
 

@@ -8,10 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -107,71 +104,6 @@ func quoteAvatarWithStatus(ctx context.Context, bot *gotgbot.Bot, q quoteContent
 	return nil, status
 }
 
-func quoteAvatarLocalPaths(path string, botID int64) []string {
-	var paths []string
-	seen := make(map[string]bool)
-	add := func(p string) {
-		p = filepath.Clean(p)
-		if !seen[p] {
-			seen[p] = true
-			paths = append(paths, p)
-		}
-	}
-	if filepath.IsAbs(path) || filepath.IsLocal(path) {
-		add(path)
-	} else {
-		return nil
-	}
-	if Config == nil || Config.BotApiDataDir == "" {
-		return paths
-	}
-	relative := quoteAvatarRelativePath(path, botID)
-	if relative == "" {
-		return paths
-	}
-	owners := []string{Config.Token, strconv.FormatInt(botID, 10)}
-	if tokenID, _, ok := strings.Cut(Config.Token, ":"); ok {
-		owners = append(owners, tokenID)
-	}
-	for _, owner := range owners {
-		if owner != "" && owner != "0" {
-			add(filepath.Join(Config.BotApiDataDir, owner, relative))
-		}
-	}
-	add(filepath.Join(Config.BotApiDataDir, relative))
-	return paths
-}
-
-func quoteAvatarRelativePath(path string, botID int64) string {
-	relative := path
-	token := ""
-	if Config != nil {
-		token = Config.Token
-	}
-	owners := []string{token, strconv.FormatInt(botID, 10)}
-	if tokenID, _, ok := strings.Cut(token, ":"); ok {
-		owners = append(owners, tokenID)
-	}
-	parts := strings.Split(filepath.ToSlash(filepath.Clean(path)), "/")
-	found := false
-	for i, part := range parts {
-		for _, owner := range owners {
-			if owner != "" && owner != "0" && part == owner && i+1 < len(parts) {
-				relative = filepath.FromSlash(strings.Join(parts[i+1:], "/"))
-				found = true
-				break
-			}
-		}
-		if found {
-			break
-		}
-	}
-	if filepath.IsAbs(relative) || !filepath.IsLocal(relative) {
-		return ""
-	}
-	return relative
-}
-
 func quoteAvatarFile(ctx context.Context, bot *gotgbot.Bot, id string, opts *gotgbot.RequestOpts) (image.Image, string) {
 	f, err := bot.GetFileWithContext(ctx, id, &gotgbot.GetFileOpts{RequestOpts: opts})
 	if err != nil || f == nil || f.FilePath == "" {
@@ -181,7 +113,7 @@ func quoteAvatarFile(ctx context.Context, bot *gotgbot.Bot, id string, opts *got
 		return nil, "image_too_large"
 	}
 	reason := "download_failed"
-	for _, path := range quoteAvatarLocalPaths(f.FilePath, bot.Id) {
+	for _, path := range mediaLocalPaths(f.FilePath, bot.Id) {
 		file, err := os.Open(path)
 		if err != nil {
 			continue
@@ -205,7 +137,7 @@ func quoteAvatarFile(ctx context.Context, bot *gotgbot.Bot, id string, opts *got
 	urls := []string{f.URL(bot, nil)}
 	// Local-mode getFile may return an API-container absolute path. Its file
 	// endpoint can require the bot-relative path rather than that container path.
-	if relative := quoteAvatarRelativePath(f.FilePath, bot.Id); relative != "" && relative != f.FilePath {
+	if relative := mediaRelativePath(f.FilePath, bot.Id); relative != "" && relative != f.FilePath {
 		relativeFile := *f
 		relativeFile.FilePath = relative
 		if relativeURL := relativeFile.URL(bot, nil); relativeURL != urls[0] {
