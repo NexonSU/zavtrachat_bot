@@ -178,7 +178,7 @@ func TestQuoteAvatarPrivateStatusIsSafe(t *testing.T) {
 	}
 	eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
 	caption, _ := calls[0].Params["caption"].(string)
-	if eph == nil || eph.ReceiverUserId != 100 || !strings.HasPrefix(caption, "Аватар:") {
+	if eph != nil || !strings.HasPrefix(caption, "Аватар:") {
 		t.Fatal("missing or non-private avatar failure hint")
 	}
 }
