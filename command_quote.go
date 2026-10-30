@@ -16,6 +16,7 @@ import (
 
 type quoteContent struct {
 	Text, Author   string
+	DisplayText    string
 	Date           int64
 	UserID, ChatID int64
 }
@@ -115,6 +116,7 @@ func quoteWithLookup(bot *gotgbot.Bot, ctx *ext.Context, lookup quoteLookup) (er
 	if utf8.RuneCountInString(q.Text) > 4096 {
 		return sendZBHelp(bot, ctx, "Цитата слишком длинная для одной карточки. Выбери сообщение покороче.")
 	}
+	q.DisplayText = quoteDisplayText(quoteFromMessage(ctx.Message.ReplyToMessage).Text, q.Text, ctx.Message.Quote)
 	remaining, hour := 0, int64(0)
 	if !admin {
 		var budgetErr error
@@ -144,13 +146,13 @@ func sendBudgetQuote(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent, selecti
 		return sendZBHelp(bot, ctx, err.Error())
 	}
 	defer release()
-	avatar, avatarStatus := quoteAvatarWithStatus(jobCtx, bot, q)
+	avatar, _ := quoteAvatarWithStatus(jobCtx, bot, q)
 	card, err := renderQuote(q, avatar)
 	if err != nil {
 		return sendZBHelp(bot, ctx, fmt.Sprintf("Не удалось создать цитату: %s", err))
 	}
 	opts := &gotgbot.SendPhotoOpts{
-		Caption:         strings.TrimSpace(quoteAvatarNotice(avatarStatus) + "\n" + quoteSelectionNotice(selectionStatus)),
+		Caption:         "",
 		ReplyParameters: &gotgbot.ReplyParameters{MessageId: ctx.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true},
 	}
 	switch ctx.EffectiveChat.Type {

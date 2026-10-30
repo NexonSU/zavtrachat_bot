@@ -68,3 +68,32 @@ func quoteSelectedContent(message *gotgbot.Message) (quoteContent, bool) {
 	}
 	return q, true
 }
+
+// Ellipses mark omitted source text; moderation always uses the raw selection.
+func quoteDisplayText(source, selected string, quote *gotgbot.TextQuote) string {
+	start := strings.Index(source, selected)
+	if start < 0 {
+		return selected
+	}
+	if quote != nil {
+		units := int64(0)
+		for offset, r := range source {
+			if units == quote.Position && strings.HasPrefix(source[offset:], selected) {
+				start = offset
+				break
+			}
+			units++
+			if r > 0xffff {
+				units++
+			}
+		}
+	}
+	text := strings.TrimSpace(selected)
+	if strings.TrimSpace(source[:start]) != "" {
+		text = "... " + text
+	}
+	if strings.TrimSpace(source[start+len(selected):]) != "" {
+		text += " ..."
+	}
+	return text
+}

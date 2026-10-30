@@ -23,6 +23,7 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 	seen := map[[32]byte]bool{}
 	firstHeight := 0
 	q := quoteContent{Text: "Сначала сделаем красиво.\nА потом ещё красивее. 😎", Author: "Автор сообщения", Date: 1793273820}
+	q.DisplayText = "... " + q.Text + " ..."
 	for i, bg := range backgrounds {
 		if got := bg.Image.Bounds().Size(); got.X != 1200 || got.Y != 660 {
 			t.Fatalf("%s: %v", bg.Name, got)
@@ -151,6 +152,7 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 		}
 		short := q
 		short.Text = "Жизнь прекрасна."
+		short.DisplayText = ""
 		data, err := renderQuoteWithWallpaper(short, quoteTestAvatar(), 1)
 		if err != nil {
 			t.Fatal(err)
