@@ -79,6 +79,9 @@ func TestQuotePrivateDeliveryErrorsNeverPublic(t *testing.T) {
 			if err := DB.Model(&QuoteBudget{}).Select("COALESCE(SUM(used),0)").Scan(&used).Error; err != nil || used != 0 {
 				t.Fatalf("failed send consumed quota: %d %v", used, err)
 			}
+			if len(client.callsFor("deleteMessage")) != 0 {
+				t.Fatal("failed quote deleted command")
+			}
 			photos := client.callsFor("sendPhoto")
 			if len(photos) != 1 {
 				t.Fatal("missing photo attempt")

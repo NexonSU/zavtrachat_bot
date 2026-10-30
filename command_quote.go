@@ -170,12 +170,16 @@ func sendBudgetQuote(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent, selecti
 	default:
 		return nil
 	}
-	if remaining >= 0 {
-		opts.Caption = strings.TrimSpace(opts.Caption + "\n" + quoteBudgetText(remaining, hour))
-	}
 	_, err = bot.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("quote.png", bytes.NewReader(card)), opts)
 	if sent != nil && err == nil {
 		*sent = true
+	}
+	if err == nil {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if _, cleanupErr := bot.DeleteMessageWithContext(cleanupCtx, ctx.EffectiveChat.Id, ctx.Message.MessageId, nil); cleanupErr != nil {
+			Logger.Warn("quote command cleanup failed")
+		}
 	}
 	return err
 }
