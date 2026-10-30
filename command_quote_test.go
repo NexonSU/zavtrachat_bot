@@ -140,7 +140,7 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 		t.Fatal("missing photo")
 	}
 	eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
-	if eph == nil || eph.ReceiverUserId != 100 {
+	if eph != nil {
 		t.Fatalf("quote must reach only invoking admin: %+v", calls[0].Params)
 	}
 	params, _ := calls[0].Params["reply_parameters"].(*gotgbot.ReplyParameters)
@@ -282,7 +282,7 @@ func TestQuoteQueueAndRegistration(t *testing.T) {
 			found = true
 		}
 	}
-	if !found || !strings.Contains(zbAdminHelpText, "/quote") {
+	if !found || !strings.Contains(zbHelpText, "/quote") {
 		t.Fatal("quote not registered or documented")
 	}
 	old := mediaTasks

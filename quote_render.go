@@ -202,6 +202,9 @@ func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
 }
 
 func renderQuoteWithWallpaper(q quoteContent, avatar image.Image, index int) ([]byte, error) {
+	if q.DisplayText != "" {
+		q.Text = q.DisplayText
+	}
 	if index < 0 || index >= quoteWallpaperCount {
 		return nil, fmt.Errorf("неизвестный фон цитаты")
 	}

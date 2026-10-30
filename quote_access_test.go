@@ -26,23 +26,6 @@ func TestQuoteAdministratorAccess(t *testing.T) {
 			if got := canUseQuote(bot, tc.id); got != tc.allowed {
 				t.Fatalf("access=%v want=%v", got, tc.allowed)
 			}
-			if !tc.allowed {
-				ctx := testReplyContext(bot, "/quote", testUser(tc.id), &gotgbot.Message{Text: "Secret quote", From: &gotgbot.User{Id: 77}})
-				if err := Quote(bot, ctx); err != nil {
-					t.Fatal(err)
-				}
-				if len(client.callsFor("sendPhoto")) != 0 || len(client.callsFor("getUserProfilePhotos")) != 0 {
-					t.Fatal("denied user triggered quote")
-				}
-				calls := client.callsFor("sendMessage")
-				if len(calls) != 1 {
-					t.Fatal("missing denial")
-				}
-				eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
-				if eph == nil || eph.ReceiverUserId != tc.id {
-					t.Fatal("denial not requester-only")
-				}
-			}
 		})
 	}
 	bot, client := setupTestEnv(t)
@@ -52,14 +35,17 @@ func TestQuoteAdministratorAccess(t *testing.T) {
 	}
 }
 
-func TestQuoteHiddenFromPublicMenus(t *testing.T) {
+func TestQuotePublicMenu(t *testing.T) {
 	group, private, admin := commandMenus(commandListConfig())
-	for _, menu := range [][]gotgbot.BotCommand{group, private} {
-		for _, c := range menu {
-			if c.Command == "quote" {
-				t.Fatal("quote in public/private general menu")
-			}
+	_ = private
+	foundPublic := false
+	for _, c := range group {
+		if c.Command == "quote" && !c.IsEphemeral {
+			foundPublic = true
 		}
+	}
+	if !foundPublic {
+		t.Fatal("missing public quote menu")
 	}
 	found := false
 	for _, c := range admin {
@@ -70,7 +56,7 @@ func TestQuoteHiddenFromPublicMenus(t *testing.T) {
 			}
 		}
 	}
-	if !found || strings.Contains(zbHelpText, "/quote") || !strings.Contains(zbAdminHelpText, "/quote") {
+	if !found || !strings.Contains(zbHelpText, "/quote") {
 		t.Fatal("quote menu/help visibility wrong")
 	}
 }
@@ -86,16 +72,20 @@ func TestQuotePrivateDeliveryErrorsNeverPublic(t *testing.T) {
 			}
 			dispatcher := newBotDispatcher()
 			registerBotHandlers(dispatcher)
-			msg := testMessage("/quote", testUser(100))
+			msg := testMessage("/quote", testUser(42))
 			msg.ReplyToMessage = testMessage("Quote", testUser(77))
 			processTestUpdate(t, dispatcher, bot, &gotgbot.Update{UpdateId: 1000, Message: msg})
+			var used int64
+			if err := DB.Model(&QuoteBudget{}).Select("COALESCE(SUM(used),0)").Scan(&used).Error; err != nil || used != 0 {
+				t.Fatalf("failed send consumed quota: %d %v", used, err)
+			}
 			photos := client.callsFor("sendPhoto")
 			if len(photos) != 1 {
 				t.Fatal("missing photo attempt")
 			}
-			for _, call := range append(photos, client.callsFor("sendMessage")...) {
+			for _, call := range client.callsFor("sendMessage") {
 				eph, _ := call.Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
-				if eph == nil || eph.ReceiverUserId != 100 {
+				if eph == nil || eph.ReceiverUserId != 42 {
 					t.Fatalf("public or wrong recipient: %+v", call)
 				}
 			}

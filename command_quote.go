@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"gorm.io/gorm"
 	"strings"
 	"time"
 	_ "time/tzdata"
@@ -15,6 +16,7 @@ import (
 
 type quoteContent struct {
 	Text, Author   string
+	DisplayText    string
 	Date           int64
 	UserID, ChatID int64
 }
@@ -91,14 +93,15 @@ func quoteWithLookup(bot *gotgbot.Bot, ctx *ext.Context, lookup quoteLookup) (er
 	if ctx == nil || ctx.Update == nil || ctx.Message == nil || ctx.EffectiveUser == nil || ctx.EffectiveChat == nil {
 		return nil
 	}
-	if !canUseQuote(bot, ctx.EffectiveUser.Id) {
-		return sendZBHelp(bot, ctx, "Команда /quote доступна только администраторам.")
-	}
+	admin := canUseQuote(bot, ctx.EffectiveUser.Id)
 	if ctx.Message.ReplyToMessage == nil {
 		return sendZBHelp(bot, ctx, "Отправь <code>/quote</code> в ответ на сообщение. Можно выделить часть текста через «Цитировать» в Telegram — в карточку попадёт только этот фрагмент.")
 	}
 	q, validSelection, selectionStatus := quoteResolvedContent(ctx.Message, lookup)
 	if args := ctx.Args(); len(args) == 2 && args[1] == "debug" {
+		if !admin {
+			return sendZBHelp(bot, ctx, "Диагностика доступна только администраторам.")
+		}
 		return sendZBHelp(bot, ctx, quoteSelectionDiagnostic(ctx.Message, q, validSelection, selectionStatus))
 	}
 	if !validSelection {
@@ -113,27 +116,57 @@ func quoteWithLookup(bot *gotgbot.Bot, ctx *ext.Context, lookup quoteLookup) (er
 	if utf8.RuneCountInString(q.Text) > 4096 {
 		return sendZBHelp(bot, ctx, "Цитата слишком длинная для одной карточки. Выбери сообщение покороче.")
 	}
+	q.DisplayText = quoteDisplayText(quoteFromMessage(ctx.Message.ReplyToMessage).Text, q.Text, ctx.Message.Quote)
+	remaining, hour := 0, int64(0)
+	if !admin {
+		var budgetErr error
+		remaining, hour, budgetErr = reserveQuote(time.Now())
+		if budgetErr != nil {
+			return budgetErr
+		}
+		if remaining < 0 {
+			return sendZBHelp(bot, ctx, quoteBudgetText(remaining, hour))
+		}
+		sent := false
+		defer func() {
+			if !sent {
+				DB.Model(&QuoteBudget{}).Where("hour = ? AND used > 0", hour).UpdateColumn("used", gorm.Expr("used - 1"))
+			}
+		}()
+		// Mark success only after SendPhoto returns successfully.
+
+		return sendBudgetQuote(bot, ctx, q, selectionStatus, remaining, hour, &sent)
+	}
+	return sendBudgetQuote(bot, ctx, q, selectionStatus, -1, 0, nil)
+}
+
+func sendBudgetQuote(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent, selectionStatus string, remaining int, hour int64, sent *bool) (err error) {
 	jobCtx, release, err := mediaTasks.acquire(context.Background())
 	if err != nil {
 		return sendZBHelp(bot, ctx, err.Error())
 	}
 	defer release()
-	avatar, avatarStatus := quoteAvatarWithStatus(jobCtx, bot, q)
+	avatar, _ := quoteAvatarWithStatus(jobCtx, bot, q)
 	card, err := renderQuote(q, avatar)
 	if err != nil {
 		return sendZBHelp(bot, ctx, fmt.Sprintf("Не удалось создать цитату: %s", err))
 	}
 	opts := &gotgbot.SendPhotoOpts{
-		Caption:         strings.TrimSpace(quoteAvatarNotice(avatarStatus) + "\n" + quoteSelectionNotice(selectionStatus)),
+		Caption:         "",
 		ReplyParameters: &gotgbot.ReplyParameters{MessageId: ctx.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true},
 	}
 	switch ctx.EffectiveChat.Type {
 	case "private":
 	case "group", "supergroup":
-		opts.EphemeralMessageParameters = &gotgbot.EphemeralMessageParameters{ReceiverUserId: ctx.EffectiveUser.Id}
 	default:
 		return nil
 	}
+	if remaining >= 0 {
+		opts.Caption = strings.TrimSpace(opts.Caption + "\n" + quoteBudgetText(remaining, hour))
+	}
 	_, err = bot.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("quote.png", bytes.NewReader(card)), opts)
+	if sent != nil && err == nil {
+		*sent = true
+	}
 	return err
 }
