@@ -28,7 +28,7 @@ const zbHelpText = `
 /pidorme — своя статистика; /pidorstats — за год; /pidorall — за всё время.
 /stats вид [day|week] — топ: messages, words, likes (reactions), mutes (blessings), mutetime (blesstime), saves. Без периода — за всё время. Пример: <code>/stats messages week</code>.
 /mywarns — свои предупреждения.
-/bet ДД.ММ.ГГГГ текст — сохранить ставку на будущую дату.
+/bet ДД.ММ.ГГГГ текст — сохранить ставку на будущую дату; бот запомнит дату создания и публично напомнит в день ставки в 12:00 МСК.
 /allbets — актуальные ставки; аргумент all — включая старые.
 /delbet ДД.ММ.ГГГГ текст — удалить свою ставку.
 

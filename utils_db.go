@@ -50,6 +50,10 @@ type Bets struct {
 	UserID    int64  `gorm:"primaryKey"`
 	Text      string `gorm:"primaryKey"`
 	Timestamp int64  `gorm:"primaryKey"`
+	// Timestamp remains UTC midnight as a calendar-date key for legacy bets.
+	CreatedTimestamp int64 `gorm:"not null;default:0"`
+	AuthorName       string
+	ReminderSentAt   int64 `gorm:"not null;default:0"`
 }
 
 type StatsWords struct {

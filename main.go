@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -237,6 +238,7 @@ func main() {
 	// direct connection to the Telegram datacenters, so it stays down when
 	// they are unreachable while the Bot API works through a tunnel.
 	go gotdClientInit()
+	go runBetReminders(context.Background(), Bot, &DB, Config.Chat)
 
 	BotUpdater.Idle()
 }

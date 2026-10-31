@@ -24,8 +24,11 @@ func DelBet(bot *gotgbot.Bot, context *ext.Context) error {
 	bet.Timestamp = date.Unix()
 	bet.Text = strings.Join(context.Args()[2:], " ")
 	result := DB.Delete(&bet)
+	if result.Error != nil {
+		return result.Error
+	}
 	if result.RowsAffected != 0 {
-		return Reply(fmt.Sprintf("Ставка удалена:\n%v, %v:<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).Format("02.01.2006"), UserFullName(context.Message.From), html.EscapeString(bet.Text)), *context)
+		return Reply(fmt.Sprintf("Ставка удалена:\n%v, %v:<pre>%v</pre>\n", time.Unix(bet.Timestamp, 0).UTC().Format("02.01.2006"), html.EscapeString(UserFullName(context.Message.From)), html.EscapeString(bet.Text)), *context)
 	} else {
 		return Reply("Твоя ставка не найдена по указанным параметрам.", *context)
 	}
