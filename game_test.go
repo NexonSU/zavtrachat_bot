@@ -681,9 +681,9 @@ func TestBet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse test date: %v", err)
 	}
-	want := "Ставка добавлена.\nДата: <code>" + timestamp.Local().Format("02.01.2006") + "</code>.\nТекст: <code>foo bar</code>."
+	want := "Ставка добавлена.\nДата: <code>" + timestamp.UTC().Format("02.01.2006") + "</code>.\nТекст: <code>foo bar</code>."
 	texts = client.sentTexts()
-	if len(texts) != 1 || texts[0] != want {
+	if len(texts) != 1 || !strings.HasPrefix(texts[0], want) || !strings.Contains(texts[0], "12:00 МСК") {
 		t.Errorf("Bet sent %q, want %q", texts, want)
 	}
 	var count int64
