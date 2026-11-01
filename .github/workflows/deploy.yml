@@ -4,6 +4,8 @@ on:
     paths:
       - '**.go'
       - 'assets/quote-backgrounds/*.png'
+      - 'assets/birthday-backgrounds/*.png'
+      - 'assets/birthdays.json'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/deploy.yml'
@@ -11,6 +13,8 @@ on:
     paths:
       - '**.go'
       - 'assets/quote-backgrounds/*.png'
+      - 'assets/birthday-backgrounds/*.png'
+      - 'assets/birthdays.json'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/deploy.yml'

@@ -35,6 +35,11 @@ var Logger *slog.Logger
 // main, so the menu can be checked without starting the bot.
 func commandListConfig() []commandList {
 	return []commandList{
+		{gotgbot.BotCommand{Command: "addbirthday", Description: "добавить свой день рождения: ДД.ММ", IsEphemeral: true}, AddBirthday},
+		{gotgbot.BotCommand{Command: "delbirthday", Description: "удалить свой день рождения", IsEphemeral: true}, DelBirthday},
+		{gotgbot.BotCommand{Command: "whenyourbirthday", Description: "день рождения участника: @ник", IsEphemeral: true}, WhenYourBirthday},
+		{gotgbot.BotCommand{Command: "birthdays", Description: "10 ближайших дней рождения", IsEphemeral: true}, Birthdays},
+		{gotgbot.BotCommand{Command: "testbirthday", Description: "тест поздравления @nakxwest", IsEphemeral: true}, TestBirthday},
 		{gotgbot.BotCommand{Command: "zbhelp", Description: "справка по командам участников", IsEphemeral: true}, ZBHelp},
 		{gotgbot.BotCommand{Command: "zbadminhelp", Description: "справка по командам администраторов", IsEphemeral: true}, ZBAdminHelp},
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов", IsEphemeral: true}, Releases},
@@ -149,9 +154,9 @@ func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCo
 		switch entry.command.Command {
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf":
 			private = append(private, entry.command)
-		case "muted", "zbadminhelp":
+		case "muted", "zbadminhelp", "testbirthday":
 			admin = append(admin, entry.command)
-		case "zbhelp":
+		case "zbhelp", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
 			group = append(group, entry.command)
 			private = append(private, entry.command)
 		default:
@@ -239,6 +244,7 @@ func main() {
 	// they are unreachable while the Bot API works through a tunnel.
 	go gotdClientInit()
 	go runBetReminders(context.Background(), Bot, &DB, Config.Chat)
+	go runBirthdayReminders(context.Background(), Bot, &DB, Config.Chat)
 
 	BotUpdater.Idle()
 }
