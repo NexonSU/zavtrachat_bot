@@ -3,6 +3,8 @@ package main
 import (
 	"regexp"
 	"testing"
+
+	"github.com/PaulSonOfLars/gotgbot/v2"
 )
 
 // commandNameRE is what Telegram accepts as a command name: 1-32 characters of
@@ -46,8 +48,11 @@ func TestCommandList(t *testing.T) {
 		}
 	}
 
-	if len(commands) > 100 {
-		t.Errorf("the menu has %d commands, Telegram allows 100 per scope", len(commands))
+	group, private, admin := commandMenus(commands)
+	for _, menu := range [][]gotgbot.BotCommand{group, private, admin} {
+		if len(menu) > 100 {
+			t.Errorf("the menu has %d commands, Telegram allows 100 per scope", len(menu))
+		}
 	}
 	if len(commands) == 0 {
 		t.Errorf("the menu is empty")

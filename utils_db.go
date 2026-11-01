@@ -88,8 +88,14 @@ func DataBaseInit(dsn string) (gorm.DB, error) {
 	}
 
 	//Create tables, if they not exists in DB
-	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}, &QuoteProtectedIdentity{})
+	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}, &QuoteProtectedIdentity{}, &Birthday{}, &BirthdayDelivery{}, &BirthdayImport{})
 	if err != nil {
+		if pool, poolErr := database.DB(); poolErr == nil {
+			pool.Close()
+		}
+		return *database, err
+	}
+	if err := importBirthdays(database); err != nil {
 		if pool, poolErr := database.DB(); poolErr == nil {
 			pool.Close()
 		}
