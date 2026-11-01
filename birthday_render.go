@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fogleman/gg"
+	"golang.org/x/image/font"
 )
 
 //go:embed assets/birthday-backgrounds/*.png
@@ -57,7 +58,7 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 	dc.DrawImage(bg, -bounds.Min.X, -bounds.Min.Y)
 	dc.Pop()
 	// White rim and large circular avatar, with initials when Telegram hides it.
-	const cx, cy, radius = 600., 480., 305.
+	const cx, cy, radius = 600., 450., 360.
 	dc.SetRGBA(1, 1, 1, .94)
 	dc.DrawCircle(cx, cy, radius+9)
 	dc.Fill()
@@ -86,8 +87,8 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 	dc.Pop()
 	dc.ResetClip()
 	// A neutral plate keeps the caption legible on all ten colorways.
-	dc.SetRGBA(1, 1, 1, .93)
-	dc.DrawRoundedRectangle(100, 840, 1000, 265, 35)
+	dc.SetRGBA(1, 1, 1, .67)
+	dc.DrawRoundedRectangle(100, 860, 1000, 260, 35)
 	dc.Fill()
 	name = strings.Join(strings.Fields(name), " ")
 	if name == "" {
@@ -96,19 +97,30 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 	if utf8.RuneCountInString(name) > 100 {
 		name = string([]rune(name)[:99]) + "…"
 	}
-	caption := name + ", с днем рождения!"
-	for size := 58.; size >= 18; size -= 2 {
+	// Keep the name on its own line and center the visible glyph bounds,
+	// rather than the font's baseline/nominal metrics (which skewed the old plate).
+	for size := 80.; size >= 18; size -= 2 {
 		face, err := fs.newFace(size, true)
 		if err != nil {
 			return nil, err
 		}
 		dc.SetFontFace(face)
-		lines := quoteWrap(dc, caption, 920)
-		if float64(len(lines))*size*1.2 <= 215 {
+		lines := append(quoteWrap(dc, name+",", 920), quoteWrap(dc, "с днем рождения!", 920)...)
+		gap := size * .24
+		height := gap * float64(len(lines)-1)
+		for _, line := range lines {
+			bounds, _ := font.BoundString(face, line)
+			height += float64(bounds.Max.Y-bounds.Min.Y) / 64
+		}
+		if height <= 216 {
 			dc.SetRGB(.13, .18, .26)
-			top := 972.5 - float64(len(lines)-1)*size*1.2/2
-			for i, line := range lines {
-				dc.DrawStringAnchored(line, 600, top+float64(i)*size*1.2, .5, .5)
+			top := 990. - height/2
+			for _, line := range lines {
+				bounds, _ := font.BoundString(face, line)
+				x := 600. - float64(bounds.Min.X+bounds.Max.X)/128
+				baseline := top - float64(bounds.Min.Y)/64
+				dc.DrawString(line, x, baseline)
+				top += float64(bounds.Max.Y-bounds.Min.Y)/64 + gap
 			}
 			face.Close()
 			break
