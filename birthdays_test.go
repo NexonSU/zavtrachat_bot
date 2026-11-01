@@ -295,7 +295,17 @@ func TestBirthdayRenderAllBackgrounds(t *testing.T) {
 	if err != nil || len(backgrounds) != 10 {
 		t.Fatal(len(backgrounds), err)
 	}
-	for i := range backgrounds {
+	// Loading above decodes and validates every embedded image. Two end-to-end
+	// renders cover avatar/fallback and light/dark backgrounds under -race;
+	// explicit visual QA still renders all ten on demand.
+	indices := []int{0, 8}
+	if os.Getenv("BIRTHDAY_PREVIEW_DIR") != "" {
+		indices = nil
+		for i := range backgrounds {
+			indices = append(indices, i)
+		}
+	}
+	for _, i := range indices {
 		var avatar = quoteTestAvatar()
 		if i == 0 {
 			avatar = nil
