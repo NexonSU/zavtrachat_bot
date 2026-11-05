@@ -6,7 +6,6 @@ import (
 	"html"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/NexonSU/go-ytdlp"
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -36,21 +35,8 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 		message = context.Message.ReplyToMessage
 	}
 
-	var downloadNotify = make(chan bool, 1)
-	go func() {
-		for {
-			select {
-			case <-downloadNotify:
-				return
-			default:
-				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionRecordVideo, nil)
-			}
-			time.Sleep(time.Second * 5)
-		}
-	}()
-	defer func() {
-		downloadNotify <- true
-	}()
+	stopDownloadAction := startMediaChatAction(bot, context.EffectiveChat.Id, gotgbot.ChatActionRecordVideo)
+	defer stopDownloadAction()
 
 	for _, entity := range message.Entities {
 		if entity.Type == "url" || entity.Type == "text_link" {
@@ -104,23 +90,9 @@ func Download(bot *gotgbot.Bot, context *ext.Context) error {
 
 	extInfo := extInfos[0]
 
-	downloadNotify <- true
-
-	var uploadNotify = make(chan bool, 1)
-	go func() {
-		for {
-			select {
-			case <-uploadNotify:
-				return
-			default:
-				context.EffectiveChat.SendAction(bot, gotgbot.ChatActionUploadVideo, nil)
-			}
-			time.Sleep(time.Second * 5)
-		}
-	}()
-	defer func() {
-		uploadNotify <- true
-	}()
+	stopDownloadAction()
+	stopUploadAction := startMediaChatAction(bot, context.EffectiveChat.Id, gotgbot.ChatActionUploadVideo)
+	defer stopUploadAction()
 	f, err := os.Open(filePath)
 	if err != nil {
 		return err

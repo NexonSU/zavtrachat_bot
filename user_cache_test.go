@@ -105,10 +105,20 @@ func TestUserCacheBoundsAndOversizedChanges(t *testing.T) {
 	setupTestEnv(t)
 	cache, _ := userWritesFor(&DB)
 	now := time.Now()
-	for id := int64(1); id <= userCacheSize+1; id++ {
-		if err := cache.save(&DB, *testUser(id), now); err != nil {
-			t.Fatal(err)
-		}
+	// Start just below capacity so the real save path fills the final slot
+	// and then evicts the oldest entry without thousands of setup writes.
+	for id := int64(1); id < userCacheSize; id++ {
+		cache.users[id] = savedUser{user: *testUser(id), at: now}
+		cache.order = append(cache.order, id)
+	}
+	if err := cache.save(&DB, *testUser(userCacheSize), now); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := cache.users[1]; !ok {
+		t.Fatal("oldest user was evicted before the cache was full")
+	}
+	if err := cache.save(&DB, *testUser(userCacheSize + 1), now); err != nil {
+		t.Fatal(err)
 	}
 	if len(cache.users) != userCacheSize || len(cache.order) != userCacheSize {
 		t.Fatal("user cache exceeded its bound")

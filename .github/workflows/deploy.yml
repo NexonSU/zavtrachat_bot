@@ -1,6 +1,7 @@
 name: Deploy
 on:
   push:
+    branches: [master]
     paths:
       - '**.go'
       - 'assets/quote-backgrounds/*.png'
@@ -22,10 +23,10 @@ on:
       - '.github/workflows/deploy.yml'
 permissions:
   contents: read
-# One deploy at a time: two overlapping runs would restart the service mid-build.
+# Serialize deploys and cancel superseded pull request checks.
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   Test:
     runs-on: ubuntu-latest
@@ -50,10 +51,15 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
+        # Refresh the build cache if the test command or flags change.
+        cache-dependency-path: |
+          go.sum
+          .github/workflows/deploy.yml
     - name: Install required media tools
+      timeout-minutes: 5
       run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg imagemagick
+        sudo apt-get -o Acquire::Languages=none update
+        sudo apt-get install -y --no-install-recommends ffmpeg imagemagick
         python3 -m venv "$RUNNER_TEMP/zavtra-media-tools"
         "$RUNNER_TEMP/zavtra-media-tools/bin/pip" install yt-dlp==2026.07.04
         echo "$RUNNER_TEMP/zavtra-media-tools/bin" >> "$GITHUB_PATH"
@@ -63,15 +69,13 @@ jobs:
         ffprobe -version
         convert -version
         yt-dlp --version
-    - name: Vet
-      run: go vet ./...
     - name: Test
       env:
         ZAVTRA_TEST_POSTGRES_DSN: host=127.0.0.1 port=5432 user=postgres password=test-only-password dbname=testbot sslmode=disable
         ZAVTRA_REQUIRE_MEDIA_TESTS: '1'
       run: |
         set -o pipefail
-        go test -race -count=1 -timeout 300s -coverprofile=coverage.out -json ./... | tee test-results.jsonl
+        go test -vet=all -race -count=1 -timeout 300s -coverprofile=coverage.out -json ./... | tee test-results.jsonl
     - name: Test summary and skipped tests
       if: always()
       run: |
@@ -82,8 +86,13 @@ jobs:
         if not path.exists():
             raise SystemExit('Test results were not produced')
         events = [json.loads(line) for line in path.read_text().splitlines() if line.startswith('{')]
+        top_level = [e for e in events if 'Test' in e and '/' not in e['Test']]
+        finished = [e for e in top_level if e.get('Action') in ('pass', 'fail')]
+        print('Slowest tests:')
+        for test in sorted(finished, key=lambda e: e.get('Elapsed', 0), reverse=True)[:10]:
+            print(f"  {test.get('Elapsed', 0):6.2f}s {test['Test']}")
         for action in ('pass', 'skip', 'fail'):
-            tests = [e['Test'] for e in events if e.get('Action') == action and 'Test' in e and '/' not in e['Test']]
+            tests = [e['Test'] for e in top_level if e.get('Action') == action]
             print(f'{action}: {len(tests)}')
             if action != 'pass':
                 for test in tests:

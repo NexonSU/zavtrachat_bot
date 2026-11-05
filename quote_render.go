@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 	"math"
 	"strings"
 	"sync"
@@ -202,6 +203,18 @@ func renderQuote(q quoteContent, avatar image.Image) ([]byte, error) {
 }
 
 func renderQuoteWithWallpaper(q quoteContent, avatar image.Image, index int) ([]byte, error) {
+	card, err := drawQuoteCard(q, avatar, index)
+	if err != nil {
+		return nil, err
+	}
+	buf := new(bytes.Buffer)
+	if err := png.Encode(buf, card); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func drawQuoteCard(q quoteContent, avatar image.Image, index int) (image.Image, error) {
 	if q.DisplayText != "" {
 		q.Text = q.DisplayText
 	}
@@ -307,9 +320,5 @@ func renderQuoteWithWallpaper(q quoteContent, avatar image.Image, index int) ([]
 	dc.SetFontFace(dateFace)
 	setQuoteInk(dc, wallpaper, .65)
 	dc.DrawString(quoteDate(q.Date), nameX, nameTop+float64(len(names))*54+28)
-	buf := new(bytes.Buffer)
-	if err := dc.EncodePNG(buf); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return dc.Image(), nil
 }

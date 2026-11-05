@@ -232,8 +232,8 @@ The image has `WORKDIR /`, `ENTRYPOINT /goapp` and ffmpeg installed; configurati
 (`.dockerignore`). `yt-dlp` is not part of the image — `/mp3` and `/download` will not work in the container.
 
 CI (`.github/workflows/`):
-- `deploy.yml` — on `**.go`, `go.mod`/`go.sum` and workflow changes: `Test` runs `go vet` and
-  `go test -race -count=1` on `ubuntu-latest` with a separate PostgreSQL 18 service
+- `deploy.yml` — on pull requests and pushes to `master` that change code, assets, or the workflow.
+  `Test` runs `go test -vet=all -race -count=1` on `ubuntu-latest` with a separate PostgreSQL 18 service
   (the coverage profile is uploaded as an artifact), then on
   `push` to `master` `Deploy` builds `telegram-go-chatbot` on a self-hosted runner, copies it to
   `/home/telegram/bot/` and runs `systemctl restart telegram-go-chatbot`. Pull requests run the tests

@@ -6,8 +6,39 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
+
+	"github.com/PaulSonOfLars/gotgbot/v2"
 )
+
+func TestMediaChatActionRepeatsUntilCancelled(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		client := &fakeBotClient{}
+		client.setResult("sendChatAction", []byte("true"))
+		bot := &gotgbot.Bot{BotClient: client}
+		stop := startMediaChatAction(bot, -100, gotgbot.ChatActionRecordVideo)
+		defer stop()
+
+		synctest.Wait()
+		if got := len(client.callsFor("sendChatAction")); got != 1 {
+			t.Fatalf("initial chat actions = %d, want 1", got)
+		}
+		time.Sleep(5 * time.Second)
+		synctest.Wait()
+		if got := len(client.callsFor("sendChatAction")); got != 2 {
+			t.Fatalf("chat actions after one tick = %d, want 2", got)
+		}
+
+		stop()
+		stop()
+		time.Sleep(5 * time.Second)
+		synctest.Wait()
+		if got := len(client.callsFor("sendChatAction")); got != 2 {
+			t.Fatalf("chat actions after cancellation = %d, want 2", got)
+		}
+	})
+}
 
 func TestMediaQueueBoundsAndRecovery(t *testing.T) {
 	q := newMediaTaskQueue(2, 1, time.Second, time.Minute)

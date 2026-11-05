@@ -220,6 +220,7 @@ func TestQuoteAvatarHTTPAndBounds(t *testing.T) {
 }
 
 func TestQuoteTextLayoutAndFonts(t *testing.T) {
+	t.Parallel()
 	fonts, err := loadQuoteFonts()
 	if err != nil {
 		t.Fatal(err)
@@ -250,17 +251,16 @@ func TestQuoteTextLayoutAndFonts(t *testing.T) {
 	if len(lines) < 3 || lines[1] != "" {
 		t.Fatal("paragraph break lost")
 	}
-	if _, err := renderQuote(quoteContent{Text: strings.Repeat("\n", 150), Author: "Иван"}, nil); err == nil {
+	if _, err := drawQuoteCard(quoteContent{Text: strings.Repeat("\n", 150), Author: "Иван"}, nil, 0); err == nil {
 		t.Fatal("unbounded canvas")
 	}
 	for _, n := range []int{0, 200, 500, 1100, 4096} {
-		data, err := renderQuote(quoteContent{Text: strings.Repeat("я", n), Author: "Длинное имя автора сообщения", Date: 10}, nil)
+		card, err := drawQuoteCard(quoteContent{Text: strings.Repeat("я", n), Author: "Длинное имя автора сообщения", Date: 10}, nil, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
-		cfg, err := png.DecodeConfig(bytes.NewReader(data))
-		if err != nil || cfg.Height > 6000 || cfg.Width != 1200 {
-			t.Fatalf("layout %d: %+v %v", n, cfg, err)
+		if size := card.Bounds().Size(); size.Y > 6000 || size.X != 1200 {
+			t.Fatalf("layout %d: %v", n, size)
 		}
 	}
 	if quoteInitials("Иван Петров") != "ИП" || quoteInitials("😎") != "?" {
@@ -269,6 +269,7 @@ func TestQuoteTextLayoutAndFonts(t *testing.T) {
 }
 
 func TestQuoteConcurrentRender(t *testing.T) {
+	t.Parallel()
 	var wg sync.WaitGroup
 	for i := 0; i < 4; i++ {
 		wg.Go(func() {

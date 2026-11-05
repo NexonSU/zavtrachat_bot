@@ -5,14 +5,17 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/fogleman/gg"
+	"image"
+	"image/draw"
 	"image/png"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"unicode/utf16"
+
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/fogleman/gg"
 )
 
 func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
@@ -20,27 +23,25 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seen := map[[32]byte]bool{}
+	seen := map[[sha256.Size]byte]bool{}
 	firstHeight := 0
 	q := quoteContent{Text: "Сначала сделаем красиво.\nА потом ещё красивее. 😎", Author: "Автор сообщения", Date: 1793273820}
 	q.DisplayText = "..." + q.Text + "..."
+	avatar := quoteTestAvatar()
+	previewDir := os.Getenv("ZAVTRA_QUOTE_PREVIEW_DIR")
 	for i, bg := range backgrounds {
 		if got := bg.Image.Bounds().Size(); got.X != 1200 || got.Y != 660 {
 			t.Fatalf("%s: %v", bg.Name, got)
 		}
-		data, err := renderQuoteWithWallpaper(q, quoteTestAvatar(), i)
+		img, err := drawQuoteCard(q, avatar, i)
 		if err != nil {
 			t.Fatal(err)
 		}
-		digest := sha256.Sum256(data)
+		digest := quoteCardPixelDigest(img)
 		if seen[digest] {
 			t.Fatal("themes rendered identically")
 		}
 		seen[digest] = true
-		img, err := png.Decode(bytes.NewReader(data))
-		if err != nil {
-			t.Fatal(err)
-		}
 		if firstHeight == 0 {
 			firstHeight = img.Bounds().Dy()
 		}
@@ -91,11 +92,15 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 		if maxRun < 7 {
 			t.Fatalf("bold underline absent on %s", bg.Name)
 		}
-		if dir := os.Getenv("ZAVTRA_QUOTE_PREVIEW_DIR"); dir != "" {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+		if previewDir != "" {
+			if err := os.MkdirAll(previewDir, 0755); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("quote-%d-%s.png", i+1, bg.Name)), data, 0644); err != nil {
+			var data bytes.Buffer
+			if err := png.Encode(&data, img); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(previewDir, fmt.Sprintf("quote-%d-%s.png", i+1, bg.Name)), data.Bytes(), 0644); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -135,19 +140,26 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 	if err := Quote(bot, ctx); err != nil {
 		t.Fatal(err)
 	}
-	if !seen[sha256.Sum256(sent)] {
-		t.Fatal("actual card did not contain exactly the selected text and original attribution")
+	checkSelectedCard := func() {
+		t.Helper()
+		img, err := png.Decode(bytes.NewReader(sent))
+		if err != nil {
+			t.Fatalf("invalid PNG sent: %v", err)
+		}
+		if img.Bounds().Size() != image.Pt(1200, firstHeight) || !seen[quoteCardPixelDigest(img)] {
+			t.Fatal("sent card did not contain exactly the selected text and original attribution")
+		}
 	}
-	// Bot API omitted the quote: the same PNG must result from native recovery.
+	checkSelectedCard()
+	// Bot API omitted the quote: the same selected fragment must be rendered after native recovery.
+	sent = nil
 	ctx.Message.Quote = nil
 	if err := quoteWithLookup(bot, ctx, func(*gotgbot.Message) (string, error) { return q.Text, nil }); err != nil {
 		t.Fatal(err)
 	}
-	if !seen[sha256.Sum256(sent)] {
-		t.Fatal("recovered fragment did not reach the actual PNG")
-	}
-	if dir := os.Getenv("ZAVTRA_QUOTE_PREVIEW_DIR"); dir != "" {
-		if err := os.WriteFile(filepath.Join(dir, "quote-selected-fragment.png"), sent, 0644); err != nil {
+	checkSelectedCard()
+	if previewDir != "" {
+		if err := os.WriteFile(filepath.Join(previewDir, "quote-selected-fragment.png"), sent, 0644); err != nil {
 			t.Fatal(err)
 		}
 		short := q
@@ -157,7 +169,7 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, "quote-short.png"), data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(previewDir, "quote-short.png"), data, 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -174,6 +186,13 @@ func TestQuoteWallpapersSameDimensionsAndContrast(t *testing.T) {
 			t.Fatal("invalid wallpaper accepted")
 		}
 	}
+}
+
+// Use the same pixel format for the renderer's image and a decoded PNG.
+func quoteCardPixelDigest(img image.Image) [sha256.Size]byte {
+	pixels := image.NewRGBA(image.Rectangle{Max: img.Bounds().Size()})
+	draw.Draw(pixels, pixels.Bounds(), img, img.Bounds().Min, draw.Src)
+	return sha256.Sum256(pixels.Pix)
 }
 
 func absQuoteChannel(n int) int {
