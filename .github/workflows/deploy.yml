@@ -4,6 +4,7 @@ on:
     paths:
       - '**.go'
       - 'assets/quote-backgrounds/*.png'
+      - 'assets/sweet-backgrounds/*.jpg'
       - 'assets/birthday-backgrounds/*.png'
       - 'assets/birthdays.json'
       - 'go.mod'
@@ -13,6 +14,7 @@ on:
     paths:
       - '**.go'
       - 'assets/quote-backgrounds/*.png'
+      - 'assets/sweet-backgrounds/*.jpg'
       - 'assets/birthday-backgrounds/*.png'
       - 'assets/birthdays.json'
       - 'go.mod'

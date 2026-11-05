@@ -55,6 +55,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "giveme", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
 		{gotgbot.BotCommand{Command: "google", Description: "загуглить что-нибудь", IsEphemeral: true}, Google},
 		{gotgbot.BotCommand{Command: "quote", Description: "карточка с цитатой из сообщения", IsEphemeral: false}, Quote},
+		{gotgbot.BotCommand{Command: "sweet", Description: "ласковая открытка в ответ на сообщение"}, Sweet},
 		{gotgbot.BotCommand{Command: "hug", Description: "обнять кого-нибудь", IsEphemeral: true}, Hug},
 		{gotgbot.BotCommand{Command: "isekai", Description: "попасть в исекай", IsEphemeral: true}, Blessing},
 		{gotgbot.BotCommand{Command: "isekaitop", Description: "топ исекая чата", IsEphemeral: true}, BlessingTop},
@@ -152,11 +153,14 @@ func commandListConfig() []commandList {
 func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
 	for _, entry := range commands {
 		switch entry.command.Command {
+		case "testrandom":
+			// Keep the diagnostic callable without spending a Telegram menu slot.
+			continue
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf":
 			private = append(private, entry.command)
 		case "muted", "zbadminhelp", "testbirthday":
 			admin = append(admin, entry.command)
-		case "zbhelp", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
+		case "zbhelp", "sweet", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
 			group = append(group, entry.command)
 			private = append(private, entry.command)
 		default:

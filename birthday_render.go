@@ -46,19 +46,23 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 	if index < 0 || index >= len(backgrounds) {
 		return nil, fmt.Errorf("invalid birthday background")
 	}
+	return renderPortraitCard(name, ",", "с днем рождения!", avatar, backgrounds[index], 450, 860, drawBirthdaySparkles)
+}
+
+func renderPortraitCard(name, suffix, caption string, avatar, bg image.Image, avatarY, plateY float64, sparkles func(*gg.Context)) ([]byte, error) {
 	fs, err := loadQuoteFonts()
 	if err != nil {
 		return nil, err
 	}
 	dc := gg.NewContext(1200, 1200)
-	bg := backgrounds[index]
 	bounds := bg.Bounds()
 	dc.Push()
 	dc.Scale(1200/float64(bounds.Dx()), 1200/float64(bounds.Dy()))
 	dc.DrawImage(bg, -bounds.Min.X, -bounds.Min.Y)
 	dc.Pop()
 	// White rim and large circular avatar, with initials when Telegram hides it.
-	const cx, cy, radius = 600., 450., 360.
+	const cx, radius = 600., 360.
+	cy := avatarY
 	dc.SetRGBA(1, 1, 1, .94)
 	dc.DrawCircle(cx, cy, radius+9)
 	dc.Fill()
@@ -88,7 +92,7 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 	dc.ResetClip()
 	// A neutral plate keeps the caption legible on all ten colorways.
 	dc.SetRGBA(1, 1, 1, .67)
-	dc.DrawRoundedRectangle(100, 860, 1000, 260, 35)
+	dc.DrawRoundedRectangle(100, plateY, 1000, 260, 35)
 	dc.Fill()
 	name = strings.Join(strings.Fields(name), " ")
 	if name == "" {
@@ -105,7 +109,7 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 			return nil, err
 		}
 		dc.SetFontFace(face)
-		lines := append(quoteWrap(dc, name+",", 920), quoteWrap(dc, "с днем рождения!", 920)...)
+		lines := append(quoteWrap(dc, name+suffix, 920), quoteWrap(dc, caption, 920)...)
 		gap := size * .24
 		height := gap * float64(len(lines)-1)
 		for _, line := range lines {
@@ -114,7 +118,7 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 		}
 		if height <= 216 {
 			dc.SetRGB(.13, .18, .26)
-			top := 990. - height/2
+			top := plateY + 130 - height/2
 			for _, line := range lines {
 				bounds, _ := font.BoundString(face, line)
 				x := 600. - float64(bounds.Min.X+bounds.Max.X)/128
@@ -127,6 +131,16 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 		}
 		face.Close()
 	}
+	sparkles(dc)
+	buf := new(bytes.Buffer)
+	if err := dc.EncodePNG(buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func drawBirthdaySparkles(dc *gg.Context) {
+	const cx, cy, radius = 600., 450., 360.
 	// Fresh foreground sparkles, concentrated above and alongside the portrait.
 	for i := 0; i < 38; i++ {
 		x, y := float64(70+rand.IntN(1060)), float64(35+rand.IntN(760))
@@ -146,9 +160,4 @@ func renderBirthday(name string, avatar image.Image, index int) ([]byte, error) 
 		dc.ClosePath()
 		dc.Fill()
 	}
-	buf := new(bytes.Buffer)
-	if err := dc.EncodePNG(buf); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
