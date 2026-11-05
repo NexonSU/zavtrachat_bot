@@ -56,9 +56,10 @@ jobs:
           go.sum
           .github/workflows/deploy.yml
     - name: Install required media tools
+      timeout-minutes: 5
       run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg imagemagick
+        sudo apt-get -o Acquire::Languages=none update
+        sudo apt-get install -y --no-install-recommends ffmpeg imagemagick
         python3 -m venv "$RUNNER_TEMP/zavtra-media-tools"
         "$RUNNER_TEMP/zavtra-media-tools/bin/pip" install yt-dlp==2026.07.04
         echo "$RUNNER_TEMP/zavtra-media-tools/bin" >> "$GITHUB_PATH"
