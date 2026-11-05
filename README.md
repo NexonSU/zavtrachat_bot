@@ -297,8 +297,8 @@ docker run -d --name zavtrachat --env-file .env zavtrachat
 `yt-dlp` в образ не входит — `/mp3` и `/download` в контейнере работать не будут.
 
 CI (`.github/workflows/`):
-- `deploy.yml` — на изменение `**.go`, `go.mod`/`go.sum` и самого workflow: `Test` гоняет `go vet` и
-  `go test -race -count=1` на `ubuntu-latest` с отдельным сервисом PostgreSQL 18
+- `deploy.yml` — на pull request и push в `master` при изменениях кода, ассетов или workflow.
+  `Test` запускает `go test -vet=all -race -count=1` на `ubuntu-latest` с отдельным сервисом PostgreSQL 18
   (покрытие складывается в артефакт), затем на `push` в
   `master` `Deploy` собирает `telegram-go-chatbot` на self-hosted раннере, копирует его в
   `/home/telegram/bot/` и делает `systemctl restart telegram-go-chatbot`. На pull request тесты

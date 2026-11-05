@@ -291,6 +291,7 @@ func TestBirthdayAdminTestDoesNotConsumeAnnualGreeting(t *testing.T) {
 }
 
 func TestBirthdayRenderAllBackgrounds(t *testing.T) {
+	t.Parallel()
 	backgrounds, err := loadBirthdayBackgrounds()
 	if err != nil || len(backgrounds) != 10 {
 		t.Fatal(len(backgrounds), err)

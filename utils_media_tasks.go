@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/NexonSU/go-ytdlp"
+	"github.com/PaulSonOfLars/gotgbot/v2"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 	"golang.org/x/sync/semaphore"
 )
@@ -18,6 +19,22 @@ import (
 // Bound expensive jobs independently of the dispatcher: ordinary commands
 // keep working while two media jobs run and at most eight wait for a slot.
 var mediaTasks = newMediaTaskQueue(2, 8, 30*time.Second, 5*time.Minute)
+
+// Cancel at the phase change or on return, even if the next update is still waiting.
+func startMediaChatAction(bot *gotgbot.Bot, chatID int64, action string) context.CancelFunc {
+	ctx, stop := context.WithCancel(context.Background())
+	go func() {
+		for ctx.Err() == nil {
+			bot.SendChatActionWithContext(ctx, chatID, action, nil)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+			}
+		}
+	}()
+	return stop
+}
 
 type mediaTaskQueue struct {
 	mu                      sync.Mutex
