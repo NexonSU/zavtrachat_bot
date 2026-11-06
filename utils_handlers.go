@@ -5,7 +5,9 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -76,6 +78,7 @@ func OnText(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 
 	go CheckUserBan(bot, context)
+	replyWithShchupatGIF(bot, context.Message)
 
 	//User update
 	if err := saveUser(&DB, *context.Message.From); err != nil {
@@ -154,4 +157,50 @@ func OnReaction(bot *gotgbot.Bot, context *ext.Context) error {
 	statsIncrease(6, GetStartOfDay(), context.MessageReaction.MessageId)
 
 	return nil
+}
+const shchupatGIF = "CgACAgIAAx0EReJGYgABQWStaugypHVPB10OnVZd4Q_L0nXqqpcAAgwRAAKEp7lKqKkocsx-ZdM9BA"
+
+var shchupatWord = regexp.MustCompile(`(?i)(^|[^\pL\pM\pN_])(?:по|о|на|про|при|под|вы|за|пере|до|от)?щуп(?:ать|ал[аио]?|а(?:ю|ешь|ет|ем|ете|ют)|ай(?:те)?|ая|ав(?:ши|ш(?:ий|ая|ее|ие))?)(?:ся|сь)?($|[^\pL\pM\pN_])`)
+
+type shchupatBudget struct {
+	mu   sync.Mutex
+	last [3]time.Time
+}
+
+func (b *shchupatBudget) take(now time.Time) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if now.Sub(b.last[0]) < time.Hour {
+		return false
+	}
+	copy(b.last[:], b.last[1:])
+	b.last[len(b.last)-1] = now
+	return true
+}
+
+var shchupatReplies shchupatBudget
+
+func replyWithShchupatGIF(bot *gotgbot.Bot, msg *gotgbot.Message) {
+	if msg.Chat.Id != Config.Chat || (msg.Chat.Type != "group" && msg.Chat.Type != "supergroup") || msg.From.IsBot || msg.EphemeralMessageId != 0 {
+		return
+	}
+	switch strings.ToLower(msg.From.Username) {
+	case "shaikhulud", "zombak", "timurse":
+		return
+	}
+	if !shchupatWord.MatchString(msg.Text) && !shchupatWord.MatchString(msg.Caption) {
+		return
+	}
+	if !shchupatReplies.take(time.Now()) {
+		return
+	}
+
+	_, err := bot.SendAnimation(msg.Chat.Id, gotgbot.InputFileByID(shchupatGIF), &gotgbot.SendAnimationOpts{
+		MessageThreadId: msg.MessageThreadId,
+		ReplyParameters: &gotgbot.ReplyParameters{MessageId: msg.MessageId},
+	})
+	if err != nil {
+		slog.Warn("could not send shchupat GIF", "chat_id", msg.Chat.Id, "message_id", msg.MessageId)
+	}
 }
