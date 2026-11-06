@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -105,6 +106,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "convert", Description: "конвертировать файл, доп.параметры: mp3,ogg,gif,audio,voice,animation", IsEphemeral: true}, Convert},
 		{gotgbot.BotCommand{Command: "download", Description: "скачать файл", IsEphemeral: true}, Download},
 		{gotgbot.BotCommand{Command: "wget", Description: "скачать файл", IsEphemeral: true}, Download},
+		{gotgbot.BotCommand{Command: "gifid", Description: "получить file_id гифки ответом на неё"}, GifID},
 		{gotgbot.BotCommand{Command: "getid", Description: "получить ID юзера", IsEphemeral: true}, Getid},
 		{gotgbot.BotCommand{Command: "kick", Description: "кикнуть кого-нибудь", IsEphemeral: true}, Kick},
 		{gotgbot.BotCommand{Command: "gigabite", Description: "укусить чат", IsEphemeral: true}, Shotgun},
@@ -156,7 +158,7 @@ func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCo
 		case "testrandom":
 			// Keep the diagnostic callable without spending a Telegram menu slot.
 			continue
-		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf":
+		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf", "gifid":
 			private = append(private, entry.command)
 		case "muted", "zbadminhelp", "testbirthday":
 			admin = append(admin, entry.command)
@@ -251,4 +253,18 @@ func main() {
 	go runBirthdayReminders(context.Background(), Bot, &DB, Config.Chat)
 
 	BotUpdater.Idle()
+}
+
+func GifID(bot *gotgbot.Bot, ctx *ext.Context) error {
+	msg := ctx.EffectiveMessage
+	if msg == nil || msg.Chat.Type != "private" {
+		return nil
+	}
+
+	text := "Перешли мне GIF и ответь на неё командой /gifid."
+	if reply := msg.ReplyToMessage; reply != nil && reply.Animation != nil && reply.Animation.FileId != "" {
+		text = "<code>" + html.EscapeString(reply.Animation.FileId) + "</code>"
+	}
+	_, err := msg.Reply(bot, text, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+	return err
 }
