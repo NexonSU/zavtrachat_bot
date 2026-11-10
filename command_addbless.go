@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -27,12 +28,22 @@ func AddBless(bot *gotgbot.Bot, context *ext.Context) error {
 			return Reply("Я не смог найти текст в указанном сообщении.", *context)
 		}
 	}
-	if len([]rune(bless.Text)) > 200 {
+	if strings.TrimSpace(bless.Text) == "" {
+		return Reply("Укажи непустую фразу блесса.", *context)
+	}
+	variants, explicit, err := makePhraseVariants(bless.Text)
+	if err != nil {
+		return Reply(err.Error(), *context)
+	}
+	if len([]rune(variants.Male)) > 200 || len([]rune(variants.Female)) > 200 {
 		return Reply("Bless не может быть длиннее 200 символов.", *context)
 	}
-	result := DB.Create(&bless)
-	if result.Error != nil {
-		return result.Error
+	if explicit {
+		bless.Text = variants.Male
 	}
-	return Reply(fmt.Sprintf("Bless добавлен как <code>%v</code>.", bless.Text), *context)
+	bless.PhraseVariants = variants
+	if err := savePhraseVariants(&bless, explicit); err != nil {
+		return err
+	}
+	return Reply(fmt.Sprintf("Bless добавлен как <code>%v</code>.", html.EscapeString(bless.Text))+variants.confirmation(), *context)
 }

@@ -87,7 +87,7 @@ const zbAdminHelpText = `<b>ZavtraBot — команды администрат�
 /addbless текст — добавить причину блесса (до 200 символов).
 /addsalvation текст — добавить фразу спасения (до 200 символов).
 /addnope текст — добавить фразу отказа.
-Добавлять фразы можно также командой в ответ на текст.
+Добавлять фразы можно также командой в ответ на текст. Особые формы задаются как <code>{сел|села}</code>.
 /blesslist — просмотр и удаление фраз блесса с подтверждением.
 /blesslistfull — все фразы блесса текстом.
 /salvationlist — просмотр и удаление фраз спасения с подтверждением.
@@ -118,10 +118,16 @@ func ZBAdminHelp(bot *gotgbot.Bot, ctx *ext.Context) error {
 	if ctx.EffectiveChat == nil || ctx.EffectiveUser == nil || ctx.EffectiveMessage == nil {
 		return nil
 	}
-	if !canReadMuted(bot, ctx.EffectiveUser.Id) {
+	userID := ctx.EffectiveUser.Id
+	genderAdmin := canManagePhraseGender(bot, userID)
+	if !genderAdmin && !IsAdminOrModer(userID) {
 		return sendZBHelp(bot, ctx, "Административная справка доступна только администраторам и модераторам чата.")
 	}
-	return sendZBHelp(bot, ctx, zbAdminHelpText)
+	text := zbAdminHelpText
+	if genderAdmin {
+		text += "\n\n/genderswap @ник — сменить игровой род участника.\n/gendercheck @ник — проверить игровой род участника.\nОбе команды работают в основном чате и в личке с ботом."
+	}
+	return sendZBHelp(bot, ctx, text)
 }
 
 // A group response, including access denials, is always recipient-specific.

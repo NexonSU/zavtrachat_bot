@@ -58,6 +58,10 @@ func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func
 			}
 		}
 	}
+	female, err := phraseGender(victim.Id)
+	if err != nil {
+		return err
+	}
 	// Admin-triggered ricochets never roll for salvation. Resolve salvation
 	// before touching deaths, mute time or the suicide/video burst state.
 	if !isAdmin && roll() < 33 {
@@ -70,7 +74,7 @@ func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func
 			if err := statsAdd(salvationStatType, GetStartOfDay(), victim.Id, 1); err != nil {
 				return err
 			}
-			text := strings.TrimSpace(phrase.Text)
+			text := strings.TrimSpace(phrase.forGender(female, phrase.Text, "чудом выживает"))
 			if !strings.HasSuffix(text, ".") && !strings.HasSuffix(text, "!") && !strings.HasSuffix(text, "?") && !strings.HasSuffix(text, "…") {
 				text += "."
 			}
@@ -138,10 +142,11 @@ func blessingWithSalvationRoll(bot *gotgbot.Bot, context *ext.Context, roll func
 		lastVideoSent = time.Now().Unix()
 	}
 	blessingStateMu.Unlock()
+	blessText := html.EscapeString(getBlessForGender(female))
 	if sendVideo {
-		_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, html.EscapeString(UserFullName(&victim)), prependText, GetBless(), duration, ruPlural(duration, "минуту", "минуты", "минут"))})
+		_, err = bot.SendVideo(context.Message.Chat.Id, gotgbot.InputFileByID("BAACAgIAAx0CReJGYgABAlMuYnagTilFaB8ke8Rw-dYLbfJ6iF8AAicYAAIlxrlLY9ah2fUtR40kBA"), &gotgbot.SendVideoOpts{ParseMode: gotgbot.ParseModeHTML, Caption: prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, html.EscapeString(UserFullName(&victim)), prependText, blessText, duration, ruPlural(duration, "минуту", "минуты", "минут"))})
 	} else {
-		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, html.EscapeString(UserFullName(&victim)), prependText, GetBless(), duration, ruPlural(duration, "минуту", "минуты", "минут")), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+		_, err = context.EffectiveChat.SendMessage(bot, prt.Sprintf("<code>%v💥 %v %v%v.\nРеспавн через %d %v.</code>", ricochetText, html.EscapeString(UserFullName(&victim)), prependText, blessText, duration, ruPlural(duration, "минуту", "минуты", "минут")), &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 	}
 	return err
 }

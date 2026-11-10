@@ -72,10 +72,12 @@ type Stats struct {
 
 type Salvation struct {
 	Text string `gorm:"primaryKey"`
+	PhraseVariants
 }
 
 type Bless struct {
 	Text string `gorm:"primaryKey"`
+	PhraseVariants
 }
 
 func DataBaseInit(dsn string) (gorm.DB, error) {
@@ -88,7 +90,7 @@ func DataBaseInit(dsn string) (gorm.DB, error) {
 	}
 
 	//Create tables, if they not exists in DB
-	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}, &SweetBudget{}, &QuoteProtectedIdentity{}, &Birthday{}, &BirthdayDelivery{}, &BirthdayImport{})
+	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &UserPhraseGender{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}, &SweetBudget{}, &QuoteProtectedIdentity{}, &Birthday{}, &BirthdayDelivery{}, &BirthdayImport{})
 	if err != nil {
 		if pool, poolErr := database.DB(); poolErr == nil {
 			pool.Close()
@@ -111,13 +113,17 @@ func GetNope() string {
 }
 
 func GetBless() string {
+	return getBlessForGender(false)
+}
+
+func getBlessForGender(female bool) string {
 	var bless Bless
 	DB.Model(Bless{}).Order("RANDOM()").First(&bless)
-	return bless.Text
+	return bless.forGender(female, bless.Text, "получает блесс")
 }
 
 func GetSalvation() string {
 	var salvation Salvation
 	DB.Model(Salvation{}).Order("RANDOM()").First(&salvation)
-	return salvation.Text
+	return salvation.forGender(false, salvation.Text, "")
 }
