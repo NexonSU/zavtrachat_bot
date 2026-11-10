@@ -56,7 +56,7 @@ jobs:
           go.sum
           .github/workflows/deploy.yml
     - name: Install required media tools
-      timeout-minutes: 5
+      timeout-minutes: 15
       run: |
         sudo apt-get -o Acquire::Languages=none update
         sudo apt-get install -y --no-install-recommends ffmpeg imagemagick
