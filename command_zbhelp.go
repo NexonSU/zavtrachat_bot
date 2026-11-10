@@ -112,7 +112,7 @@ const zbAdminHelpText = zbModeratorHelpText + `
 /genderswap @ник — сменить игровой род участника.
 /gendercheck @ник — проверить игровой род участника.
 Обе команды работают в основном чате и в личке с ботом.
-/importphraseforms — импорт форм фраз. Только в личке ответом на JSON-файл, для админов бота.`
+/importphraseforms — импорт форм фраз. Только в личке ответом на JSON-файл, для админов основного чата и бота.`
 
 func ZBHelp(bot *gotgbot.Bot, ctx *ext.Context) error {
 	text := zbHelpText

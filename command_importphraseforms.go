@@ -31,13 +31,15 @@ type phraseImportResult struct {
 
 func ImportPhraseForms(bot *gotgbot.Bot, ctx *ext.Context) error {
 	chat, user, msg := ctx.EffectiveChat, ctx.EffectiveUser, ctx.EffectiveMessage
-	if chat == nil || user == nil || msg == nil || chat.Type != "private" || chat.Id != user.Id ||
-		(user.Id != Config.SysAdmin && !IsAdmin(user.Id)) {
+	if chat == nil || user == nil || msg == nil || chat.Type != "private" || chat.Id != user.Id {
 		return nil
 	}
 	reply := func(text string) error {
 		_, err := bot.SendMessage(chat.Id, text, nil)
 		return err
+	}
+	if !canManagePhraseGender(bot, user.Id) {
+		return reply("Импорт доступен только администраторам основного чата и бота.")
 	}
 	target := msg.ReplyToMessage
 	if target == nil || target.Document == nil || target.Document.FileSize <= 0 ||
