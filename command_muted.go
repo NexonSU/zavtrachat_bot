@@ -17,9 +17,10 @@ const mutedPrefix = "muted:"
 const mutedPageSize = 5
 
 func canReadMuted(bot *gotgbot.Bot, userID int64) bool {
-	if userID == Config.SysAdmin || IsAdminOrModer(userID) {
-		return true
-	}
+	return userID == Config.SysAdmin || IsAdminOrModer(userID) || isTelegramChatAdmin(bot, userID)
+}
+
+func isTelegramChatAdmin(bot *gotgbot.Bot, userID int64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 	member, err := bot.GetChatMemberWithContext(ctx, Config.Chat, userID, nil)

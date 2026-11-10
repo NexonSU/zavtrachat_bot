@@ -58,7 +58,7 @@ const zbHelpText = `
 /date — дата сервера; /ping — проверка ответа бота.
 /zbhelp — эта справка.`
 
-const zbAdminHelpText = `<b>ZavtraBot — команды администраторов</b>
+const zbModeratorHelpText = `<b>ZavtraBot — команды администраторов</b>
 Эту справку видишь только ты. Для большинства команд нужны права в списках админов/модераторов бота; одного статуса админа Telegram недостаточно. Справка не расширяет права.
 Участник задаётся ответом на его сообщение, @ником или ID, если ниже не указано иначе.
 
@@ -87,7 +87,7 @@ const zbAdminHelpText = `<b>ZavtraBot — команды администрат�
 /addbless текст — добавить причину блесса (до 200 символов).
 /addsalvation текст — добавить фразу спасения (до 200 символов).
 /addnope текст — добавить фразу отказа.
-Добавлять фразы можно также командой в ответ на текст.
+Добавлять фразы можно также командой в ответ на текст. Особые формы задаются как <code>{сел|села}</code>.
 /blesslist — просмотр и удаление фраз блесса с подтверждением.
 /blesslistfull — все фразы блесса текстом.
 /salvationlist — просмотр и удаление фраз спасения с подтверждением.
@@ -106,6 +106,14 @@ const zbAdminHelpText = `<b>ZavtraBot — команды администрат�
 /restart — перезапустить бота.
 /zbadminhelp — эта справка.`
 
+const zbAdminHelpText = zbModeratorHelpText + `
+
+<b>Игровой род</b>
+/genderswap @ник — сменить игровой род участника.
+/gendercheck @ник — проверить игровой род участника.
+Обе команды работают в основном чате и в личке с ботом.
+/importphraseforms — импорт форм фраз. Только в личке ответом на JSON-файл, для админов бота.`
+
 func ZBHelp(bot *gotgbot.Bot, ctx *ext.Context) error {
 	text := zbHelpText
 	if bot.Username != "" {
@@ -118,10 +126,16 @@ func ZBAdminHelp(bot *gotgbot.Bot, ctx *ext.Context) error {
 	if ctx.EffectiveChat == nil || ctx.EffectiveUser == nil || ctx.EffectiveMessage == nil {
 		return nil
 	}
-	if !canReadMuted(bot, ctx.EffectiveUser.Id) {
+	userID := ctx.EffectiveUser.Id
+	genderAdmin := canManagePhraseGender(bot, userID)
+	if !genderAdmin && !IsAdminOrModer(userID) {
 		return sendZBHelp(bot, ctx, "Административная справка доступна только администраторам и модераторам чата.")
 	}
-	return sendZBHelp(bot, ctx, zbAdminHelpText)
+	text := zbModeratorHelpText
+	if genderAdmin {
+		text = zbAdminHelpText
+	}
+	return sendZBHelp(bot, ctx, text)
 }
 
 // A group response, including access denials, is always recipient-specific.

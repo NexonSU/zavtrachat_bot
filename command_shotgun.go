@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"strings"
 	"time"
 	"unicode/utf16"
@@ -56,6 +57,10 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 	}
 	rows.Close()
 	for _, victim := range victims {
+		female, err := phraseGender(victim.Id)
+		if err != nil {
+			return err
+		}
 		var duelist Duelist
 		result := DB.Model(Duelist{}).Where(victim.Id).First(&duelist)
 		if result.RowsAffected == 0 {
@@ -91,7 +96,7 @@ func Shotgun(bot *gotgbot.Bot, context *ext.Context) error {
 		// Mute time (stat type 7) accumulates the restriction in seconds.
 		statsAdd(7, GetStartOfDay(), victim.Id, int64(duration)*60)
 
-		text += fmt.Sprintf("%v %v%v.\n", UserFullName(&victim), prependText, GetBless())
+		text += fmt.Sprintf("%v %v%v.\n", html.EscapeString(UserFullName(&victim)), prependText, html.EscapeString(getBlessForGender(female)))
 	}
 	text += "\nРеспавн через пару минут."
 	if isMegamlem {

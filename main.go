@@ -127,6 +127,9 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "restart", Description: "перезапуск бота", IsEphemeral: true}, Restart},
 		{gotgbot.BotCommand{Command: "resurrect", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
 		{gotgbot.BotCommand{Command: "revive", Description: "возродить кого-нибудь", IsEphemeral: true}, Revive},
+		{gotgbot.BotCommand{Command: "genderswap", Description: "сменить игровой род участника", IsEphemeral: true}, GenderSwap},
+		{gotgbot.BotCommand{Command: "importphraseforms", Description: "загрузить формы игровых фраз в личке"}, ImportPhraseForms},
+		{gotgbot.BotCommand{Command: "gendercheck", Description: "проверить игровой род участника", IsEphemeral: true}, GenderCheck},
 		{gotgbot.BotCommand{Command: "addsalvation", Description: "добавить фразу спасения", IsEphemeral: true}, AddSalvation},
 		{gotgbot.BotCommand{Command: "salvationlist", Description: "управление фразами спасения в личке"}, SalvationList},
 		{gotgbot.BotCommand{Command: "salvationlistfull", Description: "все фразы спасения текстом в личке"}, SalvationListFull},
@@ -155,12 +158,12 @@ func commandListConfig() []commandList {
 func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
 	for _, entry := range commands {
 		switch entry.command.Command {
-		case "testrandom":
-			// Keep the diagnostic callable without spending a Telegram menu slot.
+		case "testrandom", "importphraseforms", "giveme", "topm":
+			// These commands remain callable without a Telegram menu slot.
 			continue
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf", "gifid":
 			private = append(private, entry.command)
-		case "muted", "zbadminhelp", "testbirthday":
+		case "muted", "zbadminhelp", "testbirthday", "genderswap", "gendercheck":
 			admin = append(admin, entry.command)
 		case "zbhelp", "sweet", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
 			group = append(group, entry.command)

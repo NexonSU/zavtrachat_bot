@@ -34,12 +34,19 @@ func AddSalvation(bot *gotgbot.Bot, context *ext.Context) error {
 	if strings.TrimSpace(salvation.Text) == "" {
 		return Reply("Укажи непустой текст спасения.", *context)
 	}
-	if len([]rune(salvation.Text)) > 200 {
+	variants, explicit, err := makePhraseVariants(salvation.Text)
+	if err != nil {
+		return Reply(err.Error(), *context)
+	}
+	if len([]rune(variants.Male)) > 200 || len([]rune(variants.Female)) > 200 {
 		return Reply("Фраза спасения не может быть длиннее 200 символов.", *context)
 	}
-	result := DB.Create(&salvation)
-	if result.Error != nil {
-		return result.Error
+	if explicit {
+		salvation.Text = variants.Male
 	}
-	return Reply(fmt.Sprintf("Фраза спасения добавлена как <code>%v</code>.", html.EscapeString(salvation.Text)), *context)
+	salvation.PhraseVariants = variants
+	if err := savePhraseVariants(&salvation, explicit); err != nil {
+		return err
+	}
+	return Reply(fmt.Sprintf("Фраза спасения добавлена как <code>%v</code>.", html.EscapeString(salvation.Text))+variants.confirmation(), *context)
 }
