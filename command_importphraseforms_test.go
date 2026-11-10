@@ -1,6 +1,44 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+)
+
+func TestPhraseImportAcceptsMainChatAdminInPrivate(t *testing.T) {
+	bot, client := setupTestEnv(t)
+	client.setMemberStatus(42, "administrator")
+
+	for _, tc := range []struct {
+		userID  int64
+		private bool
+		want    string
+	}{
+		{42, true, "Ответь /importphraseforms на JSON-файл миграции размером до 256 КБ."},
+		{300, true, "Импорт доступен только администраторам основного чата и бота."},
+		{42, false, ""},
+	} {
+		client.clearCalls()
+		msg := testMessage("/importphraseforms", testUser(tc.userID))
+		if tc.private {
+			msg.Chat.Id, msg.Chat.Type = tc.userID, "private"
+		}
+		ctx := ext.NewContext(bot, &gotgbot.Update{Message: msg}, nil)
+		if err := ImportPhraseForms(bot, ctx); err != nil {
+			t.Fatal(err)
+		}
+		replies := client.sentTexts()
+		if tc.want == "" {
+			if len(replies) != 0 {
+				t.Fatalf("unexpected public reply: %q", replies)
+			}
+		} else if len(replies) != 1 || replies[0] != tc.want {
+			t.Fatalf("user %d received %q, want %q", tc.userID, replies, tc.want)
+		}
+	}
+}
 
 func TestPhraseImportUpdatesExistingRowsOnce(t *testing.T) {
 	setupTestEnv(t)
