@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode"
 
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
