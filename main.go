@@ -158,8 +158,8 @@ func commandListConfig() []commandList {
 func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
 	for _, entry := range commands {
 		switch entry.command.Command {
-		case "testrandom", "importphraseforms":
-			// Keep the diagnostic callable without spending a Telegram menu slot.
+		case "testrandom", "importphraseforms", "giveme", "topm":
+			// These commands remain callable without a Telegram menu slot.
 			continue
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf", "gifid":
 			private = append(private, entry.command)

@@ -58,7 +58,7 @@ const zbHelpText = `
 /date — дата сервера; /ping — проверка ответа бота.
 /zbhelp — эта справка.`
 
-const zbAdminHelpText = `<b>ZavtraBot — команды администраторов</b>
+const zbModeratorHelpText = `<b>ZavtraBot — команды администраторов</b>
 Эту справку видишь только ты. Для большинства команд нужны права в списках админов/модераторов бота; одного статуса админа Telegram недостаточно. Справка не расширяет права.
 Участник задаётся ответом на его сообщение, @ником или ID, если ниже не указано иначе.
 
@@ -106,6 +106,14 @@ const zbAdminHelpText = `<b>ZavtraBot — команды администрат�
 /restart — перезапустить бота.
 /zbadminhelp — эта справка.`
 
+const zbAdminHelpText = zbModeratorHelpText + `
+
+<b>Игровой род</b>
+/genderswap @ник — сменить игровой род участника.
+/gendercheck @ник — проверить игровой род участника.
+Обе команды работают в основном чате и в личке с ботом.
+/importphraseforms — импорт форм фраз. Только в личке ответом на JSON-файл, для админов бота.`
+
 func ZBHelp(bot *gotgbot.Bot, ctx *ext.Context) error {
 	text := zbHelpText
 	if bot.Username != "" {
@@ -123,9 +131,9 @@ func ZBAdminHelp(bot *gotgbot.Bot, ctx *ext.Context) error {
 	if !genderAdmin && !IsAdminOrModer(userID) {
 		return sendZBHelp(bot, ctx, "Административная справка доступна только администраторам и модераторам чата.")
 	}
-	text := zbAdminHelpText
+	text := zbModeratorHelpText
 	if genderAdmin {
-		text += "\n\n/genderswap @ник — сменить игровой род участника.\n/gendercheck @ник — проверить игровой род участника.\nОбе команды работают в основном чате и в личке с ботом."
+		text = zbAdminHelpText
 	}
 	return sendZBHelp(bot, ctx, text)
 }
