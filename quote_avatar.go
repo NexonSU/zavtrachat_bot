@@ -32,71 +32,48 @@ func quoteAvatarWithStatus(ctx context.Context, bot *gotgbot.Bot, q quoteContent
 		return nil, "timeout"
 	}
 	opts := &gotgbot.RequestOpts{Timeout: 3 * time.Second}
-	status := "photo_unavailable"
-	lookupSucceeded := false
-	tried := make(map[string]bool)
-	try := func(ids []string) image.Image {
-		for _, id := range ids {
-			if id == "" || tried[id] || len(tried) >= 8 {
-				continue
-			}
-			if ctx.Err() != nil {
-				status = "timeout"
-				return nil
-			}
-			tried[id] = true
-			img, reason := quoteAvatarFile(ctx, bot, id, opts)
-			if img != nil {
-				return img
-			}
-			status = reason
-		}
-		return nil
-	}
-	if q.UserID != 0 {
-		photos, err := bot.GetUserProfilePhotosWithContext(ctx, q.UserID, &gotgbot.GetUserProfilePhotosOpts{Limit: 1, RequestOpts: opts})
-		if err != nil {
-			status = "profile_request_failed"
-		} else if photos != nil {
-			lookupSucceeded = true
-		}
-		if photos != nil && len(photos.Photos) > 0 {
-			sizes := append([]gotgbot.PhotoSize(nil), photos.Photos[0]...)
-			// Prefer a full image; small cached thumbnails are not always downloadable.
-			sort.SliceStable(sizes, func(i, j int) bool { return sizes[i].Width*sizes[i].Height > sizes[j].Width*sizes[j].Height })
-			var ids []string
-			for _, size := range sizes {
-				ids = append(ids, size.FileId)
-			}
-			if img := try(ids); img != nil {
-				return img, ""
-			}
-		}
-	}
-	// getChat can expose the current public photo when profile-photo history is
-	// empty/unavailable. Never look up hidden forward authors by their display name.
-	if ctx.Err() != nil {
-		return nil, "timeout"
-	}
+	status := "profile_request_failed"
+	var ids []string
+	// getChat identifies the active photo. Profile-photo history is only a
+	// fallback when Telegram cannot return the author's chat information.
 	chatID := q.ChatID
 	if chatID == 0 {
 		chatID = q.UserID
 	}
 	chat, err := bot.GetChatWithContext(ctx, chatID, &gotgbot.GetChatOpts{RequestOpts: opts})
-	if err == nil && chat != nil {
-		lookupSucceeded = true
-	}
-	if len(tried) == 0 {
-		if lookupSucceeded {
+	if err == nil && chat != nil && chat.Id == chatID {
+		status = "photo_unavailable"
+		if chat.Photo != nil {
+			ids = []string{chat.Photo.BigFileId, chat.Photo.SmallFileId}
+		}
+	} else if q.UserID != 0 && ctx.Err() == nil {
+		photos, err := bot.GetUserProfilePhotosWithContext(ctx, q.UserID, &gotgbot.GetUserProfilePhotosOpts{Limit: 1, RequestOpts: opts})
+		if err == nil && photos != nil {
 			status = "photo_unavailable"
-		} else {
-			status = "profile_request_failed"
+			if len(photos.Photos) > 0 {
+				sizes := photos.Photos[0]
+				// Prefer a full image; small thumbnails are not always downloadable.
+				sort.SliceStable(sizes, func(i, j int) bool { return sizes[i].Width*sizes[i].Height > sizes[j].Width*sizes[j].Height })
+				for _, size := range sizes {
+					ids = append(ids, size.FileId)
+				}
+			}
 		}
 	}
-	if err == nil && chat != nil && chat.Photo != nil {
-		if img := try([]string{chat.Photo.BigFileId, chat.Photo.SmallFileId}); img != nil {
+	tried := make(map[string]bool)
+	for _, id := range ids {
+		if len(tried) >= 8 || ctx.Err() != nil {
+			break
+		}
+		if id == "" || tried[id] {
+			continue
+		}
+		tried[id] = true
+		img, reason := quoteAvatarFile(ctx, bot, id, opts)
+		if img != nil {
 			return img, ""
 		}
+		status = reason
 	}
 	if ctx.Err() != nil {
 		return nil, "timeout"
