@@ -28,34 +28,43 @@ func quoteAvatarPNG(t *testing.T) []byte {
 	return b.Bytes()
 }
 
-func TestQuoteAvatarFallsBackToCurrentChatPhoto(t *testing.T) {
-	for _, failed := range []bool{false, true} {
-		t.Run(fmt.Sprint(failed), func(t *testing.T) {
-			bot, client := setupTestEnv(t)
-			client.setResult("getUserProfilePhotos", json.RawMessage(`{"total_count":0,"photos":[]}`))
-			if failed {
-				client.setError("getUserProfilePhotos", errors.New("profile request failed"))
-			}
-			client.setResult("getChat", json.RawMessage(`{"id":77,"type":"private","photo":{"small_file_id":"small","big_file_id":"big"}}`))
-			path := filepath.Join(t.TempDir(), "avatar.png")
-			if err := os.WriteFile(path, quoteAvatarPNG(t), 0600); err != nil {
-				t.Fatal(err)
-			}
-			fakeMediaFile(t, client, path)
-			img, status := quoteAvatarWithStatus(context.Background(), bot, quoteContent{UserID: 77})
-			if img == nil || status != "" {
-				t.Fatalf("fallback failed: %s", status)
-			}
-			calls := client.callsFor("getChat")
-			if len(calls) != 1 || calls[0].Params["chat_id"] != int64(77) {
-				t.Fatal("fallback queried a different author")
-			}
-		})
+func TestQuoteAvatarFollowsCurrentChatPhoto(t *testing.T) {
+	bot, client := setupTestEnv(t)
+	client.setResult("getUserProfilePhotos", json.RawMessage(`{"total_count":1,"photos":[[{"file_id":"old","width":640,"height":640}]]}`))
+	path := filepath.Join(t.TempDir(), "avatar.png")
+	if err := os.WriteFile(path, quoteAvatarPNG(t), 0600); err != nil {
+		t.Fatal(err)
+	}
+	fakeMediaFile(t, client, path)
+	q := quoteContent{UserID: 77}
+
+	for _, id := range []string{"old", "new"} {
+		client.clearCalls()
+		client.setResult("getChat", json.RawMessage(fmt.Sprintf(`{"id":77,"type":"private","photo":{"big_file_id":%q}}`, id)))
+		if img, status := quoteAvatarWithStatus(context.Background(), bot, q); img == nil || status != "" {
+			t.Fatalf("current avatar %q unavailable: %s", id, status)
+		}
+		if calls := client.callsFor("getChat"); len(calls) != 1 || calls[0].Params["chat_id"] != q.UserID {
+			t.Fatalf("current photo lookup queried the wrong author: %+v", calls)
+		}
+		if calls := client.callsFor("getFile"); len(calls) != 1 || calls[0].Params["file_id"] != id {
+			t.Fatalf("expected to download current avatar %q: %+v", id, calls)
+		}
+	}
+
+	client.clearCalls()
+	client.setResult("getChat", json.RawMessage(`{"id":77,"type":"private"}`))
+	if img, status := quoteAvatarWithStatus(context.Background(), bot, q); img != nil || status != "photo_unavailable" {
+		t.Fatalf("removed avatar should use initials: %s", status)
+	}
+	if len(client.callsFor("getFile")) != 0 || len(client.callsFor("getUserProfilePhotos")) != 0 {
+		t.Fatal("removed avatar fell back to a previous photo")
 	}
 }
 
 func TestQuoteAvatarTriesOtherPhotoSizes(t *testing.T) {
 	bot, client := setupTestEnv(t)
+	client.setError("getChat", errors.New("chat not found"))
 	client.setResult("getUserProfilePhotos", json.RawMessage(`{"total_count":1,"photos":[[{"file_id":"small","width":160,"height":160},{"file_id":"big","width":640,"height":640},{"file_id":"big","width":640,"height":640}]]}`))
 	path := filepath.Join(t.TempDir(), "avatar.png")
 	os.WriteFile(path, quoteAvatarPNG(t), 0600)
