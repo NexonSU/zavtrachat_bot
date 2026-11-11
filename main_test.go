@@ -2,6 +2,7 @@ package main
 
 import (
 	"regexp"
+	"slices"
 	"testing"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -56,5 +57,16 @@ func TestCommandList(t *testing.T) {
 	}
 	if len(commands) == 0 {
 		t.Errorf("the menu is empty")
+	}
+}
+
+func TestSaveToPMMenu(t *testing.T) {
+	group, _, admin := commandMenus(commandListConfig())
+	for _, menu := range [][]gotgbot.BotCommand{group, admin} {
+		if !slices.ContainsFunc(menu, func(command gotgbot.BotCommand) bool {
+			return command.Command == "topm" && command.IsEphemeral
+		}) {
+			t.Error("chat command menu is missing /topm")
+		}
 	}
 }
