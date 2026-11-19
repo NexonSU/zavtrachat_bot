@@ -261,11 +261,15 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 			textOutput = strings.ReplaceAll(textOutput, strings.ToUpper(dict[i][0]), strings.ToUpper(dict[i][1]))
 		}
 	}
-	requester := MentionUser(context.EffectiveUser)
+	requester := UserFullName(context.EffectiveUser)
 	if context.EffectiveUser.Username != "" {
-		requester = "@" + html.EscapeString(context.EffectiveUser.Username)
+		requester = "@" + context.EffectiveUser.Username
 	}
-	textOutput = html.EscapeString(textOutput) + "\n\nПо просьбе " + requester
+	textOutput = html.EscapeString(textOutput) + "\n\n<i>По просьбе " + html.EscapeString(requester) + "</i>"
+	// Break automatic mentions without changing their appearance. Normalize first
+	// so translating the bot's own response does not accumulate invisible characters.
+	textOutput = strings.ReplaceAll(textOutput, "@\u200b", "@")
+	textOutput = strings.ReplaceAll(textOutput, "@", "@\u200b")
 
 	_, err := Bot.SendMessage(context.EffectiveChat.Id, textOutput, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,

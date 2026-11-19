@@ -297,7 +297,7 @@ func TestKhaleesi(t *testing.T) {
 		t.Fatalf("Khaleesi: %v", err)
 	}
 	texts = client.sentTexts()
-	want := "нит\n\nПо просьбе @testpupkin"
+	want := "нит\n\n<i>По просьбе @\u200btestpupkin</i>"
 	if len(texts) != 1 || texts[0] != want {
 		t.Errorf("Khaleesi sent %q, want [%q]", texts, want)
 	}
@@ -305,7 +305,7 @@ func TestKhaleesi(t *testing.T) {
 		t.Errorf("Khaleesi: deleteMessage calls = %d, want 1", len(client.callsFor("deleteMessage")))
 	}
 
-	// Users without a username are credited by an escaped, linked display name.
+	// Users without a username are credited by an escaped, plain display name.
 	client.Calls = nil
 	requester := testUser(43)
 	requester.Username = ""
@@ -316,9 +316,26 @@ func TestKhaleesi(t *testing.T) {
 		t.Fatalf("Khaleesi (no username): %v", err)
 	}
 	texts = client.sentTexts()
-	want = "&lt;b&gt;нит&lt;/b&gt;\n\nПо просьбе <a href=\"tg://user?id=43\">&lt;Имя&gt;</a>"
+	want = "&lt;b&gt;нит&lt;/b&gt;\n\n<i>По просьбе &lt;Имя&gt;</i>"
 	if len(texts) != 1 || texts[0] != want {
 		t.Errorf("Khaleesi (no username) sent %q, want [%q]", texts, want)
+	}
+
+	// Mentions in captions and repeated translations remain plain text.
+	client.Calls = nil
+	replyTo = testMessage("", &targetUser)
+	replyTo.Caption = "@target @other_user @\u200btestpupkin нет <tag>"
+	if err := Khaleesi(bot, testReplyContext(bot, "/khaleesi", testUser(42), replyTo)); err != nil {
+		t.Fatalf("Khaleesi (mentions): %v", err)
+	}
+	texts = client.sentTexts()
+	want = "@\u200btarget @\u200bother_user @\u200btestpupkin нит &lt;tag&gt;\n\n<i>По просьбе @\u200btestpupkin</i>"
+	if len(texts) != 1 || texts[0] != want {
+		t.Errorf("Khaleesi (mentions) sent %q, want [%q]", texts, want)
+	}
+	calls := client.callsFor("sendMessage")
+	if len(calls) != 1 || calls[0].Params["parse_mode"] != gotgbot.ParseModeHTML || calls[0].Params["entities"] != nil {
+		t.Errorf("Khaleesi (mentions): expected HTML formatting without explicit mention entities: %+v", calls)
 	}
 }
 
