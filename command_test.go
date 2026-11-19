@@ -290,18 +290,35 @@ func TestKhaleesi(t *testing.T) {
 		t.Errorf("Khaleesi (no reply) sent %q, want usage message", texts)
 	}
 
-	// With reply -> text distorted, command message removed.
+	// With reply -> text distorted, requester credited, command message removed.
 	client.Calls = nil
 	replyTo := testMessage("нет", &targetUser)
 	if err := Khaleesi(bot, testReplyContext(bot, "/khaleesi", testUser(42), replyTo)); err != nil {
 		t.Fatalf("Khaleesi: %v", err)
 	}
 	texts = client.sentTexts()
-	if len(texts) != 1 || texts[0] != "нит" {
-		t.Errorf("Khaleesi sent %q, want [нит]", texts)
+	want := "нит\n\nПо просьбе @testpupkin"
+	if len(texts) != 1 || texts[0] != want {
+		t.Errorf("Khaleesi sent %q, want [%q]", texts, want)
 	}
 	if len(client.callsFor("deleteMessage")) != 1 {
 		t.Errorf("Khaleesi: deleteMessage calls = %d, want 1", len(client.callsFor("deleteMessage")))
+	}
+
+	// Users without a username are credited by an escaped, linked display name.
+	client.Calls = nil
+	requester := testUser(43)
+	requester.Username = ""
+	requester.FirstName = "<Имя>"
+	requester.LastName = ""
+	replyTo = testMessage("<b>нет</b>", &targetUser)
+	if err := Khaleesi(bot, testReplyContext(bot, "/khaleesi", requester, replyTo)); err != nil {
+		t.Fatalf("Khaleesi (no username): %v", err)
+	}
+	texts = client.sentTexts()
+	want = "&lt;b&gt;нит&lt;/b&gt;\n\nПо просьбе <a href=\"tg://user?id=43\">&lt;Имя&gt;</a>"
+	if len(texts) != 1 || texts[0] != want {
+		t.Errorf("Khaleesi (no username) sent %q, want [%q]", texts, want)
 	}
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -260,6 +261,12 @@ func Khaleesi(bot *gotgbot.Bot, context *ext.Context) error {
 			textOutput = strings.ReplaceAll(textOutput, strings.ToUpper(dict[i][0]), strings.ToUpper(dict[i][1]))
 		}
 	}
+	requester := MentionUser(context.EffectiveUser)
+	if context.EffectiveUser.Username != "" {
+		requester = "@" + html.EscapeString(context.EffectiveUser.Username)
+	}
+	textOutput = html.EscapeString(textOutput) + "\n\nПо просьбе " + requester
+
 	_, err := Bot.SendMessage(context.EffectiveChat.Id, textOutput, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		ReplyParameters: &gotgbot.ReplyParameters{
