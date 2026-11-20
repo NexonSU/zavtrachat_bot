@@ -13,10 +13,6 @@ type QuoteBudget struct {
 	Used int
 }
 
-func reserveQuote(now time.Time) (int, int64, error) {
-	return reserveCard(now, "quote_budgets", 7)
-}
-
 type SweetBudget QuoteBudget
 
 func reserveCard(now time.Time, table string, limit int) (int, int64, error) {
@@ -36,11 +32,6 @@ func reserveCard(now time.Time, table string, limit int) (int, int64, error) {
 	}
 	return limit - row.Used, hour, nil
 }
-func quoteBudgetText(left int, hour int64) string {
-	until := cardBudgetResetTime(hour)
-	return "Лимит цитат в час исчерпан. Новые цитаты будут доступны в " + until + "."
-}
-
 func cardBudgetResetTime(hour int64) string {
 	zone, _ := time.LoadLocation("Europe/Moscow")
 	return time.Unix((hour+1)*3600, 0).In(zone).Format("15:04")

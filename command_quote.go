@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"gorm.io/gorm"
 	"strings"
 	"time"
 	_ "time/tzdata"
@@ -126,30 +125,10 @@ func quoteWithLookup(bot *gotgbot.Bot, ctx *ext.Context, lookup quoteLookup) (er
 		return sendZBHelp(bot, ctx, "Цитата слишком длинная для одной карточки. Выбери сообщение покороче.")
 	}
 	q.DisplayText = quoteDisplayText(quoteFromMessage(ctx.Message.ReplyToMessage).Text, q.Text, ctx.Message.Quote)
-	remaining, hour := 0, int64(0)
-	if !admin {
-		var budgetErr error
-		remaining, hour, budgetErr = reserveQuote(time.Now())
-		if budgetErr != nil {
-			return budgetErr
-		}
-		if remaining < 0 {
-			return sendZBHelp(bot, ctx, quoteBudgetText(remaining, hour))
-		}
-		sent := false
-		defer func() {
-			if !sent {
-				DB.Model(&QuoteBudget{}).Where("hour = ? AND used > 0", hour).UpdateColumn("used", gorm.Expr("used - 1"))
-			}
-		}()
-		// Mark success only after SendPhoto returns successfully.
-
-		return sendBudgetQuote(bot, ctx, q, selectionStatus, remaining, hour, &sent)
-	}
-	return sendBudgetQuote(bot, ctx, q, selectionStatus, -1, 0, nil)
+	return sendQuoteCard(bot, ctx, q)
 }
 
-func sendBudgetQuote(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent, selectionStatus string, remaining int, hour int64, sent *bool) (err error) {
+func sendQuoteCard(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent) error {
 	jobCtx, release, err := mediaTasks.acquire(context.Background())
 	if err != nil {
 		return sendZBHelp(bot, ctx, err.Error())
@@ -161,7 +140,8 @@ func sendBudgetQuote(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent, selecti
 		return sendZBHelp(bot, ctx, fmt.Sprintf("Не удалось создать цитату: %s", err))
 	}
 	opts := &gotgbot.SendPhotoOpts{
-		Caption:         "",
+		Caption:         "Цитату запросил(а): " + MentionUser(ctx.EffectiveUser),
+		ParseMode:       gotgbot.ParseModeHTML,
 		ReplyParameters: &gotgbot.ReplyParameters{MessageId: ctx.Message.ReplyToMessage.MessageId, AllowSendingWithoutReply: true},
 	}
 	switch ctx.EffectiveChat.Type {
@@ -171,9 +151,6 @@ func sendBudgetQuote(bot *gotgbot.Bot, ctx *ext.Context, q quoteContent, selecti
 		return nil
 	}
 	_, err = bot.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("quote.png", bytes.NewReader(card)), opts)
-	if sent != nil && err == nil {
-		*sent = true
-	}
 	if err == nil {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
