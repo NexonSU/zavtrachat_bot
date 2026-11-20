@@ -141,10 +141,13 @@ func TestQuoteSendPhotoAndAvatarFallback(t *testing.T) {
 	}
 	eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
 	if eph != nil {
-		t.Fatalf("quote must reach only invoking admin: %+v", calls[0].Params)
+		t.Fatalf("quote must be public: %+v", calls[0].Params)
 	}
-	if caption, _ := calls[0].Params["caption"].(string); caption != "" {
-		t.Fatal("unexpected caption", caption)
+	if caption, _ := calls[0].Params["caption"].(string); caption != `Цитату запросил(а): <a href="tg://user?id=100">Тест Пупкин</a>` {
+		t.Fatal("wrong requester caption", caption)
+	}
+	if calls[0].Params["parse_mode"] != gotgbot.ParseModeHTML {
+		t.Fatal("requester link is not HTML")
 	}
 	deletes := client.callsFor("deleteMessage")
 	if len(deletes) != 1 || deletes[0].Params["message_id"] != ctx.Message.MessageId || deletes[0].Params["chat_id"] != ctx.EffectiveChat.Id {

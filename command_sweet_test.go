@@ -17,10 +17,14 @@ func TestSweetExhaustedBudgetIsPrivateAndSeparateFromQuote(t *testing.T) {
 			t.Fatalf("reservation %d: remaining %d, error %v", i, left, err)
 		}
 	}
-	left, _, err := reserveQuote(now)
-	if err != nil || left != 6 {
-		t.Fatalf("/sweet affected /quote: remaining %d, error %v", left, err)
+	quoteCtx := testReplyContext(bot, "/quote", testUser(42), testMessage("Привет, хорошего дня!", testUser(77)))
+	if err := Quote(bot, quoteCtx); err != nil {
+		t.Fatal(err)
 	}
+	if len(client.callsFor("sendPhoto")) != 1 {
+		t.Fatal("exhausted /sweet prevented /quote")
+	}
+	client.clearCalls()
 	ctx := testReplyContext(bot, "/sweet", testUser(42), testMessage("Привет!", testUser(77)))
 	if err := Sweet(bot, ctx); err != nil {
 		t.Fatal(err)
@@ -37,7 +41,7 @@ func TestSweetExhaustedBudgetIsPrivateAndSeparateFromQuote(t *testing.T) {
 	if len(client.callsFor("sendPhoto")) != 0 || len(client.callsFor("getUserProfilePhotos")) != 0 || len(client.callsFor("deleteMessage")) != 0 {
 		t.Fatal("exhausted /sweet started rendering or deleted the command")
 	}
-	left, _, err = reserveCard(now.Add(time.Hour), "sweet_budgets", 5)
+	left, _, err := reserveCard(now.Add(time.Hour), "sweet_budgets", 5)
 	if err != nil || left != 4 {
 		t.Fatalf("next hour: remaining %d, error %v", left, err)
 	}
