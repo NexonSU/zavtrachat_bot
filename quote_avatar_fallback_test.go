@@ -187,7 +187,7 @@ func TestQuoteAvatarPrivateStatusIsSafe(t *testing.T) {
 	}
 	eph, _ := calls[0].Params["ephemeral_message_parameters"].(*gotgbot.EphemeralMessageParameters)
 	caption, _ := calls[0].Params["caption"].(string)
-	if eph != nil || caption != "" {
-		t.Fatal("missing or non-private avatar failure hint")
+	if eph != nil || caption != "Цитату запросил(а): "+MentionUser(ctx.EffectiveUser) {
+		t.Fatal("quote caption must contain only requester attribution")
 	}
 }
