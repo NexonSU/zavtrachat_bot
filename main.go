@@ -45,6 +45,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "zbadminhelp", Description: "справка по командам администраторов", IsEphemeral: true}, ZBAdminHelp},
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов", IsEphemeral: true}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь", IsEphemeral: true}, Request},
+		{gotgbot.BotCommand{Command: "save", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
 		{gotgbot.BotCommand{Command: "savetopm", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
 		{gotgbot.BotCommand{Command: "sed", Description: "заменить текст типо как в sed", IsEphemeral: true}, Sed},
 		{gotgbot.BotCommand{Command: "khaleesi", Description: "заменить текст типо как кхалиси мем", IsEphemeral: true}, Khaleesi},
@@ -152,28 +153,31 @@ func commandListConfig() []commandList {
 	}
 }
 
-// An administrator scope replaces the group menu, so it must include all the
-// regular group commands as well. /muted and /zbadminhelp are advertised only
-// to chat admins; /zbhelp is also available in the private-chat menu.
+// Telegram uses the administrator menu in place of the group menu for admins.
+// Both menus advertise /topm, and the group menu also advertises /save and /savetopm.
 func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
 	for _, entry := range commands {
 		switch entry.command.Command {
-		case "testrandom", "importphraseforms", "giveme", "savetopm":
+		case "testrandom", "importphraseforms", "giveme":
 			// These commands remain callable without a Telegram menu slot.
+			continue
+		case "save", "savetopm":
+			// Keep both shortcuts in the group menu. The admin menu is already full.
+			group = append(group, entry.command)
 			continue
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf", "gifid":
 			private = append(private, entry.command)
+			continue
 		case "muted", "zbadminhelp", "testbirthday", "genderswap", "gendercheck":
 			admin = append(admin, entry.command)
+			continue
 		case "zbhelp", "sweet", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
-			group = append(group, entry.command)
 			private = append(private, entry.command)
-		default:
-			group = append(group, entry.command)
 		}
+		group = append(group, entry.command)
+		admin = append(admin, entry.command)
 	}
 	sort.Slice(group, func(i, j int) bool { return group[i].Command < group[j].Command })
-	admin = append(admin, group...)
 	sort.Slice(admin, func(i, j int) bool { return admin[i].Command < admin[j].Command })
 	return group, private, admin
 }

@@ -91,7 +91,7 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 | `/distort`, `/invert`, `/reverse`, `/loop` | mangle / invert / loop media | ffmpeg, `ZAVTRA_BOT_API_DATADIR` |
 | `/mp3` | download audio from a link (YouTube etc.) | yt-dlp, ffmpeg |
 | `/download`, `/wget` | download video from a link | yt-dlp |
-| `/savetopm`, `/giveme`, `/topm` | save a post to PM (copies it into the private chat, the bot must be unblocked) | — |
+| `/save`, `/savetopm`, `/giveme`, `/topm` | save a post to PM (copies it into the private chat, the bot must be unblocked) | — |
 
 Partial selections display ellipses on the omitted sides; technical status captions are omitted. `/quote` creates public quote cards from replies or selected Telegram fragments. There is no hourly limit. Each card has a “Цитату запросил(а): Name” caption linking to the user who requested it. The command message is deleted after successful card delivery. Invocations are ordinary messages; errors and administrator-only `/quote debug` replies remain private. Protected authors are configured via a private build secret or `ZAVTRA_QUOTE_PROTECTED_USERNAMES`, without publishing the roster in source, help or refusals. Only administrators may quote these authors. Forwarded original authors are checked; hidden-author forwards are administrator-only when protection is configured. Recognized protected IDs are persisted with a configuration hash across username changes. The bot creates a gradient PNG card with
 a circular avatar, original text, author, and original timestamp in Moscow time.

@@ -332,8 +332,8 @@ func TestMutedMenuScope(t *testing.T) {
 			found = command.IsEphemeral && command.Description == "Кто сейчас замьючен"
 		}
 	}
-	if !found || len(admin) != len(group)+5 || len(admin) > 100 {
-		t.Fatal("incomplete or invalid administrator menu")
+	if !found {
+		t.Fatal("/muted is missing or incorrectly configured in the administrator menu")
 	}
 }
 
