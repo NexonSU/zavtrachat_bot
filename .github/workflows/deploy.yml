@@ -120,6 +120,11 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache: false
     - name: Stage private chat channel catalog
       env:
         CHAT_CHANNELS_SEED: ${{ secrets.ZAVTRA_CHAT_CHANNELS_SEED }}
