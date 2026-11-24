@@ -45,10 +45,17 @@ type chatChannelSeedOwner struct {
 	Links    []string `json:"links"`
 }
 
-// The deploy workflow installs the private catalog alongside the bot binary.
+// The deploy build supplies the location of a private staging file, never its contents.
+var deployedChatChannelSeedPath string
+
 func chatChannelSeedPath(configured string) (string, error) {
 	if configured != "" {
 		return configured, nil
+	}
+	if deployedChatChannelSeedPath != "" {
+		// On later starts the import marker lets the bot use the database
+		// even after the workflow has removed the staging file.
+		return deployedChatChannelSeedPath, nil
 	}
 	executable, err := os.Executable()
 	if err != nil {
@@ -60,6 +67,17 @@ func chatChannelSeedPath(configured string) (string, error) {
 	} else {
 		return path, err
 	}
+}
+
+func markDeployedChatChannelsReady(seedPath string) error {
+	if seedPath == "" || seedPath != deployedChatChannelSeedPath {
+		return nil
+	}
+	err := os.WriteFile(seedPath+".ready", nil, 0600)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 var (

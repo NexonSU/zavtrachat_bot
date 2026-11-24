@@ -120,33 +120,69 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-    - name: Install private chat channel catalog
+    - name: Stage private chat channel catalog
       env:
         CHAT_CHANNELS_SEED: ${{ secrets.ZAVTRA_CHAT_CHANNELS_SEED }}
       run: |
         if [ -n "$CHAT_CHANNELS_SEED" ]; then
           umask 077
-          seed_file=$(mktemp)
-          trap 'rm -f "$seed_file"' EXIT
-          printf '%s' "$CHAT_CHANNELS_SEED" > "$seed_file"
+          seed_dir=$(mktemp -d /dev/shm/zavtrabot-catalog.XXXXXXXX)
+          printf 'CHAT_CHANNELS_SEED_DIR=%s\n' "$seed_dir" >> "$GITHUB_ENV"
+          printf '%s' "$CHAT_CHANNELS_SEED" > "$seed_dir/seed.json"
           bot_user=$(systemctl show --property=User --value telegram-go-chatbot)
-          sudo install -o "${bot_user:-root}" -m 0600 "$seed_file" /home/telegram/bot/chat-channels-seed.json
-          echo "Private chat channel catalog installed"
+          python3 - "$seed_dir" "${bot_user:-root}" <<'PY'
+        import os
+        import pwd
+        import struct
+        import sys
+        from pathlib import Path
+
+        seed_dir = Path(sys.argv[1])
+        service_uid = pwd.getpwnam(sys.argv[2]).pw_uid
+        undefined = 0xffffffff
+        # Linux POSIX ACL v2. Only the runner and bot can access the seed.
+        # The bot can traverse the directory and create the readiness file.
+        for path, owner, service in ((seed_dir, 7, 3), (seed_dir / "seed.json", 6, 4)):
+            entries = [
+                (0x01, owner, undefined), (0x02, service, service_uid),
+                (0x04, 0, undefined), (0x10, service, undefined), (0x20, 0, undefined),
+            ]
+            acl = struct.pack("<I", 2) + b"".join(struct.pack("<HHI", *entry) for entry in entries)
+            os.setxattr(path, "system.posix_acl_access", acl)
+        PY
+          echo "Private chat channel catalog staged for the bot"
         fi
     - name: Build and install bot
       env:
         QUOTE_PROTECTED_AUTHORS: ${{ secrets.ZAVTRA_QUOTE_PROTECTED_USERNAMES }}
       run: |
         test -n "$QUOTE_PROTECTED_AUTHORS"
-        go build -ldflags "-X main.quoteProtectedDefaults=$QUOTE_PROTECTED_AUTHORS" -o telegram-go-chatbot
+        ldflags="-X main.quoteProtectedDefaults=$QUOTE_PROTECTED_AUTHORS"
+        if [ -n "${CHAT_CHANNELS_SEED_DIR:-}" ]; then
+          ldflags="$ldflags -X main.deployedChatChannelSeedPath=$CHAT_CHANNELS_SEED_DIR/seed.json"
+        fi
+        go build -ldflags "$ldflags" -o telegram-go-chatbot
         sudo cp -fu telegram-go-chatbot /home/telegram/bot/
     - name: Restarting telegram-go-chatbot service
       run: |
         sudo systemctl restart telegram-go-chatbot
-        sleep 5
+        if [ -n "${CHAT_CHANNELS_SEED_DIR:-}" ]; then
+          for attempt in $(seq 1 30); do
+            if [ -f "$CHAT_CHANNELS_SEED_DIR/seed.json.ready" ]; then
+              break
+            fi
+            sleep 2
+          done
+          test -f "$CHAT_CHANNELS_SEED_DIR/seed.json.ready"
+          echo "Bot initialized the private catalog and registered its command menus"
+        else
+          sleep 5
+        fi
         systemctl is-active telegram-go-chatbot
-        bot_pid=$(systemctl show --property=MainPID --value telegram-go-chatbot)
-        if sudo -n journalctl --boot --unit=telegram-go-chatbot "_PID=$bot_pid" --output=cat \
-            --grep='init: chat channels seed ready' --lines=1 --no-pager 2>/dev/null | grep -q 'init: chat channels seed ready'; then
-          echo "Bot initialized the private chat channel catalog"
+    - name: Remove private catalog staging files
+      if: always()
+      run: |
+        if [ -n "${CHAT_CHANNELS_SEED_DIR:-}" ]; then
+          rm -f -- "$CHAT_CHANNELS_SEED_DIR/seed.json" "$CHAT_CHANNELS_SEED_DIR/seed.json.ready"
+          rmdir -- "$CHAT_CHANNELS_SEED_DIR"
         fi
