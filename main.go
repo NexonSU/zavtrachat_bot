@@ -154,21 +154,24 @@ func commandListConfig() []commandList {
 }
 
 // Telegram uses the administrator menu in place of the group menu for admins.
-// Both menus advertise /topm, and the group menu also advertises /save and /savetopm.
+// Menu visibility is independent of handler registration and permission checks.
 func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCommand) {
 	for _, entry := range commands {
 		switch entry.command.Command {
-		case "testrandom", "importphraseforms", "giveme":
+		case "addnope", "date", "giveme", "importphraseforms", "testbirthday", "testrandom":
 			// These commands remain callable without a Telegram menu slot.
 			continue
-		case "save", "savetopm":
-			// Keep both shortcuts in the group menu. The admin menu is already full.
+		case "anekdot", "isekai", "isekaitop", "meow", "pidorremovetoday", "ping", "woof":
 			group = append(group, entry.command)
 			continue
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf", "gifid":
 			private = append(private, entry.command)
 			continue
-		case "muted", "zbadminhelp", "testbirthday", "genderswap", "gendercheck":
+		case "addbless", "ban", "bite", "bless", "debug", "debuguser", "finduserinmessage",
+			"gendercheck", "genderswap", "gigabite", "gigakill", "kick", "kill",
+			"kilobite", "kilomlem", "massrevive", "megabite", "megamlem", "megarevive",
+			"mute", "muted", "redemption", "remove", "restart", "resurrect", "revive",
+			"shotgun", "ultrakill", "warn", "zbadminhelp":
 			admin = append(admin, entry.command)
 			continue
 		case "zbhelp", "sweet", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":

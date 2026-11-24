@@ -62,16 +62,19 @@ func TestCommandList(t *testing.T) {
 
 func TestSaveToPMMenu(t *testing.T) {
 	group, _, admin := commandMenus(commandListConfig())
-	for _, name := range []string{"save", "savetopm", "topm"} {
-		if !slices.ContainsFunc(group, func(command gotgbot.BotCommand) bool {
-			return command.Command == name && command.IsEphemeral
-		}) {
-			t.Errorf("group command menu is missing /%s", name)
+	for _, menu := range []struct {
+		name     string
+		commands []gotgbot.BotCommand
+	}{
+		{"group", group},
+		{"admin", admin},
+	} {
+		for _, name := range []string{"save", "savetopm", "topm"} {
+			if !slices.ContainsFunc(menu.commands, func(command gotgbot.BotCommand) bool {
+				return command.Command == name && command.IsEphemeral
+			}) {
+				t.Errorf("%s command menu is missing ephemeral /%s", menu.name, name)
+			}
 		}
-	}
-	if !slices.ContainsFunc(admin, func(command gotgbot.BotCommand) bool {
-		return command.Command == "topm" && command.IsEphemeral
-	}) {
-		t.Error("admin command menu is missing /topm")
 	}
 }
