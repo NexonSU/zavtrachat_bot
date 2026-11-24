@@ -2,6 +2,7 @@ package main
 
 import (
 	cntx "context"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -111,6 +112,9 @@ func AI(bot *gotgbot.Bot, context *ext.Context) error {
 	completeMsg := firstLineMsg
 	lastUpdate := time.Now().Unix()
 	sentMsg, err := context.Message.Reply(bot, completeMsg, nil)
+	if err != nil {
+		return fmt.Errorf("send ai placeholder: %w", err)
+	}
 
 	msgStream, err := AIAgent.Stream(aiCntx, messages)
 
