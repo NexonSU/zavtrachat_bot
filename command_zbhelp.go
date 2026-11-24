@@ -33,6 +33,11 @@ const zbHelpText = `
 /allbets — актуальные ставки; аргумент all — включая старые.
 /delbet ДД.ММ.ГГГГ текст — удалить свою ставку.
 
+<b>Каналы участников</b>
+/chatchannels — каталог каналов в основном чате. Список видишь только ты.
+/addchatchannel @свой_ник ссылка — добавить свой канал.
+/delmychatchannel [ссылка] — удалить свой канал. Если канал один, ссылка не нужна.
+
 <b>Дни рождения</b>
 /addbirthday ДД.ММ — добавить свой день рождения; /delbirthday — удалить.
 /whenyourbirthday @ник — узнать дату; /birthdays — 10 ближайших дней рождения.
@@ -107,6 +112,9 @@ const zbModeratorHelpText = `<b>ZavtraBot — команды администр�
 /zbadminhelp — эта справка.`
 
 const zbAdminHelpText = zbModeratorHelpText + `
+
+<b>Каналы участников</b>
+/delchatchannel ссылка — удалить любой канал из каталога в основном чате.
 
 <b>Игровой род</b>
 /genderswap @ник — сменить игровой род участника.

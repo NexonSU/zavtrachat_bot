@@ -65,6 +65,7 @@ type Configuration struct {
 	AntiSpamWindow          int
 	AntiSpamCount           int
 	QuoteProtectedUsernames []string
+	ChatChannelsSeedFile    string
 }
 
 // ConfigInit builds the configuration from the environment: it loads the .env
@@ -95,6 +96,7 @@ func ConfigInit() error {
 			cfg.QuoteProtectedUsernames = append(cfg.QuoteProtectedUsernames[:i], cfg.QuoteProtectedUsernames[i+1:]...)
 		}
 	}
+	cfg.ChatChannelsSeedFile = os.Getenv("ZAVTRA_CHAT_CHANNELS_SEED_FILE")
 	cfg.Token = os.Getenv("ZAVTRA_TOKEN")
 	cfg.DSN = os.Getenv("ZAVTRA_DSN")
 	cfg.AppHash = os.Getenv("ZAVTRA_APP_HASH")
