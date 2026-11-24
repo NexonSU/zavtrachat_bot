@@ -258,15 +258,23 @@ func main() {
 	commandArray, privateCommands, adminCommands := commandMenus(commandList)
 
 	_, err = Bot.SetMyCommands(commandArray, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllGroupChats{}})
+	menusReady := err == nil
 	if err != nil {
 		slog.Error(err.Error())
 	}
 	if _, err = Bot.SetMyCommands(privateCommands, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeAllPrivateChats{}}); err != nil {
+		menusReady = false
 		slog.Error(err.Error())
 	}
 
 	if _, err = Bot.SetMyCommands(adminCommands, &gotgbot.SetMyCommandsOpts{Scope: gotgbot.BotCommandScopeChatAdministrators{ChatId: Config.Chat}}); err != nil {
+		menusReady = false
 		slog.Error(err.Error())
+	}
+	if menusReady {
+		if err := markDeployedChatChannelsReady(seedPath); err != nil {
+			slog.Error("chat channels deployment confirmation", "error", err)
+		}
 	}
 
 	// Keeps retrying on its own, and logs every failure: MTProto needs a
