@@ -31,39 +31,10 @@ func BlessListFull(bot *gotgbot.Bot, ctx *ext.Context) error {
 	if strings.TrimSpace(text) == "" {
 		text = "Фраз пока нет."
 	}
-	for _, part := range blessListFullParts(text) {
+	for _, part := range splitTelegramText(text) {
 		if _, err := bot.SendMessage(ctx.EffectiveChat.Id, part, nil); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-// Count UTF-16 units conservatively and preserve every character, including
-// legacy phrases longer than one Telegram message. Prefer phrase boundaries.
-func blessListFullParts(text string) []string {
-	var parts []string
-	for len(text) > 0 {
-		units, end, boundary := 0, 0, 0
-		for i, r := range text {
-			size := 1
-			if r > 0xFFFF {
-				size = 2
-			}
-			if units+size > 4000 {
-				break
-			}
-			units += size
-			end = i + len(string(r))
-			if strings.HasPrefix(text[i:], "\n\n") && i > 0 {
-				boundary = i
-			}
-		}
-		if end < len(text) && boundary > 0 {
-			end = boundary
-		}
-		parts = append(parts, text[:end])
-		text = text[end:]
-	}
-	return parts
 }

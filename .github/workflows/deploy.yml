@@ -120,6 +120,19 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
+    - name: Install private chat channel catalog
+      env:
+        CHAT_CHANNELS_SEED: ${{ secrets.ZAVTRA_CHAT_CHANNELS_SEED }}
+      run: |
+        if [ -n "$CHAT_CHANNELS_SEED" ]; then
+          umask 077
+          seed_file=$(mktemp)
+          trap 'rm -f "$seed_file"' EXIT
+          printf '%s' "$CHAT_CHANNELS_SEED" > "$seed_file"
+          bot_user=$(systemctl show --property=User --value telegram-go-chatbot)
+          sudo install -o "${bot_user:-root}" -m 0600 "$seed_file" /home/telegram/bot/chat-channels-seed.json
+          echo "Private chat channel catalog installed"
+        fi
     - name: Build and install bot
       env:
         QUOTE_PROTECTED_AUTHORS: ${{ secrets.ZAVTRA_QUOTE_PROTECTED_USERNAMES }}
@@ -128,4 +141,12 @@ jobs:
         go build -ldflags "-X main.quoteProtectedDefaults=$QUOTE_PROTECTED_AUTHORS" -o telegram-go-chatbot
         sudo cp -fu telegram-go-chatbot /home/telegram/bot/
     - name: Restarting telegram-go-chatbot service
-      run: sudo systemctl restart telegram-go-chatbot
+      run: |
+        sudo systemctl restart telegram-go-chatbot
+        sleep 5
+        systemctl is-active telegram-go-chatbot
+        bot_pid=$(systemctl show --property=MainPID --value telegram-go-chatbot)
+        if sudo -n journalctl --boot --unit=telegram-go-chatbot "_PID=$bot_pid" --output=cat \
+            --grep='init: chat channels seed ready' --lines=1 --no-pager 2>/dev/null | grep -q 'init: chat channels seed ready'; then
+          echo "Bot initialized the private chat channel catalog"
+        fi

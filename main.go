@@ -43,6 +43,10 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "testbirthday", Description: "тест поздравления @nakxwest", IsEphemeral: true}, TestBirthday},
 		{gotgbot.BotCommand{Command: "zbhelp", Description: "справка по командам участников", IsEphemeral: true}, ZBHelp},
 		{gotgbot.BotCommand{Command: "zbadminhelp", Description: "справка по командам администраторов", IsEphemeral: true}, ZBAdminHelp},
+		{gotgbot.BotCommand{Command: "chatchannels", Description: "каталог каналов участников чата", IsEphemeral: true}, ChatChannels},
+		{gotgbot.BotCommand{Command: "addchatchannel", Description: "добавить свой канал: @ник ссылка", IsEphemeral: true}, AddChatChannel},
+		{gotgbot.BotCommand{Command: "delmychatchannel", Description: "удалить свой канал: [ссылка]", IsEphemeral: true}, DelMyChatChannel},
+		{gotgbot.BotCommand{Command: "delchatchannel", Description: "удалить любой канал из каталога: ссылка", IsEphemeral: true}, DelChatChannel},
 		{gotgbot.BotCommand{Command: "releases", Description: "список релизов", IsEphemeral: true}, Releases},
 		{gotgbot.BotCommand{Command: "russianroulette", Description: "вызвать на дуэль кого-нибудь", IsEphemeral: true}, Request},
 		{gotgbot.BotCommand{Command: "save", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
@@ -167,7 +171,7 @@ func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCo
 		case "salvationlist", "salvationlistfull", "blesslistfull", "blesslist", "perf", "gifid":
 			private = append(private, entry.command)
 			continue
-		case "addbless", "ban", "bite", "bless", "debug", "debuguser", "finduserinmessage",
+		case "addbless", "ban", "bite", "bless", "debug", "debuguser", "delchatchannel", "finduserinmessage",
 			"gendercheck", "genderswap", "gigabite", "gigakill", "kick", "kill",
 			"kilobite", "kilomlem", "massrevive", "megabite", "megamlem", "megarevive",
 			"mute", "muted", "redemption", "remove", "restart", "resurrect", "revive",
@@ -220,6 +224,16 @@ func main() {
 	if err != nil {
 		slog.Error(fmt.Sprintf("database init failed: %s", err))
 		panic(fmt.Errorf("database init failed: %s", err))
+	}
+	seedPath, err := chatChannelSeedPath(Config.ChatChannelsSeedFile)
+	if err != nil {
+		panic(fmt.Errorf("chat channels seed file: %w", err))
+	}
+	if err := importChatChannels(&DB, seedPath); err != nil {
+		panic(fmt.Errorf("chat channels import failed: %w", err))
+	}
+	if seedPath != "" {
+		slog.Info("init: chat channels seed ready")
 	}
 	slog.Info("init: bot")
 	err = BotInit()

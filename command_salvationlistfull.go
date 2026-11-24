@@ -31,7 +31,7 @@ func SalvationListFull(bot *gotgbot.Bot, ctx *ext.Context) error {
 	if strings.TrimSpace(text) == "" {
 		text = "Фраз пока нет."
 	}
-	for _, part := range blessListFullParts(text) {
+	for _, part := range splitTelegramText(text) {
 		if _, err := bot.SendMessage(ctx.EffectiveChat.Id, part, nil); err != nil {
 			return err
 		}

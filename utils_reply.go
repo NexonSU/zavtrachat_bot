@@ -5,6 +5,7 @@ package main
 // report, handler errors, spam warnings) to the sysadmin.
 
 import (
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -55,4 +56,40 @@ func ReplyAndRemove(message string, context ext.Context) error {
 		Bot.DeleteMessage(context.Message.Chat.Id, msgid, nil)
 	}(sentMessage.MessageId)
 	return nil
+}
+
+// Count UTF-16 units conservatively and preserve every character. Prefer
+// splitting at paragraph boundaries, then at line boundaries.
+func splitTelegramText(text string) []string {
+	var parts []string
+	for len(text) > 0 {
+		units, end, paragraph, line := 0, 0, 0, 0
+		for i, r := range text {
+			size := 1
+			if r > 0xFFFF {
+				size = 2
+			}
+			if units+size > 4000 {
+				break
+			}
+			units += size
+			end = i + len(string(r))
+			if r == '\n' && i > 0 {
+				line = i
+				if strings.HasPrefix(text[i:], "\n\n") {
+					paragraph = i
+				}
+			}
+		}
+		if end < len(text) {
+			if paragraph > 0 {
+				end = paragraph
+			} else if line > 0 {
+				end = line
+			}
+		}
+		parts = append(parts, text[:end])
+		text = text[end:]
+	}
+	return parts
 }
