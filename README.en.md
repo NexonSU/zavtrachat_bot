@@ -169,7 +169,7 @@ other parts of the bot are unchanged. The server owner can read these events usi
 
 | Dependency | Where it is needed |
 |---|---|
-| Go | 1.26+ (`go.mod`); CI/`Dockerfile` use `golang:1.25` as the base with toolchain auto-switch |
+| Go | 1.27.4 (`go.mod`; CI via `go-version-file`, `Dockerfile` on `golang:1.27.4`) |
 | PostgreSQL | required, tables are created by `AutoMigrate` at startup |
 | ffmpeg, ffprobe | for `/convert`, `/distort`, `/invert`, `/loop`, `/mp3` |
 | yt-dlp | for `/mp3`, `/download` (**not** installed in the Docker image) |

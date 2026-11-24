@@ -234,7 +234,7 @@ MTProto-хранилища и сторонние SQL-клиенты в счёт�
 
 | Зависимость | Где нужна |
 |---|---|
-| Go | 1.26+ (`go.mod`), в CI/`Dockerfile` база `golang:1.25` + автозамена тулчейна |
+| Go | 1.27.4 (`go.mod`, CI через `go-version-file`, `Dockerfile` на `golang:1.27.4`) |
 | PostgreSQL | обязателен, таблицы создаются `AutoMigrate` при старте |
 | ffmpeg, ffprobe | для `/convert`, `/distort`, `/invert`, `/loop`, `/mp3` |
 | yt-dlp | для `/mp3`, `/download` (в Docker-образе **не** установлен) |
