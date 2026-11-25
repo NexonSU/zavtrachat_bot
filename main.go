@@ -7,7 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os/signal"
 	"sort"
+	"sync"
+	"syscall"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -281,10 +284,25 @@ func main() {
 	// direct connection to the Telegram datacenters, so it stays down when
 	// they are unreachable while the Bot API works through a tunnel.
 	go gotdClientInit()
-	go runBetReminders(context.Background(), Bot, &DB, Config.Chat)
-	go runBirthdayReminders(context.Background(), Bot, &DB, Config.Chat)
+	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
 
-	BotUpdater.Idle()
+	var reminders sync.WaitGroup
+	reminders.Go(func() { runBetReminders(ctx, Bot, &DB, Config.Chat) })
+	reminders.Go(func() { runBirthdayReminders(ctx, Bot, &DB, Config.Chat) })
+
+	<-ctx.Done()
+	stopSignals()
+	slog.Info("shutdown: stopping updates and waiting for running handlers", "timeout", botShutdownTimeout)
+	waitReminders := func() error {
+		reminders.Wait()
+		return nil
+	}
+	if err := stopWithin(botShutdownTimeout, BotUpdater.Stop, waitReminders); err != nil {
+		slog.Error("shutdown incomplete", "error", err)
+		return
+	}
+	slog.Info("shutdown: done")
 }
 
 func GifID(bot *gotgbot.Bot, ctx *ext.Context) error {
