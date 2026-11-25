@@ -6,12 +6,36 @@ A Go Telegram bot for one specific chat. It works through the Bot API (long poll
 self-hosted Bot API server supported) and additionally uses an MTProto client for a few commands.
 State is kept in PostgreSQL.
 
-- 99 commands registered in `main.go` (some of them are aliases of the same function)
-- 112 `.go` source files, 291 tests in 49 files
-- GitHub Actions: build + deploy on a self-hosted runner, image publishing to `ghcr.io`
+- 115 commands registered in `main.go`, including aliases
+- 135 Go source files and 363 test functions across 69 test files
+- GitHub Actions runs the tests and deploys the bot on a self-hosted runner
 - License — MIT
-- Since 16.10.2026 development is driven by AI — models of the local Strata stack (`swift-1.5-iq3_xxs`,
-  `qwen3.8-flash-next-iq3_xxs`, etc., details in the [Development](#development) section)
+- The project has used AI models since October 16, 2026, including local Strata models.
+  See [Development](#development) for details.
+
+## Birthdays
+
+The bot stores the day and month in PostgreSQL and uses Telegram user IDs to keep
+birthdays linked across username changes. The initial import loads 90 dates from
+[`assets/birthdays.json`](assets/birthdays.json). Imported usernames are linked when
+the bot knows the user's ID. Deleted birthdays stay deleted after a restart.
+
+- `/addbirthday DD.MM` — add your birthday, for example `/addbirthday 23.06`. To change
+  an existing date, delete it first.
+- `/delbirthday` — remove your birthday.
+- `/whenyourbirthday @username` — look up a participant's birthday.
+- `/birthdays` — show the next ten birthdays, including today.
+- `/testbirthday` — send a public test greeting to `@nakxwest` in the main chat. Only main-chat
+  administrators, configured bot admins and the sysadmin can use it. The test leaves the
+  scheduled annual greeting available.
+
+Birthday lookups and edits reply privately and work in direct messages. From 10:00
+Moscow time the bot checks that the birthday person still belongs to the main chat,
+then posts a card with their avatar or initials. After a late restart it catches up
+on today's greetings and retries API errors on the next check. February 29 birthdays
+are celebrated on February 28 in non-leap years. PostgreSQL tracks delivery across
+restarts. A crash between Telegram delivery and the database commit can still
+produce a duplicate.
 
 ## Commands
 
@@ -24,7 +48,22 @@ Both group commands and their responses are ephemeral and visible only to the ca
 including access denials. Private chats receive ordinary private replies. Failed ephemeral
 delivery never falls back to a public response. `/zbhelp` appears in group and private menus;
 `/zbadminhelp` appears in the main-chat administrator menu and can also be typed manually
-in private chats. Existing command permissions are unchanged.
+in private chats.
+
+Telegram shows administrators of the main chat a separate menu. For example,
+`/save` and `/savetopm` appear in both group menus, and `/giveme` can be typed
+manually. The bot checks permissions when a command runs.
+
+### Participants' channels
+
+These commands work in the main chat. Only the requester can see the reply.
+
+- `/chatchannels` — browse the participants' channel directory.
+- `/addchatchannel @your_username link` — add your channel using a public Telegram link
+  or a `t.me` invite link.
+- `/delmychatchannel [link]` — remove your channel. The link is optional if you have one channel.
+- `/delchatchannel link` — remove any channel. Available to main-chat administrators,
+  users in `ZAVTRA_ADMINS` and the sysadmin.
 
 ### Moderation
 | Command | What it does |
@@ -70,16 +109,22 @@ shown as unknown. Existing game counters and restriction rules are unchanged.
 | `/salvationlist` | manage the separate salvation phrase pool in PM, with pages and confirmed deletion |
 | `/salvationlistfull` | show every salvation phrase as plain text in PM |
 | `/blesslist` | manage the shared blessing phrases in PM: pages, selection and deletion confirmation |
+| `/blesslistfull` | show every blessing phrase as plain text in PM |
+| `/gendercheck @username`, `/genderswap @username` | check or change a participant's in-game gender in the main chat or in PM |
+| `/importphraseforms` | import blessing and salvation phrase forms by replying to a JSON file in PM |
 | `/pidor`, `/pidoreg`, `/pidorlist`, `/pidorme`, `/pidorstats`, `/pidorall`, `/pidorules`, `/pidordel`, `/pidorremovetoday` | the "Pidor of the Day!" game |
 | `/slap`, `/hug`, `/bonk`, `/marco`, `/shrug`, `/me` | stickers/meme actions and the IRC-style `/me` |
 
-`/blesslist` is available in PM to users in `ZAVTRA_ADMINS` and `ZAVTRA_MODERS`.
-In groups it only directs users to PM. The pool is shared by `/blessing`, `/kill`, `/shotgun`,
+`/blesslist` and `/blesslistfull` are available in PM to users in `ZAVTRA_ADMINS` and `ZAVTRA_MODERS`.
+In groups both commands direct users to PM. The pool is shared by `/blessing`, `/kill`, `/shotgun`,
 `/megamlem` and their aliases. Deletion requires a separate confirmation of the exact text;
 the last phrase cannot be deleted. The bot keeps a recovery copy of the deleted text, which can
 be restored through the unchanged `/addbless` (up to 200 characters; longer legacy phrases show
 a warning). Buttons are bound to the user and message and
 expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statistics are unchanged.
+
+The in-game gender commands and phrase import are available to main-chat administrators,
+users in `ZAVTRA_ADMINS` and the sysadmin.
 
 ### Media
 | Command | What it does | Needs |
@@ -87,16 +132,23 @@ expire after 30 minutes; reopen `/blesslist` after expiry or a restart. Statisti
 | `/meow`, `/mlem`, `/woof` | a gif of a cat / a not-cat | MTProto |
 | `/meme` | a meme from a channel | MTProto |
 | `/quote` | a quote card from the replied-to message | — |
-| `/convert` | media conversion: `mp3`, `ogg`, `gif`, `audio`, `voice`, `animation` | ffmpeg, `ZAVTRA_BOT_API_DATADIR` |
-| `/distort`, `/invert`, `/reverse`, `/loop` | mangle / invert / loop media | ffmpeg, `ZAVTRA_BOT_API_DATADIR` |
+| `/sweet` | a greeting card for the author of the replied-to message | — |
+| `/gifid` | get a GIF's `file_id` by replying to it in PM | — |
+| `/convert` | media conversion: `mp3`, `ogg`, `gif`, `audio`, `voice`, `animation` | ffmpeg, ffprobe |
+| `/distort` | distort media | ffmpeg, ffprobe, ImageMagick (`convert` for video) |
+| `/invert`, `/reverse`, `/loop` | reverse or loop media | ffmpeg, ffprobe |
 | `/mp3` | download audio from a link (YouTube etc.) | yt-dlp, ffmpeg |
-| `/download`, `/wget` | download video from a link | yt-dlp |
+| `/download`, `/wget` | download video from a link | yt-dlp, ffmpeg |
 | `/save`, `/savetopm`, `/giveme`, `/topm` | save a post to PM (copies it into the private chat, the bot must be unblocked) | — |
+
+`/sweet` sends a card in reply to the original message in a group or in PM.
+Participants share a limit of five cards per hour. Main-chat administrators,
+users in `ZAVTRA_ADMINS` and the sysadmin can send cards without a limit.
 
 Partial selections display ellipses on the omitted sides; technical status captions are omitted. `/quote` creates public quote cards from replies or selected Telegram fragments. There is no hourly limit. Each card has a “Цитату запросил(а): Name” caption linking to the user who requested it. The command message is deleted after successful card delivery. Invocations are ordinary messages; errors and administrator-only `/quote debug` replies remain private. Protected authors are configured via a private build secret or `ZAVTRA_QUOTE_PROTECTED_USERNAMES`, without publishing the roster in source, help or refusals. Only administrators may quote these authors. Forwarded original authors are checked; hidden-author forwards are administrator-only when protection is configured. Recognized protected IDs are persisted with a configuration hash across username changes. The bot creates a gradient PNG card with
 a circular avatar, original text, author, and original timestamp in Moscow time.
 Forwarded messages retain their original attribution, including Telegram's hidden-author
-name. Avatar loading tries available photo sizes and then the current user/chat photo. File downloads reuse the Bot API HTTP client, including its proxy/TLS settings, and support shared-volume paths from local Bot API servers. All attempts share an 8-second deadline. If unavailable, initials are used with a caller-only caption explaining the failure category without tokens, URLs or IDs. Hidden forward authors are never guessed by name. Fonts are embedded; ordinary emoji are
+name. Avatar loading tries available photo sizes and then the current user/chat photo. File downloads reuse the Bot API HTTP client, including its proxy/TLS settings, and support shared-volume paths from local Bot API servers. All attempts share an 8-second deadline. If the avatar is unavailable, the card shows initials. Hidden forward authors are never guessed by name. Fonts are embedded; ordinary emoji are
 monochrome. Each new card independently selects one of four embedded Telegram-inspired wallpapers: light, night, lilac or mint. Every wallpaper is 1200×660 px. Night uses white ink and light themes use dark ink. Selection is independent of the author; repeats are allowed. Cards remain 1200 px wide with adaptive height starting at 660 px, with the background covering the canvas without changing its aspect ratio. Command arguments cannot replace
 the quotation. Text wraps without truncation; messages exceeding a 6000 px card height
 receive a usage hint instead. Hints are visible only to the requester. Cards and requester captions are public in the originating group; PM responses stay private. Delivery errors never trigger a public fallback. Rendering uses the bounded media queue. No new configuration,
@@ -118,12 +170,25 @@ rather than unrelated source text. The requester-only rejection is exactly:
 |---|---|
 | `/get`, `/getall`, `/set`, `/del`, `/setgetowner` | "gets" — saved bot answers (text/media), inline selection via `@botname` |
 | `/sed`, `/khaleesi`, `/say` | pattern-based text replacement, meme-khaleesi, making the bot say a text |
-| `/stats` | chat tops: `likes`/`reactions` (likes per message), `mutes`/`blessings` (deaths), `mutetime`/`blesstime` (time muted), `messages`, `words`; period `day`/`week`, no period means all time |
+| `/stats` | chat leaderboards: `likes`/`reactions` (likes per message), `mutes`/`blessings` (deaths), `mutetime`/`blesstime` (time muted), `messages`, `words`, `saves` (in-game saves); period `day`/`week`, no period means all time |
 | `/advice`, `/anekdot`, `/releases` | an advice, a joke, a list of game releases |
-| `/cur` | currency rates (needs `currency_key`) |
+| `/cur` | currency rates (needs `ZAVTRA_CURRENCY_KEY`) |
 | `/google` | a search link for the given text |
 | `/date`, `/ping`, `/getid`, `/testrandom`, `/tldr` | server date, pong, user ID, randomness check, note about the TLDR button |
 | `/restart` | `os.Exit(0)` — restarts the bot (needs `Restart=always` in systemd) |
+
+### Bets
+
+`/bet DD.MM.YYYY text` saves a prediction for tomorrow or a later date in Moscow
+time. `/allbets` lists bets dated today or later, and `/allbets all` includes past
+bets. The list shows when each bet was created where that date is known.
+`/delbet DD.MM.YYYY text` deletes your own bet and cancels any pending reminder.
+
+At 12:00 Moscow time on the prediction date, the bot posts a separate reminder
+for each bet in the main chat (`ZAVTRA_CHAT`). It checks at startup and every minute,
+catches up on today's reminders after a late restart and retries failed deliveries.
+PostgreSQL tracks successful deliveries across restarts. A crash after Telegram
+delivery or an ambiguous network timeout can still produce a duplicate.
 
 ### Performance measurement
 
@@ -169,19 +234,20 @@ other parts of the bot are unchanged. The server owner can read these events usi
 
 | Dependency | Where it is needed |
 |---|---|
-| Go | 1.27.4 (`go.mod`; CI test and deploy jobs via `go-version-file`, `Dockerfile` on `golang:1.27.4`) |
+| Go | 1.27.4 (`go.mod`, CI test and deploy jobs via `go-version-file`, `Dockerfile` uses `golang:1.27.4-bookworm`) |
 | PostgreSQL | required, tables are created by `AutoMigrate` at startup |
-| ffmpeg, ffprobe | for `/convert`, `/distort`, `/invert`, `/loop`, `/mp3` |
+| ffmpeg, ffprobe | media conversion and effects. `/mp3` and `/download` use ffmpeg |
+| ImageMagick | `convert` for video processing in `/distort` |
 | yt-dlp | for `/mp3`, `/download` (**not** installed in the Docker image) |
-| Self-hosted Bot API | optional: `ZAVTRA_BOT_API_URL` (applied to every API call); `ZAVTRA_BOT_API_DATADIR` so `GetMedia` reads files straight from disk (for `/convert`, `/distort`, `/invert`, `/loop`) |
+| Self-hosted Bot API | ephemeral group replies require a server that supports ephemeral messages. `ZAVTRA_BOT_API_URL` sets the URL for every Bot API call |
 | Direct access to Telegram datacenters | for the MTProto commands: TCP to `149.154.*` / `91.108.*:443` plus `app_id`/`app_hash` |
 
 ## Configuration
 
-Everything is configured through `ZAVTRA_*` environment variables. The bot loads a `.env` file from its
-working directory (`ZAVTRA_ENV_FILE` points somewhere else), and the process environment overrides it:
-the file holds the defaults, the environment holds the overrides. The template is `.env.example`; the
-`.env` itself is in `.gitignore` — it carries the bot token and the database password, keep it `0600`.
+The bot reads `ZAVTRA_*` variables from the process environment and fills in missing
+values from an optional `.env` file in the working directory. `ZAVTRA_ENV_FILE`
+selects a different path. The template is [`.env.example`](.env.example). Use permissions
+`0600` for files containing the bot token and database password.
 
 Docker: `docker run --env-file .env`, compose `env_file: .env`, systemd `EnvironmentFile=`. The `.env`
 never reaches the image (`.dockerignore`).
@@ -191,8 +257,10 @@ never reaches the image (`.dockerignore`).
 | `ZAVTRA_TOKEN` | bot token — **required** |
 | `ZAVTRA_CHAT` | ID of the main chat — **required** |
 | `ZAVTRA_DSN` | PostgreSQL DSN |
+| `ZAVTRA_CHAT_CHANNELS_SEED_FILE` | optional path to a private JSON file for a one-time import into PostgreSQL. On a manual launch without this setting, the bot looks for `chat-channels-seed.json` next to the binary |
 | `ZAVTRA_BOT_API_URL` | Bot API base URL (defaults to `https://api.telegram.org`) |
-| `ZAVTRA_BOT_API_DATADIR` | datadir of a self-hosted Bot API for reading files directly |
+| `ZAVTRA_BOT_API_DATADIR` | optional shared directory for reading self-hosted Bot API files directly |
+| `ZAVTRA_QUOTE_PROTECTED_USERNAMES` | list of protected authors for `/quote`. Overrides the build-time setting |
 | `ZAVTRA_APP_ID`, `ZAVTRA_APP_HASH` | credentials of the MTProto app, used by `/meow`, `/woof`, `/meme` |
 | `ZAVTRA_ALLOWED_UPDATES` | which updates to request (defaults to `message,channel_post,callback_query,chat_member`) |
 | `ZAVTRA_LISTEN`, `ZAVTRA_ENDPOINT_PUBLIC_URL`, `ZAVTRA_MAX_CONNECTIONS` | webhook mode; if empty — long polling |
@@ -210,13 +278,16 @@ never reaches the image (`.dockerignore`).
 Lists are comma separated (spaces and `;` separate as well). Values with spaces, `$`, `#` or newlines go
 in double quotes: `ZAVTRA_AI_SYSTEM="first line\nsecond line"`.
 
-The `.env` file is `600`: it holds the bot token and the database password.
+If a media file is unavailable on disk, `/distort` tries to download it through
+the configured Bot API. The fallback for `/convert`, `/invert`, `/reverse` and
+`/loop` uses the public `api.telegram.org`. If those files are available only
+on a self-hosted server, give the bot access to that server's file directory.
 
 ## Running
 
 ```bash
 go build -o zavtrachat_bot
-cp .env.example .env && chmod 600 .env   # fill in the token and the chat
+cp .env.example .env && chmod 600 .env   # fill in the token, chat ID, and PostgreSQL DSN
 ./zavtrachat_bot            # from the directory that holds .env
 ```
 
@@ -231,20 +302,22 @@ The image has `WORKDIR /`, `ENTRYPOINT /goapp` and ffmpeg installed; configurati
 `--env-file .env` (or single `-e ZAVTRA_TOKEN=...`). Secrets are never copied into the image
 (`.dockerignore`). `yt-dlp` is not part of the image — `/mp3` and `/download` will not work in the container.
 
-CI (`.github/workflows/`):
-- `deploy.yml` — on pull requests and pushes to `master` that change code, assets, or the workflow.
-  `Test` runs `go test -vet=all -race -count=1` on `ubuntu-latest` with a separate PostgreSQL 18 service
-  (the coverage profile is uploaded as an artifact), then on
-  `push` to `master` `Deploy` builds `telegram-go-chatbot` on a self-hosted runner, copies it to
-  `/home/telegram/bot/` and runs `systemctl restart telegram-go-chatbot`. Pull requests run the tests
-  only and never restart production; `concurrency` blocks overlapping deploys;
+[`deploy.yml`](.github/workflows/deploy.yml) lists the paths that trigger tests on
+pull requests and pushes to `master`. The tests run on `ubuntu-latest` with
+PostgreSQL 18 and upload coverage as an artifact. After tests pass for a push
+to `master`, a self-hosted runner builds `telegram-go-chatbot`, copies it to
+`/home/telegram/bot/` and restarts the service through systemd. Deployments run
+one at a time.
 
-  **The server needs a `.env` in the working directory of the service (`/home/telegram/bot/.env`)** —
-  the configuration is read from the environment only, so without the file the service will not start.
-  `0600`, owned by the service user;
-- `docker-publish_yml` — builds the image and publishes it to `ghcr.io` with a cosign signature.
-  **The file is named `_yml` instead of `.yml`, so GitHub Actions never picks it up** (workflows are
-  looked for as `*.yml`/`*.yaml`).
+The service can read its settings from the systemd environment or from `.env`
+in its working directory. This workflow requires the `ZAVTRA_QUOTE_PROTECTED_USERNAMES`
+build secret. If `ZAVTRA_CHAT_CHANNELS_SEED` is set, the workflow stages the private
+JSON for the service, checks that the catalog and command menus are ready, and
+removes the temporary files.
+
+Automatic publishing to `ghcr.io` is disabled. GitHub Actions recognizes
+`.yml` and `.yaml` extensions, and the file is named
+[`docker-publish_yml`](.github/workflows/docker-publish_yml).
 
 ## Tests
 
@@ -382,7 +455,8 @@ utils_forward.go     forwarding channel posts
 utils_files.go       go:embed of stickers and the /megamlem image (assets/*.png, assets/megamlem.jpg)
 utils_plural.go      Russian numerals (ruPlural)
 media.go             the media of a message: its type, its file, where it is on disk
-media_ffmpeg.go      FFmpegConvert — the conversion for /convert, /distort, /invert, /loop
+media_ffmpeg.go      FFmpegConvert — conversion for /convert, /invert, /reverse, /loop
+media_input.go       input file downloads for /distort and /importphraseforms
 command_*.go         commands
 duel_*.go            duel: request/accept/stats
 pidor_*.go           the "Pidor of the Day!" game
@@ -394,7 +468,8 @@ assets/              stickers, the /megamlem image (go:embed), and CREDITS.md
 
 ## MTProto client
 
-`/meow`, `/woof` and `/meme` work through MTProto (`gotgproto` + `gotd`) rather than the Bot API:
+`/meow`, `/mlem`, `/woof` and `/meme` use MTProto (`gotgproto` + `gotd`).
+`/muted` uses it to fetch the full list of restrictions.
 
 - the client starts in a background goroutine, the connection attempt is bounded by
   `protoConnectTimeout` (45 s), on failure it retries every `protoReconnectDelay` (30 s); the log shows
@@ -404,13 +479,15 @@ assets/              stickers, the /megamlem image (go:embed), and CREDITS.md
 - every request has its own deadline (60 s for RPC, 3 min for downloads), read-only requests are retried;
 - `NoUpdates: true` — the bot does not take updates away from the Bot API long polling, MTProto is used
   for RPC only;
-- `ZAVTRA_PROXY` does **not** affect MTProto: datacenters are spoken to over direct TCP, so these
-  commands need direct access to `*:443` (or a self-hosted MTProto transit).
+- MTProto needs direct TCP access to Telegram datacenters on port 443 or a separate
+  MTProto relay.
 
 ## Known quirks
 
-- `ZAVTRA_PROXY` applies only to the bot's ordinary HTTP requests (advice/anekdot/releases/file downloads);
-  Bot API and MTProto calls do not use it.
+- `ZAVTRA_PROXY` sets the proxy for ordinary HTTP requests and yt-dlp downloads.
+  Bot API and MTProto use their own network clients.
+- On `SIGTERM` or `SIGINT`, the bot stops receiving updates, cancels background
+  reminders and waits up to 30 seconds for ongoing work.
 - `/restart` calls `os.Exit(0)` — the restart must be handled by an external supervisor (`Restart=always`
   in systemd, `restart: always` in compose).
 - The dispatcher sends handler errors to the chat ("Ошибка: …" plus the context: the command
@@ -420,17 +497,16 @@ assets/              stickers, the /megamlem image (go:embed), and CREDITS.md
 
 ## Development
 
-Since **16 October 2026** development is done by AI: a model writes the changes, a human sets the
-tasks, makes the decisions and reviews the result. Every such commit is marked in its message
-(`Made with the … model.`) and as a co-author (`Co-authored-by: … <noreply@opencode.ai>`), so the AI
-contribution is visible directly in the git history.
+The project has used AI models since **October 16, 2026**. The Git history includes
+commits that identify the model (`Made with the … model.`) and co-author
+(`Co-authored-by`).
 
 Models of the local Strata stack — configurations in `~/.strata/*.json`, engine
 `~/.strata/engine/strata`, weights in `~/Strata-data/models`:
 
 | Model (`model_name`) | What it is | In this repository |
 |---|---|---|
-| `swift-1.5-iq3_xxs` | Swift-1.5 Qwen3.8-Flash-Next GSQ RCO, IQ3_XXS quant (`ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF`) | current one: test harness, MTProto/plural fixes, command tests, real `yt-dlp` tests for `/mp3` and `/download`, `.env` configuration, README |
+| `swift-1.5-iq3_xxs` | Swift-1.5 Qwen3.8-Flash-Next GSQ RCO, IQ3_XXS quant (`ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF`) | test harness, MTProto/plural fixes, command tests, real `yt-dlp` tests for `/mp3` and `/download`, `.env` configuration, README |
 | `qwen3.8-flash-next-iq3_xxs` | Qwen3.8-Flash-Next GSQ RCO, IQ3_XXS quant (`ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF`) | `e55e505` (go:embed), `30415bd` (helper tests + `RandInt` fix) |
 | `qwen3.8-flash-next` | the same model, before the separate quant | `4ab27c5` — the first AI commit (`bot_api_url` for all API calls) |
 | `orcarouter-qwen3.8-flash-next-uncensored-iq3_xxs` | Qwen3.8-Flash-Next Uncensored, IQ3_XXS | configured in `~/.strata`, not applied to this code |
