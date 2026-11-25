@@ -48,5 +48,9 @@ func SaveToPM(bot *gotgbot.Bot, context *ext.Context) error {
 		// command keeps its successful answer.
 		log.Printf("topm: the copy reached %v, the link did not: %v", context.EffectiveSender.User.Id, err)
 	}
+	// Leave the hidden command to expire in Telegram after the copy is delivered.
+	if context.EffectiveMessage.EphemeralMessageId != 0 {
+		return nil
+	}
 	return Remove(bot, context)
 }
