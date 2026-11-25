@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -221,6 +223,42 @@ func TestAIStreamError(t *testing.T) {
 	}
 	if calls := client.callsFor("editMessageText"); len(calls) != 0 {
 		t.Errorf("AI (endpoint failure): editMessageText calls = %d, want none", len(calls))
+	}
+}
+
+func TestAIReplyFailure(t *testing.T) {
+	bot, client := setupTestEnv(t)
+
+	oldSystem, oldAgent, oldURL := AISystem, AIAgent, Config.AIURL
+	t.Cleanup(func() { AISystem, AIAgent, Config.AIURL = oldSystem, oldAgent, oldURL })
+
+	var modelCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		modelCalls.Add(1)
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, `data: {"choices":[{"index":0,"delta":{"content":"ответ"},"finish_reason":"stop"}]}`+"\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	t.Cleanup(server.Close)
+
+	Config.AIURL = server.URL + "/v1"
+	AISystem = "система"
+	if err := AiInit(); err != nil {
+		t.Fatalf("AiInit: %v", err)
+	}
+
+	replyErr := errors.New("bot was blocked")
+	client.setError("sendMessage", replyErr)
+
+	err := AI(bot, testContext(bot, "/ai привет", testUser(42)))
+	if !errors.Is(err, replyErr) {
+		t.Errorf("AI (reply failure): err = %v, want the sendMessage error", err)
+	}
+	if n := modelCalls.Load(); n != 0 {
+		t.Errorf("AI (reply failure): model calls = %d, want none", n)
+	}
+	if calls := client.callsFor("editMessageText"); len(calls) != 0 {
+		t.Errorf("AI (reply failure): editMessageText calls = %d, want none", len(calls))
 	}
 }
 
