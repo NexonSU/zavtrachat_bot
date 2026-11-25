@@ -36,6 +36,28 @@ func seedPMAlbum(t *testing.T, group string, ids []int64) {
 	})
 }
 
+func TestSaveToPMEphemeralCommand(t *testing.T) {
+	bot, client := setupTestEnv(t)
+	ctx := pmAlbumContext(bot, "")
+	ctx.EffectiveMessage.MessageId = 0
+	ctx.EffectiveMessage.EphemeralMessageId = 888
+	ctx.EffectiveMessage.ReceiverUser = &bot.User
+
+	if err := SaveToPM(bot, ctx); err != nil {
+		t.Fatal(err)
+	}
+	copies := client.callsFor("copyMessage")
+	if len(copies) != 1 || copies[0].Params["chat_id"] != int64(42) || copies[0].Params["message_id"] != int64(61) {
+		t.Fatalf("copyMessage calls = %v, want one copy of message 61 to user 42", copies)
+	}
+	if texts := client.sentTexts(); !slices.Equal(texts, []string{"https://t.me/c/123/61"}) {
+		t.Errorf("sent texts = %v, want original message link", texts)
+	}
+	if len(client.callsFor("deleteEphemeralMessage")) != 0 || len(client.callsFor("deleteMessage")) != 0 {
+		t.Error("SaveToPM explicitly deleted the ephemeral command")
+	}
+}
+
 // A save must sort a snapshot without changing the live album, and must not
 // hold the cache lock while waiting for the Telegram request to finish.
 func TestSaveToPMAlbumSnapshot(t *testing.T) {
