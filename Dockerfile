@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build the application from source
-FROM golang:1.25-bookworm AS build-stage
+FROM golang:1.27.4-bookworm AS build-stage
 
 WORKDIR /
 
