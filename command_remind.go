@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"html"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -207,6 +209,11 @@ func remindAt(bot *gotgbot.Bot, ctx *ext.Context, now time.Time) error {
 	}
 	row := PersonalReminder{RequestKey: fmt.Sprintf("%d:%d:%d:%d", userID, msg.Chat.Id, msg.MessageId, msg.EphemeralMessageId), UserID: userID,
 		Text: text, SourceURL: remindSourceURL(msg.Chat, source.MessageId), DueAt: due.Unix(), NextAttemptAt: due.Unix()}
+	if msg.ReplyToMessage == nil {
+		// The standalone command is removed after saving; its text is already
+		// stored, so do not attach a link that will point to a deleted message.
+		row.SourceURL = ""
+	}
 	if msg.Chat.Type == "private" && msg.ReplyToMessage != nil {
 		row.PrivateReplyID = source.MessageId
 	}
@@ -232,7 +239,18 @@ func remindAt(bot *gotgbot.Bot, ctx *ext.Context, now time.Time) error {
 	if msg.Chat.Type == "private" {
 		return nil
 	}
-	return sendZBHelp(bot, ctx, "Напоминание сохранено. Подробности отправлены в личку; список: <code>/remind list</code>.")
+	replyErr := sendZBHelp(bot, ctx, "Напоминание сохранено. Подробности отправлены в личку; список: <code>/remind list</code>.")
+	// The reminder and DM confirmation have succeeded. Clean up ordinary
+	// group commands even if the optional hidden acknowledgement failed.
+	// Leave ephemeral commands to expire, as with /save (mobile client issue).
+	if msg.EphemeralMessageId == 0 && msg.MessageId > 0 {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if _, err := bot.DeleteMessageWithContext(cleanupCtx, msg.Chat.Id, msg.MessageId, nil); err != nil {
+			slog.Warn("remind command cleanup failed")
+		}
+	}
+	return replyErr
 }
 
 // Private-chat attachments have no shareable URL. Reply to the original instead;
