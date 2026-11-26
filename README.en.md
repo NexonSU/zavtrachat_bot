@@ -6,8 +6,8 @@ A Go Telegram bot for one specific chat. It works through the Bot API (long poll
 self-hosted Bot API server supported) and additionally uses an MTProto client for a few commands.
 State is kept in PostgreSQL.
 
-- 115 commands registered in `main.go`, including aliases
-- 135 Go source files and 363 test functions across 69 test files
+- 116 commands registered in `main.go`, including aliases
+- 137 Go source files and 375 test functions across 71 test files
 - GitHub Actions runs the tests and deploys the bot on a self-hosted runner
 - License — MIT
 - The project has used AI models since October 16, 2026, including local Strata models.
@@ -189,6 +189,38 @@ for each bet in the main chat (`ZAVTRA_CHAT`). It checks at startup and every mi
 catches up on today's reminders after a late restart and retries failed deliveries.
 PostgreSQL tracks successful deliveries across restarts. A crash after Telegram
 delivery or an ambiguous network timeout can still produce a duplicate.
+
+### Personal reminders
+
+`/remind` sends a reminder only to the requester in a private chat. It works in the
+main group and in DMs, for members and administrators, and appears in both group
+menus and the private menu. Group responses are visible only to the requester.
+Start and unblock the bot in private first: creation sends a DM confirmation and
+rolls back the reminder if that delivery fails.
+
+- Reply with `/remind 2h` to revisit a message in two hours.
+- `/remind 30m check the oven` creates a text reminder.
+- `/remind завтра 19:00 watch the video` schedules tomorrow at 19:00 Moscow time.
+- `/remind 30.11.2026 19:00 call` schedules a specific date and time.
+- `/remind list` lists your pending reminders and their IDs.
+- `/remind cancel ID` cancels your pending reminder.
+
+Durations use a whole number with `m`, `h`, `d` (or `м`, `ч`, `д`), from one minute
+to 366 days. Calendar dates and the Russian words `сегодня` / `завтра` use Moscow time.
+Without explicit text, the replied-to message text/caption is saved; uncaptioned
+media uses a generic prompt. Supergroup reminders include an original-message link.
+In DMs, the confirmation and reminder reply to the original, allowing delivery even
+if it was deleted. Media files are not copied. Text is limited to 3500 UTF-16 units;
+provide a shorter custom text for longer originals. Listing/cancellation is scoped
+to the owner, including when invoked by an administrator.
+
+Deadlines and delivery state persist in PostgreSQL. A worker checks on startup and
+every 30 seconds, catching up overdue reminders in batches of 20. Transient errors
+retry after a minute or Telegram's longer `retry_after`; errors 400/403 stop retries
+for that record. Ordinary restarts and duplicate updates do not repeat a reminder;
+row locks prevent concurrent workers from delivering the same record. A crash
+between Telegram delivery and the database commit, or an ambiguous network timeout,
+can still cause a duplicate. Cancellation may be too late if delivery is in progress.
 
 ### Performance measurement
 

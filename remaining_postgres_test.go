@@ -85,7 +85,7 @@ func TestFullPostgresMigrationAndReconnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	closeTestDB(t, &db)
-	models := []any{&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}}
+	models := []any{&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &PersonalReminder{}, &MuteEvent{}}
 	for _, model := range models {
 		if !db.Migrator().HasTable(model) {
 			t.Fatalf("missing table %T", model)
@@ -212,7 +212,7 @@ func TestFullPostgresFreshSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	closeTestDB(t, &db)
-	for _, model := range []any{&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}} {
+	for _, model := range []any{&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &PersonalReminder{}, &MuteEvent{}} {
 		if !db.Migrator().HasTable(model) {
 			t.Fatalf("missing table %T", model)
 		}

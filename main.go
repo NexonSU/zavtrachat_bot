@@ -108,6 +108,7 @@ func commandListConfig() []commandList {
 		{gotgbot.BotCommand{Command: "suicide", Description: "устроиться в роскомнадзор", IsEphemeral: true}, Blessing},
 		{gotgbot.BotCommand{Command: "topm", Description: "сохранить пост в личку", IsEphemeral: true}, SaveToPM},
 		{gotgbot.BotCommand{Command: "advice", Description: "получить совет", IsEphemeral: true}, Advice},
+		{gotgbot.BotCommand{Command: "remind", Description: "напомнить в личку: 2ч или завтра 19:00", IsEphemeral: true}, Remind},
 		{gotgbot.BotCommand{Command: "bet", Description: "поставить ставку", IsEphemeral: true}, Bet},
 		{gotgbot.BotCommand{Command: "allbets", Description: "список актуальных ставок", IsEphemeral: true}, AllBets},
 		{gotgbot.BotCommand{Command: "delbet", Description: "удалить ставку", IsEphemeral: true}, DelBet},
@@ -181,7 +182,7 @@ func commandMenus(commands []commandList) (group, private, admin []gotgbot.BotCo
 			"shotgun", "ultrakill", "warn", "zbadminhelp":
 			admin = append(admin, entry.command)
 			continue
-		case "zbhelp", "sweet", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
+		case "remind", "zbhelp", "sweet", "addbirthday", "delbirthday", "whenyourbirthday", "birthdays":
 			private = append(private, entry.command)
 		}
 		group = append(group, entry.command)
@@ -288,6 +289,7 @@ func main() {
 	defer stopSignals()
 
 	var reminders sync.WaitGroup
+	reminders.Go(func() { runPersonalReminders(ctx, Bot, &DB) })
 	reminders.Go(func() { runBetReminders(ctx, Bot, &DB, Config.Chat) })
 	reminders.Go(func() { runBirthdayReminders(ctx, Bot, &DB, Config.Chat) })
 
