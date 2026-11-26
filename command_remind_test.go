@@ -93,6 +93,81 @@ func TestRemindRegisteredMenuCommand(t *testing.T) {
 	}
 }
 
+func TestRemindGroupCommandCleanup(t *testing.T) {
+	for _, tc := range []struct {
+		name                                                  string
+		reply, private, deleteFailure, acknowledgementFailure bool
+	}{
+		{name: "reply", reply: true},
+		{name: "standalone"},
+		{name: "private", private: true},
+		{name: "delete failure", reply: true, deleteFailure: true},
+		{name: "hidden acknowledgement failure", reply: true, acknowledgementFailure: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bot, client := setupTestEnv(t)
+			Config.Chat = -1001234567890
+			msg := testMessage("/remind 2ч свой текст", testUser(42))
+			msg.Chat = gotgbot.Chat{Id: Config.Chat, Type: "supergroup"}
+			if tc.reply {
+				msg.ReplyToMessage = &gotgbot.Message{MessageId: 777, Text: "original"}
+			}
+			if tc.private {
+				msg.Chat = gotgbot.Chat{Id: 42, Type: "private"}
+			}
+			client.Errors = map[string]error{}
+			if tc.deleteFailure {
+				client.Errors["deleteMessage"] = errors.New("not enough rights")
+			}
+			confirmed := false
+			client.Observe = func(method string, params map[string]any) {
+				if method == "sendMessage" && params["chat_id"] == int64(42) {
+					confirmed = true
+				}
+				if tc.acknowledgementFailure && method == "sendMessage" && params["chat_id"] == Config.Chat {
+					client.Errors["sendMessage"] = errors.New("hidden acknowledgement failed")
+				}
+				if method == "deleteMessage" {
+					if !confirmed {
+						t.Error("deleted before DM confirmation")
+					}
+					var saved PersonalReminder
+					if err := DB.First(&saved).Error; err != nil {
+						t.Errorf("deleted before commit: %v", err)
+					}
+				}
+			}
+			ctx := ext.NewContext(bot, &gotgbot.Update{Message: msg}, nil)
+			err := Remind(bot, ctx)
+			if (err != nil) != tc.acknowledgementFailure {
+				t.Fatalf("unexpected handler result: %v", err)
+			}
+			var row PersonalReminder
+			if err := DB.First(&row).Error; err != nil {
+				t.Fatal(err)
+			}
+			calls := client.callsFor("deleteMessage")
+			if tc.private {
+				if len(calls) != 0 {
+					t.Fatal("deleted private command", calls)
+				}
+			} else if len(calls) != 1 || calls[0].Params["chat_id"] != Config.Chat || calls[0].Params["message_id"] != msg.MessageId {
+				t.Fatal("did not delete just the command", calls)
+			}
+			if len(client.callsFor("deleteEphemeralMessage")) != 0 {
+				t.Fatal("explicitly deleted ephemeral message")
+			}
+			if tc.reply && !tc.private {
+				if row.SourceURL != "https://t.me/c/1234567890/777" {
+					t.Fatal(row.SourceURL)
+				}
+			} else if row.SourceURL != "" {
+				t.Fatal("stored a link to a deleted command", row.SourceURL)
+			}
+		})
+	}
+}
+
 func TestRemindPrivateTextCaptionAndMedia(t *testing.T) {
 	for _, tc := range []struct {
 		command, caption, want string
@@ -162,6 +237,9 @@ func TestRemindValidationAndFailedConfirmation(t *testing.T) {
 	var count int64
 	if err := DB.Model(&PersonalReminder{}).Count(&count).Error; err != nil || count != 0 {
 		t.Fatalf("invalid or unconfirmed reminders persisted: %d %v", count, err)
+	}
+	if len(client.callsFor("deleteMessage"))+len(client.callsFor("deleteEphemeralMessage")) != 0 {
+		t.Fatal("deleted an invalid or unsaved command")
 	}
 	client.setError("sendMessage", nil)
 	if err := remindAt(bot, ctx, now); err != nil {

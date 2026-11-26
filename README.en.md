@@ -7,7 +7,7 @@ self-hosted Bot API server supported) and additionally uses an MTProto client fo
 State is kept in PostgreSQL.
 
 - 116 commands registered in `main.go`, including aliases
-- 137 Go source files and 375 test functions across 71 test files
+- 137 Go source files and 376 test functions across 71 test files
 - GitHub Actions runs the tests and deploys the bot on a self-hosted runner
 - License — MIT
 - The project has used AI models since October 16, 2026, including local Strata models.
@@ -196,7 +196,9 @@ delivery or an ambiguous network timeout can still produce a duplicate.
 main group and in DMs, for members and administrators, and appears in both group
 menus and the private menu. Group responses are visible only to the requester.
 Start and unblock the bot in private first: creation sends a DM confirmation and
-rolls back the reminder if that delivery fails.
+rolls back the reminder if that delivery fails. After a successful save, ordinary
+group command messages are deleted. Ephemeral menu commands expire naturally. Failed
+commands, help, `list`/`cancel`, and private-chat commands are retained.
 
 - Reply with `/remind 2h` to revisit a message in two hours.
 - `/remind 30m check the oven` creates a text reminder.
@@ -208,7 +210,7 @@ rolls back the reminder if that delivery fails.
 Durations use a whole number with `m`, `h`, `d` (or `м`, `ч`, `д`), from one minute
 to 366 days. Calendar dates and the Russian words `сегодня` / `завтра` use Moscow time.
 Without explicit text, the replied-to message text/caption is saved; uncaptioned
-media uses a generic prompt. Supergroup reminders include an original-message link.
+media uses a generic prompt. Replies in supergroups include the original-message link; standalone commands do not.
 In DMs, the confirmation and reminder reply to the original, allowing delivery even
 if it was deleted. Media files are not copied. Text is limited to 3500 UTF-16 units;
 provide a shorter custom text for longer originals. Listing/cancellation is scoped
