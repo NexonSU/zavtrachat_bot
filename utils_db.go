@@ -90,7 +90,7 @@ func DataBaseInit(dsn string) (gorm.DB, error) {
 	}
 
 	//Create tables, if they not exists in DB
-	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &UserPhraseGender{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &MuteEvent{}, &QuoteBudget{}, &SweetBudget{}, &QuoteProtectedIdentity{}, &Birthday{}, &BirthdayDelivery{}, &BirthdayImport{}, &ChatChannelOwner{}, &ChatChannel{}, &ChatChannelImport{})
+	err = database.AutoMigrate(&gotgbot.User{}, &Get{}, &Warn{}, &PidorStats{}, &PidorList{}, &Duelist{}, &Bless{}, &Salvation{}, &UserPhraseGender{}, &Nope{}, &Stats{}, &StatsWords{}, &Bets{}, &PersonalReminder{}, &MuteEvent{}, &QuoteBudget{}, &SweetBudget{}, &QuoteProtectedIdentity{}, &Birthday{}, &BirthdayDelivery{}, &BirthdayImport{}, &ChatChannelOwner{}, &ChatChannel{}, &ChatChannelImport{})
 	if err != nil {
 		if pool, poolErr := database.DB(); poolErr == nil {
 			pool.Close()
