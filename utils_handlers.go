@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -158,9 +159,10 @@ func OnReaction(bot *gotgbot.Bot, context *ext.Context) error {
 
 	return nil
 }
+
 const shchupatGIF = "CgACAgIAAx0EReJGYgABQWStaugypHVPB10OnVZd4Q_L0nXqqpcAAgwRAAKEp7lKqKkocsx-ZdM9BA"
 
-var shchupatWord = regexp.MustCompile(`(?i)(^|[^\pL\pM\pN_])(?:по|о|на|про|при|под|вы|за|пере|до|от)?щуп(?:ать|ал[аио]?|а(?:ю|ешь|ет|ем|ете|ют)|ай(?:те)?|ая|ав(?:ши|ш(?:ий|ая|ее|ие))?)(?:ся|сь)?($|[^\pL\pM\pN_])`)
+var shchupatWord = regexp.MustCompile(`(?i)(?:^|[^\pL\pM\pN_])((?:по|о|на|про|при|под|вы|за|пере|до|от)?щуп(?:ать|ал[аио]?|а(?:ю|ешь|ет|ем|ете|ют)|ай(?:те)?|ая|ав(?:ши|ш(?:ий|ая|ее|ие))?)(?:ся|сь)?)(?:$|[^\pL\pM\pN_])`)
 
 type shchupatBudget struct {
 	mu   sync.Mutex
@@ -189,16 +191,40 @@ func replyWithShchupatGIF(bot *gotgbot.Bot, msg *gotgbot.Message) {
 	case "shaikhulud", "zombak", "timurse":
 		return
 	}
-	if !shchupatWord.MatchString(msg.Text) && !shchupatWord.MatchString(msg.Caption) {
+	text := msg.GetText()
+	match := shchupatWord.FindStringSubmatchIndex(text)
+	if match == nil {
 		return
 	}
 	if !shchupatReplies.take(time.Now()) {
 		return
 	}
 
+	word := text[match[2]:match[3]]
+	position := int64(len(utf16.Encode([]rune(text[:match[2]]))))
+	reply := &gotgbot.ReplyParameters{
+		MessageId:     msg.MessageId,
+		Quote:         word,
+		QuotePosition: position,
+	}
+	// The matched word contains only Cyrillic letters, each one UTF-16 code unit.
+	end := position + int64(len([]rune(word)))
+	for _, entity := range msg.GetEntities() {
+		switch entity.Type {
+		case "bold", "italic", "underline", "strikethrough", "spoiler", "custom_emoji", "date_time":
+			start := max(position, entity.Offset)
+			stop := min(end, entity.Offset+entity.Length)
+			if start < stop {
+				entity.Offset = start - position
+				entity.Length = stop - start
+				reply.QuoteEntities = append(reply.QuoteEntities, entity)
+			}
+		}
+	}
+
 	_, err := bot.SendAnimation(msg.Chat.Id, gotgbot.InputFileByID(shchupatGIF), &gotgbot.SendAnimationOpts{
 		MessageThreadId: msg.MessageThreadId,
-		ReplyParameters: &gotgbot.ReplyParameters{MessageId: msg.MessageId},
+		ReplyParameters: reply,
 	})
 	if err != nil {
 		slog.Warn("could not send shchupat GIF", "chat_id", msg.Chat.Id, "message_id", msg.MessageId)
